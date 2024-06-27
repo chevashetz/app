@@ -1,0 +1,32 @@
+SetFactory("OpenCASCADE");
+// Создание цилиндра
+Circle(1) = {0, 0, 0, 0.1015};
+Curve Loop(1) = {1};
+Circle(2) = {0, 0, 0, 0.04};
+Curve Loop(2) = {2};
+Circle(3) = {0, 0, 1.65, 0.1015};
+Curve Loop(3) = {3};
+Circle(4) = {0, 0, 1.65, 0.04};
+Curve Loop(4) = {4};
+ThruSections(1) = {1,3};
+ThruSections(2) = {2,4};
+BooleanDifference{ Volume{1}; Delete; }{ Volume{2}; Delete; }
+Point(30) = {Cos(30*Pi/180)*0.1015, Sin(30*Pi/180)*0.1015, 0.645};
+Point(31) = {Cos(25*Pi/180)*0.1015, Sin(25*Pi/180)*0.1015, 0.645};
+Point(32) = {Cos(20*Pi/180)*0.1015, Sin(20*Pi/180)*0.1015, 0.645};
+Point(33) = {Cos(15*Pi/180)*0.1015, Sin(15*Pi/180)*0.1015, 0.645};
+Point(34) = {Cos(10*Pi/180)*0.1015, Sin(10*Pi/180)*0.1015, 0.645};
+Point(35) = {Cos(5*Pi/180)*0.1015, Sin(5*Pi/180)*0.1015, 0.645};
+Point(36) = {0.1015, 0, 0.645};
+Point(37) = {Cos(5*Pi/180)*0.1015, Sin(5*Pi/180)*-0.1015, 0.645};
+Point(38) = {Cos(10*Pi/180)*0.1015, Sin(10*Pi/180)*-0.1015, 0.645};
+Point(39) = {Cos(15*Pi/180)*0.1015, Sin(15*Pi/180)*-0.1015, 0.645};
+Point(40) = {Cos(20*Pi/180)*0.1015, Sin(20*Pi/180)*-0.1015, 0.645};
+Point(41) = {Cos(25*Pi/180)*0.1015, Sin(25*Pi/180)*-0.1015, 0.645};
+Point(42) = {Cos(30*Pi/180)*0.1015, Sin(30*Pi/180)*-0.1015, 0.645};
+Spline(50) = {30:42};
+Wire(50) = (50); 
+Point(60) = {Cos(Pi/40)*0.1015, Sin(Pi/40)*0.1015, 0.645
+Line(10) = {36,60};
+Extrude { Curve{100}; } Using Wire {50}
+EndFor
