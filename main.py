@@ -3,7 +3,7 @@ import os
 import pandas as pd
 from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QStackedWidget, QHeaderView,
-                             QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDialog, QVBoxLayout, QTabWidget)
+                             QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDialog, QVBoxLayout, QTabWidget, QMenu)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6 import uic
 import csv
@@ -213,7 +213,7 @@ class MainWindow(QMainWindow):
             else:
                 self.tableWidget2.setItem(row_count2_1, column, QTableWidgetItem(""))
 
-        self.add_buttons()
+        #self.add_buttons()
 
     def open_csv_table_dialog(self, row, column):
         print(f"open_csv_table_dialog called with row {row} and column {column}")
@@ -338,8 +338,8 @@ class MainWindow(QMainWindow):
         selected_row = self.tableWidget2.currentRow()
         if selected_row != -1:
             self.tableWidget2.removeRow(selected_row)
-            self.remove_button_for_row(selected_row)
-            self.update_button_positions()
+            #self.remove_button_for_row(selected_row)
+            #self.update_button_positions()
 
     def delete_row_2(self):
         print("Deleting row...")
@@ -373,8 +373,9 @@ class MainWindow(QMainWindow):
                          "З-133", "З-140", "З-147", "З-152", "З-161", "З-163", "З-171"])
                     self.tableWidget2.setCellWidget(row, col, combo5)
 
-        self.add_buttons()
+        #self.add_buttons()
 
+    '''
     def add_buttons(self):
         for i in range(len(self.buttons)):
             self.buttons[i].setParent(None)
@@ -386,7 +387,7 @@ class MainWindow(QMainWindow):
             if combo:
                 button = QPushButton(f"Button {i + 1}", self.widget_4)
                 button.setFixedSize(100, 30)
-                button.move(10, 40 * (i + 1) + self.tableWidget2.height())
+                button.move(1400, 40 * (i + 1) + self.tableWidget2.height())
                 button.clicked.connect(lambda checked, r=i: self.button_clicked(r, combo.currentText()))
                 button.show()
 
@@ -408,6 +409,33 @@ class MainWindow(QMainWindow):
     def button_clicked(self, row, combo_text):
         print(f"Button in row {row + 1} clicked! Selected file key: {combo_text}")
         # Дальнейшая обработка нажатия кнопки с использованием текста из ComboBox
+    '''
+
+
+    def contextMenuEvent(self, event):
+        contextMenu = QMenu(self)
+        saveAstemplate_act = QAction("Save as template", self)
+        saveAstemplate_act.triggered.connect(self.saveAstemplate)
+        contextMenu.addAction(saveAstemplate_act)
+        action = contextMenu.exec(self.mapToGlobal(event.pos()))  # Исправлено на contextMenu
+
+
+    def saveAstemplate(self):
+        row = self.tableWidget2.currentRow()
+
+        data = []
+        for column in range(self.tableWidget2.columnCount()):
+            it = self.tableWidget2.item(row, column)
+            if it is not None:
+                text = it.text()
+            else:
+                combo = self.tableWidget2.cellWidget(row, column)
+                text = combo.currentText()
+
+            data.append(text)
+        #current_column = self.tableWidget1.currentColumn()
+        print(data)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
