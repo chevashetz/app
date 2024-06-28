@@ -8,6 +8,8 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6 import uic
 import csv
 
+path1 = "D:/program/сsv_files/"
+
 class CsvTableDialog(QDialog):
     data_selected = pyqtSignal(list)  # Измените сигнал для передачи списка строк
 
@@ -77,11 +79,15 @@ class CsvTableDialog(QDialog):
         self.data_selected.emit(row_data)  # Передаем список строк
         self.accept()
 
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         # Загрузка интерфейса из файла ui
         uic.loadUi('app.ui', self)
+
+        self.file_paths = {}
+        self.current_file_path = None
 
         self.stackedWidget.setCurrentIndex(0)
         menubar = self.menuBar()
@@ -223,26 +229,34 @@ class MainWindow(QMainWindow):
                 file_key = combo.currentText()
                 print(f"Selected file key: {file_key}")
                 files = {
-                    "ВЗД": "D:/program/сsv_files/ВЗД.csv",
-                    "РУС": "D:/program/сsv_files/РУС.csv",
-                    "Бурильные трубы": "D:/program/сsv_files/Бурильные трубы.csv",
-                    "Переводник": "D:/program/сsv_files/Переводник.csv",
-                    "Предохранительный переводник": "D:/program/сsv_files/Предохранительный переводник.csv",
-                    "Обратный клапан": "D:/program/сsv_files/Обратный клапан.csv",
-                    "Ясс": "D:/program/сsv_files/Ясс.csv",
-                    "Калибратор": "D:/program/сsv_files/Калибратор.csv",
-                    "УБТ": "D:/program/сsv_files/УБТ.csv",
-                    "Телеметрия": "D:/program/сsv_files/Телеметрия.csv"
+                    "ВЗД": path1 + "/ВЗД.csv",
+                    "РУС": path1 + "/РУС.csv",
+                    "Бурильные трубы": path1 + "/Бурильные трубы.csv",
+                    "Переводник": path1 + "/Переводник.csv",
+                    "Предохранительный переводник": path1 + "/Предохранительный переводник.csv",
+                    "Обратный клапан": path1 + "/Обратный клапан.csv",
+                    "Ясс": path1 + "/Ясс.csv",
+                    "Калибратор": path1 + "/Калибратор.csv",
+                    "УБТ": path1 + "/УБТ.csv",
+                    "Телеметрия": path1 + "/Телеметрия.csv"
                 }
 
                 if file_key in files:
                     file_name = files[file_key]
                     if os.path.exists(file_name):
                         print(f"Opening file dialog for file: {file_name}")
+                        self.current_file_path = file_name  # Устанавливаем текущий путь к файлу
                         dialog = CsvTableDialog(file_name, self)
                         dialog.data_selected.connect(lambda data: self.update_table_data(data, row, column))
                         dialog.rejected.connect(lambda: self.csv_dialog_rejected(row, column))
                         dialog.exec()
+
+    def store_file_path(self, file_key, file_path):
+        self.file_paths[file_key] = file_path
+        print(f"File path stored for {file_key}: {file_path}")
+
+    def get_file_path(self, file_key):
+        return self.file_paths.get(file_key, None)
 
     def remove_widgets_from_row(self, table, row):
         for column in range(1, table.columnCount()):
@@ -335,11 +349,9 @@ class MainWindow(QMainWindow):
 
     def delete_row_1(self):
         print("Deleting row...")
-        selected_row = self.tableWidget2.currentRow()
-        if selected_row != -1:
-            self.tableWidget2.removeRow(selected_row)
-            #self.remove_button_for_row(selected_row)
-            #self.update_button_positions()
+        row_count2_1 = self.tableWidget2.rowCount()
+        if row_count2_1 > 0:
+            self.tableWidget2.setRowCount(row_count2_1 - 1)
 
     def delete_row_2(self):
         print("Deleting row...")
@@ -373,45 +385,6 @@ class MainWindow(QMainWindow):
                          "З-133", "З-140", "З-147", "З-152", "З-161", "З-163", "З-171"])
                     self.tableWidget2.setCellWidget(row, col, combo5)
 
-        #self.add_buttons()
-
-    '''
-    def add_buttons(self):
-        for i in range(len(self.buttons)):
-            self.buttons[i].setParent(None)
-        self.buttons = []
-        self.button_rows = []
-
-        for i in range(self.tableWidget2.rowCount()):
-            combo = self.tableWidget2.cellWidget(i, 0)
-            if combo:
-                button = QPushButton(f"Button {i + 1}", self.widget_4)
-                button.setFixedSize(100, 30)
-                button.move(1400, 40 * (i + 1) + self.tableWidget2.height())
-                button.clicked.connect(lambda checked, r=i: self.button_clicked(r, combo.currentText()))
-                button.show()
-
-                self.buttons.append(button)
-                self.button_rows.append(i)
-
-    def remove_button_for_row(self, row):
-        for i, button_row in enumerate(self.button_rows):
-            if button_row == row:
-                self.buttons[i].setParent(None)
-                del self.buttons[i]
-                del self.button_rows[i]
-                break
-
-    def update_button_positions(self):
-        for i, button in enumerate(self.buttons):
-            button.move(10, 40 * (self.button_rows[i] + 1) + self.tableWidget2.height())
-
-    def button_clicked(self, row, combo_text):
-        print(f"Button in row {row + 1} clicked! Selected file key: {combo_text}")
-        # Дальнейшая обработка нажатия кнопки с использованием текста из ComboBox
-    '''
-
-
     def contextMenuEvent(self, event):
         contextMenu = QMenu(self)
         saveAstemplate_act = QAction("Save as template", self)
@@ -419,23 +392,39 @@ class MainWindow(QMainWindow):
         contextMenu.addAction(saveAstemplate_act)
         action = contextMenu.exec(self.mapToGlobal(event.pos()))  # Исправлено на contextMenu
 
-
     def saveAstemplate(self):
         row = self.tableWidget2.currentRow()
-
         data = []
         for column in range(self.tableWidget2.columnCount()):
-            it = self.tableWidget2.item(row, column)
-            if it is not None:
-                text = it.text()
-            else:
-                combo = self.tableWidget2.cellWidget(row, column)
+            combo = self.tableWidget2.cellWidget(row, column)
+            if combo and isinstance(combo, QComboBox):
                 text = combo.currentText()
-
+            else:
+                item = self.tableWidget2.item(row, column)
+                text = item.text() if item is not None else ''
             data.append(text)
-        #current_column = self.tableWidget1.currentColumn()
         print(data)
+        self.write_csv(data)
 
+    def store_file_path(self, file_key, file_path):
+        self.file_paths[file_key] = file_path
+        print(f"File path stored for {file_key}: {file_path}")
+
+    def get_file_path(self, file_key):
+        return self.file_paths.get(file_key, None)
+
+    def write_csv(self, data):
+        if self.current_file_path is None:
+            print("Error: No file path set for writing data.")
+            return
+
+        try:
+            with open(self.current_file_path, 'a', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerow(data)
+            print(f"Data written to {self.current_file_path}")
+        except Exception as e:
+            print(f"Error opening file: {e}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
