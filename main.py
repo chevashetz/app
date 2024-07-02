@@ -3,10 +3,17 @@ import os
 import pandas as pd
 from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QStackedWidget, QHeaderView,
-                             QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDialog, QVBoxLayout, QTabWidget, QMenu)
+                             QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDialog, QVBoxLayout, QTabWidget,
+                             QMenu, QGraphicsScene, QGraphicsView)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6 import uic
 import csv
+import numpy as np
+import random
+from math import sqrt
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from mpl_toolkits.mplot3d import Axes3D
 
 path1 = "D:/program/сsv_files/"
 
@@ -99,7 +106,7 @@ class MainWindow(QMainWindow):
         self.open_file_act.triggered.connect(self.open_file)
         fileMenu.addAction(self.open_file_act)
 
-        self.pushButton1: QPushButton = self.findChild(QPushButton, 'pushButton')
+        #self.pushButton1: QPushButton = self.findChild(QPushButton, 'pushButton')
         self.pushButton2: QPushButton = self.findChild(QPushButton, 'pushButton_2')
         self.pushButton3: QPushButton = self.findChild(QPushButton, 'pushButton_3')
         self.pushButton4: QPushButton = self.findChild(QPushButton, 'pushButton_4')
@@ -107,6 +114,10 @@ class MainWindow(QMainWindow):
         self.pushButton6: QPushButton = self.findChild(QPushButton, 'pushButton_6')
         self.pushButton7: QPushButton = self.findChild(QPushButton, 'pushButton_7')
         self.pushButton8: QPushButton = self.findChild(QPushButton, 'pushButton_8')
+        self.pushButton9: QPushButton = self.findChild(QPushButton, 'pushButton_9')
+        self.pushButton10: QPushButton = self.findChild(QPushButton, 'pushButton_10')
+        self.pushButton11: QPushButton = self.findChild(QPushButton, 'pushButton')
+        self.pushButton12: QPushButton = self.findChild(QPushButton, 'pushButton_11')
 
         self.lineEdit1: QLineEdit = self.findChild(QLineEdit, 'lineEdit_1')
         self.lineEdit2: QLineEdit = self.findChild(QLineEdit, 'lineEdit_2')
@@ -118,25 +129,24 @@ class MainWindow(QMainWindow):
         self.tableWidget1: QTableWidget = self.findChild(QTableWidget, 'tableWidget')
         self.tableWidget2: QTableWidget = self.findChild(QTableWidget, 'tableWidget_2')
         self.tableWidget3: QTableWidget = self.findChild(QTableWidget, 'tableWidget_3')
+        self.tableWidget4: QTableWidget = self.findChild(QTableWidget, 'tableWidget_4')
+        self.tableWidget5: QTableWidget = self.findChild(QTableWidget, 'tableWidget_5')
 
         self.open_file_act: QAction = self.findChild(QAction, 'actionOpen')
+
+        self.graphicsView = self.findChild(QGraphicsView, 'graphicsView')
 
         row_count2_1 = self.tableWidget2.rowCount()
         self.tableWidget2.setRowCount(row_count2_1)
         row_count2_2 = self.tableWidget3.rowCount()
         self.tableWidget3.setRowCount(row_count2_2)
+        row_count2_3 = self.tableWidget4.rowCount()
+        self.tableWidget4.setRowCount(row_count2_3)
+        row_count2_4 = self.tableWidget5.rowCount()
+        self.tableWidget5.setRowCount(row_count2_4)
 
         self.tableWidget2.setItem(0, 0, QTableWidgetItem("Долото"))
-        combo_box1 = QComboBox()
-        combo_box1.addItems(["PDC Шестилопостное", "PDC Пятилопостное", "PDC Четырехлопостное"])
-        self.tableWidget2.setCellWidget(0, 1, combo_box1)
-        combo_box2 = QComboBox()
-        combo_box2.addItems(["Ниппель", "Муфта"])
-        self.tableWidget2.setCellWidget(0, 7, combo_box2)
-        combo_box3 = QComboBox()
-        combo_box3.addItems(["З-76", "З-86", "З-88", "З-94", "З-101", "З-102", "З-108", "З-118", "З-121", "З-122",
-                             "З-133", "З-140", "З-147", "З-152", "З-161", "З-163", "З-171"])
-        self.tableWidget2.setCellWidget(0, 8, combo_box3)
+
 
         self.tableWidget1.setContextMenuPolicy(Qt.ContextMenuPolicy.ActionsContextMenu)
         paste_action = QAction('Paste', self)
@@ -147,7 +157,7 @@ class MainWindow(QMainWindow):
         self.tableWidget1.horizontalHeader().sectionClicked.connect(self.column_clicked)
 
         self.stackedWidget.currentChanged.connect(self.on_current_index_changed)
-        self.pushButton1.clicked.connect(self.on_button_click)
+        #self.pushButton1.clicked.connect(self.on_button_click)
         self.pushButton2.clicked.connect(self.go_to_next_page)
         self.pushButton3.clicked.connect(self.add_row)
         self.pushButton4.clicked.connect(self.go_to_previous_page)
@@ -155,18 +165,27 @@ class MainWindow(QMainWindow):
         self.pushButton6.clicked.connect(self.clear_table)
         self.pushButton7.clicked.connect(self.add_row_2)
         self.pushButton8.clicked.connect(self.delete_row_2)
+        self.pushButton9.clicked.connect(self.delete_row_3)
+        self.pushButton10.clicked.connect(self.add_row_3)
+        self.pushButton11.clicked.connect(self.delete_row_4)
+        self.pushButton12.clicked.connect(self.add_row_4)
 
         self.tableWidget1.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.tableWidget2.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.tableWidget3.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.tableWidget4.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.tableWidget5.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
         self.tableWidget1.horizontalHeader().setVisible(True)
         self.tableWidget2.horizontalHeader().setVisible(True)
         self.tableWidget3.horizontalHeader().setVisible(True)
+        self.tableWidget4.horizontalHeader().setVisible(True)
+        self.tableWidget5.horizontalHeader().setVisible(True)
+
         self.pushButton4.setVisible(False)
 
         self.tableWidget2.cellDoubleClicked.connect(self.open_csv_table_dialog)
 
-        # Списки для хранения кнопок и связанных строк
         self.buttons = []
         self.button_rows = []
 
@@ -180,19 +199,12 @@ class MainWindow(QMainWindow):
             for filename in os.listdir(csv_files_path):
                 print(filename)
 
-    def on_button_click(self):
-        q = self.lineEdit1.text()
-        q1 = self.lineEdit2.text()
-        q2 = self.lineEdit3.text()
-        q3 = self.lineEdit4.text()
-        print(q, q1, q2, q3)
-
     def on_current_index_changed(self, index):
         if index == 0:
             self.pushButton4.setVisible(False)
         else:
             self.pushButton4.setVisible(True)
-        if index == 3:
+        if index == 4:
             self.pushButton2.setVisible(False)
         else:
             self.pushButton2.setVisible(True)
@@ -218,8 +230,6 @@ class MainWindow(QMainWindow):
                 self.tableWidget2.setCellWidget(row_count2_1, column, combo)
             else:
                 self.tableWidget2.setItem(row_count2_1, column, QTableWidgetItem(""))
-
-        #self.add_buttons()
 
     def open_csv_table_dialog(self, row, column):
         print(f"open_csv_table_dialog called with row {row} and column {column}")
@@ -250,6 +260,7 @@ class MainWindow(QMainWindow):
                         dialog.data_selected.connect(lambda data: self.update_table_data(data, row, column))
                         dialog.rejected.connect(lambda: self.csv_dialog_rejected(row, column))
                         dialog.exec()
+
 
     def store_file_path(self, file_key, file_path):
         self.file_paths[file_key] = file_path
@@ -323,7 +334,20 @@ class MainWindow(QMainWindow):
 
     def clear_table(self):
         print("Clearing table...")
-        self.tableWidget1.clearContents()
+        self.tableWidget1.clearContents()  # Очищает содержимое, не меняя количество строк и столбцов
+
+        # Повторно устанавливаем заголовки столбцов
+        headers = ["Глубина по стволу (м)", "Зенитный угол (град)", "Азимут (град)", "Азимут маг(град)",
+                   "Азимут дир(град)", "Глубина по верт(м)" ]
+        current_column_count = self.tableWidget1.columnCount()
+
+        # Если текущих столбцов меньше, чем заголовков, добавляем недостающие
+        if current_column_count < len(headers):
+            self.tableWidget1.setColumnCount(len(headers))
+
+        self.tableWidget1.setHorizontalHeaderLabels(headers)
+        self.tableWidget1.horizontalHeader().setVisible(True)  # Устанавливаем видимость заголовков
+        self.tableWidget1.horizontalHeader().repaint()  # Перерисовываем заголовки
 
     def add_row_2(self):
         print("Adding row to tableWidget3...")
@@ -331,6 +355,20 @@ class MainWindow(QMainWindow):
         self.tableWidget3.setRowCount(row_count2_2 + 1)
         for column in range(self.tableWidget3.columnCount()):
             self.tableWidget3.setItem(row_count2_2, column, QTableWidgetItem(""))
+
+    def add_row_3(self):
+        print("Adding row to tableWidget4...")
+        row_count2_3 = self.tableWidget4.rowCount()
+        self.tableWidget4.setRowCount(row_count2_3 + 1)
+        for column in range(self.tableWidget.columnCount()):
+            self.tableWidget4.setItem(row_count2_3, column, QTableWidgetItem(""))
+
+    def add_row_4(self):
+        print("Adding row to tableWidget4...")
+        row_count2_4 = self.tableWidget5.rowCount()
+        self.tableWidget5.setRowCount(row_count2_4 + 1)
+        for column in range(self.tableWidget.columnCount()):
+            self.tableWidget5.setItem(row_count2_4, column, QTableWidgetItem(""))
 
     def open_file(self):
         try:
@@ -344,8 +382,56 @@ class MainWindow(QMainWindow):
                     for col_index, value in enumerate(row):
                         self.tableWidget1.setItem(index, col_index, QTableWidgetItem(str(value)))
                 self.tableWidget1.horizontalHeader().setVisible(True)
+
+                self.process_and_plot_data(k)
         except Exception as e:
             print(f"Error opening file: {e}")
+
+    def process_and_plot_data(self, data):
+        current_coordinates = np.array([0.0, 0.0, 0.0], dtype=np.float64)
+        current_zenith_angle = np.radians(0)
+        current_azimuth_angle = np.radians(0)
+        selected_data = [current_coordinates.copy()]  # Добавляем начальную точку в список выбранных данных
+
+        for i in range(1, len(data)):
+            delta_L = data.iloc[i, 0] - data.iloc[i-1, 0]
+            delta_zenith_angle = np.radians(data.iloc[i, 1] - data.iloc[i-1, 1])
+            delta_azimuth_angle = np.radians(data.iloc[i, 2] - data.iloc[i-1, 2])
+
+            next_zenith_angle = current_zenith_angle + delta_zenith_angle
+            next_azimuth_angle = current_azimuth_angle + delta_azimuth_angle
+
+            delta_x = delta_L * np.sin(next_zenith_angle) * np.cos(next_azimuth_angle)
+            delta_y = delta_L * np.sin(next_zenith_angle) * np.sin(next_azimuth_angle)
+            delta_z = delta_L * np.cos(next_zenith_angle)
+
+            current_coordinates += np.array([delta_x, delta_y, delta_z])
+            selected_data.append(current_coordinates.copy())
+
+            current_zenith_angle = next_zenith_angle
+            current_azimuth_angle = next_azimuth_angle
+
+        selected_data = np.array(selected_data)
+        self.plot_graph(selected_data)
+
+    def plot_graph(self, data):
+        # Создание 3D-графика с использованием matplotlib
+        fig = Figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot(data[:, 0], data[:, 1], data[:, 2], marker='o', linewidth = 0.25)
+        ax.set_xlim([max(data[:, 0]), min(data[:, 0])])
+        ax.set_ylim([max(data[:, 1]), min(data[:, 1])])
+        ax.set_zlim([max(data[:, 2]), min(data[:, 2])])
+        ax.view_init(elev = 20, azim = 35)
+        ax.set_box_aspect([1, 1, 1])
+        # Создание сцены и добавление графика на сцену
+        scene = QGraphicsScene()
+        canvas = FigureCanvas(fig)
+        canvas.setGeometry(0, 0, 400, 600)
+        scene.addWidget(canvas)
+
+        # Отображение сцены в QGraphicsView
+        self.graphicsView.setScene(scene)
 
     def delete_row_1(self):
         print("Deleting row...")
@@ -358,6 +444,19 @@ class MainWindow(QMainWindow):
         row_count2_2 = self.tableWidget3.rowCount()
         if row_count2_2 > 0:
             self.tableWidget3.setRowCount(row_count2_2 - 1)
+
+    def delete_row_3(self):
+        print("Deleting row...")
+        row_count2_3 = self.tableWidget4.rowCount()
+        if row_count2_3 > 0:
+            self.tableWidget4.setRowCount(row_count2_3 - 1)
+
+    def delete_row_4(self):
+        print("Deleting row...")
+        row_count2_4 = self.tableWidget5.rowCount()
+        if row_count2_4 > 0:
+            self.tableWidget5.setRowCount(row_count2_4 - 1)
+
 
     def csv_dialog_rejected(self, row, column):
         print(f"CSV dialog closed without selection for row {row}, column {column}")
@@ -386,25 +485,55 @@ class MainWindow(QMainWindow):
                     self.tableWidget2.setCellWidget(row, col, combo5)
 
     def contextMenuEvent(self, event):
-        contextMenu = QMenu(self)
-        saveAstemplate_act = QAction("Save as template", self)
-        saveAstemplate_act.triggered.connect(self.saveAstemplate)
-        contextMenu.addAction(saveAstemplate_act)
-        action = contextMenu.exec(self.mapToGlobal(event.pos()))  # Исправлено на contextMenu
+        if self.childAt(event.pos()) == self.tableWidget2.viewport():
+            contextMenu = QMenu(self)
+            saveAstemplate_act = QAction("Сохранить строку", self)
+            saveAstemplate_act.triggered.connect(self.saveAstemplate)
+            contextMenu.addAction(saveAstemplate_act)
+
+            copyRow_act = QAction("Копировать строку", self)
+            copyRow_act.triggered.connect(self.copyRow)
+            contextMenu.addAction(copyRow_act)
+
+            action = contextMenu.exec(self.mapToGlobal(event.pos()))  # Исправлено на contextMenu
 
     def saveAstemplate(self):
-        row = self.tableWidget2.currentRow()
-        data = []
-        for column in range(self.tableWidget2.columnCount()):
-            combo = self.tableWidget2.cellWidget(row, column)
-            if combo and isinstance(combo, QComboBox):
-                text = combo.currentText()
-            else:
-                item = self.tableWidget2.item(row, column)
-                text = item.text() if item is not None else ''
-            data.append(text)
-        print(data)
-        self.write_csv(data)
+        # Check if current table is tableWidget2
+        if self.tableWidget2.hasFocus():
+            row = self.tableWidget2.currentRow()
+            data = []
+            for column in range(self.tableWidget2.columnCount()):
+                combo = self.tableWidget2.cellWidget(row, column)
+                if combo and isinstance(combo, QComboBox):
+                    text = combo.currentText()
+                else:
+                    item = self.tableWidget2.item(row, column)
+                    text = item.text() if item is not None else ''
+                data.append(text)
+            print(data)
+            self.write_csv(data)
+
+    def copyRow(self):
+        # Check if current table is tableWidget2
+        if self.tableWidget2.hasFocus():
+            row = self.tableWidget2.currentRow()
+            if row != -1:
+                data = []
+                for column in range(self.tableWidget2.columnCount()):
+                    combo = self.tableWidget2.cellWidget(row, column)
+                    if combo and isinstance(combo, QComboBox):
+                        text = combo.currentText()
+                    else:
+                        item = self.tableWidget2.item(row, column)
+                        text = item.text() if item is not None else ''
+                    data.append(text)
+
+                # Create a new row at the end and populate it with copied data
+                newRow = self.tableWidget2.rowCount()
+                self.tableWidget2.insertRow(newRow)
+                for column, text in enumerate(data):
+                    newItem = QTableWidgetItem(text)
+                    self.tableWidget2.setItem(newRow, column, newItem)
 
     def store_file_path(self, file_key, file_path):
         self.file_paths[file_key] = file_path
@@ -431,3 +560,4 @@ if __name__ == "__main__":
     mainWindow = MainWindow()
     mainWindow.show()
     sys.exit(app.exec())
+

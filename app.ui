@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1855</width>
-    <height>882</height>
+    <height>897</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,270 +19,30 @@
      <rect>
       <x>0</x>
       <y>0</y>
-      <width>1461</width>
-      <height>741</height>
+      <width>1651</width>
+      <height>711</height>
      </rect>
     </property>
     <property name="currentIndex">
-     <number>2</number>
+     <number>0</number>
     </property>
-    <widget class="QWidget" name="page">
-     <widget class="QWidget" name="widget" native="true">
-      <property name="geometry">
-       <rect>
-        <x>0</x>
-        <y>-120</y>
-        <width>1691</width>
-        <height>801</height>
-       </rect>
-      </property>
-      <widget class="QWidget" name="formLayoutWidget_2">
-       <property name="geometry">
-        <rect>
-         <x>20</x>
-         <y>140</y>
-         <width>1171</width>
-         <height>561</height>
-        </rect>
-       </property>
-       <layout class="QFormLayout" name="formLayout_1">
-        <item row="0" column="0">
-         <widget class="QLabel" name="label_13">
-          <property name="font">
-           <font>
-            <pointsize>14</pointsize>
-           </font>
-          </property>
-          <property name="text">
-           <string>Расход</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="1">
-         <layout class="QHBoxLayout" name="horizontalLayout_1">
-          <item>
-           <widget class="QLineEdit" name="lineEdit_1"/>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_1">
-            <property name="font">
-             <font>
-              <pointsize>10</pointsize>
-             </font>
-            </property>
-            <property name="text">
-             <string>л/cек</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item row="1" column="0">
-         <widget class="QLabel" name="label_15">
-          <property name="font">
-           <font>
-            <pointsize>14</pointsize>
-           </font>
-          </property>
-          <property name="text">
-           <string>Параметры раствора </string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="1">
-         <layout class="QVBoxLayout" name="verticalLayout_1">
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_2">
-            <item>
-             <widget class="QLabel" name="label_2">
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Модель</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="label_3">
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Тип</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="label_18">
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Плотность </string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="label_19">
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>ПВ</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="label_20">
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>ДНС</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_3">
-            <item>
-             <widget class="QComboBox" name="comboBox_3">
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <item>
-               <property name="text">
-                <string>Бингам</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>Гершель-Балкли</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>Степенная </string>
-               </property>
-              </item>
-             </widget>
-            </item>
-            <item>
-             <widget class="QComboBox" name="comboBox_4">
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <item>
-               <property name="text">
-                <string>Раствор на водной основе</string>
-               </property>
-              </item>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLineEdit" name="lineEdit_2"/>
-            </item>
-            <item>
-             <widget class="QLabel" name="label_21">
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>г/см^3</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLineEdit" name="lineEdit_3"/>
-            </item>
-            <item>
-             <widget class="QLabel" name="label_22">
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>cP</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLineEdit" name="lineEdit_4"/>
-            </item>
-            <item>
-             <widget class="QLabel" name="label_23">
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>фунт/100*фут^2*м</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QPushButton" name="pushButton">
-       <property name="geometry">
-        <rect>
-         <x>1090</x>
-         <y>720</y>
-         <width>181</width>
-         <height>41</height>
-        </rect>
-       </property>
-       <property name="font">
-        <font>
-         <pointsize>10</pointsize>
-        </font>
-       </property>
-       <property name="text">
-        <string>Ввести данные</string>
-       </property>
-      </widget>
-     </widget>
-    </widget>
     <widget class="QWidget" name="page_2">
      <widget class="QWidget" name="widget_2" native="true">
       <property name="geometry">
        <rect>
-        <x>-10</x>
-        <y>0</y>
-        <width>1281</width>
-        <height>891</height>
+        <x>-30</x>
+        <y>10</y>
+        <width>1631</width>
+        <height>681</height>
        </rect>
       </property>
       <widget class="QTableWidget" name="tableWidget">
        <property name="geometry">
         <rect>
-         <x>30</x>
-         <y>10</y>
-         <width>1251</width>
-         <height>641</height>
+         <x>50</x>
+         <y>60</y>
+         <width>891</width>
+         <height>551</height>
         </rect>
        </property>
        <property name="rowCount">
@@ -520,12 +280,12 @@
        </column>
        <column>
         <property name="text">
-         <string>Азимут истиный(град)</string>
+         <string>Азимут маг(град)</string>
         </property>
        </column>
        <column>
         <property name="text">
-         <string>Азимут магнитный(град)</string>
+         <string>Азимут дир(град)</string>
         </property>
        </column>
        <column>
@@ -537,9 +297,9 @@
       <widget class="QPushButton" name="pushButton_6">
        <property name="geometry">
         <rect>
-         <x>1100</x>
-         <y>657</y>
-         <width>181</width>
+         <x>50</x>
+         <y>630</y>
+         <width>891</width>
          <height>41</height>
         </rect>
        </property>
@@ -550,6 +310,258 @@
        </property>
        <property name="text">
         <string>Очистить таблицу</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_2">
+       <property name="geometry">
+        <rect>
+         <x>700</x>
+         <y>10</y>
+         <width>151</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>14</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Профиль </string>
+       </property>
+      </widget>
+      <widget class="QGraphicsView" name="graphicsView">
+       <property name="geometry">
+        <rect>
+         <x>960</x>
+         <y>60</y>
+         <width>501</width>
+         <height>611</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="page_4">
+     <widget class="QWidget" name="widget_3" native="true">
+      <property name="geometry">
+       <rect>
+        <x>9</x>
+        <y>9</y>
+        <width>1431</width>
+        <height>661</height>
+       </rect>
+      </property>
+      <widget class="QTableWidget" name="tableWidget_3">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>80</y>
+         <width>1411</width>
+         <height>331</height>
+        </rect>
+       </property>
+       <property name="rowCount">
+        <number>1</number>
+       </property>
+       <property name="columnCount">
+        <number>6</number>
+       </property>
+       <attribute name="horizontalHeaderCascadingSectionResizes">
+        <bool>false</bool>
+       </attribute>
+       <row/>
+       <column>
+        <property name="text">
+         <string>Название</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Индексация</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Вверх(м)</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Низ(м)</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Коэффициент кавернозности</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Плотность породы (г/см^3) </string>
+        </property>
+       </column>
+      </widget>
+      <widget class="QPushButton" name="pushButton_7">
+       <property name="geometry">
+        <rect>
+         <x>1220</x>
+         <y>510</y>
+         <width>181</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Добавить пласт</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="pushButton_8">
+       <property name="geometry">
+        <rect>
+         <x>1030</x>
+         <y>510</y>
+         <width>161</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Удалить пласт</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label">
+       <property name="geometry">
+        <rect>
+         <x>630</x>
+         <y>20</y>
+         <width>161</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>14</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Стратиграфия</string>
+       </property>
+      </widget>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="page">
+     <widget class="QWidget" name="widget" native="true">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>10</y>
+        <width>1411</width>
+        <height>681</height>
+       </rect>
+      </property>
+      <widget class="QTableWidget" name="tableWidget_4">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>50</y>
+         <width>1401</width>
+         <height>361</height>
+        </rect>
+       </property>
+       <property name="rowCount">
+        <number>1</number>
+       </property>
+       <attribute name="horizontalHeaderCascadingSectionResizes">
+        <bool>false</bool>
+       </attribute>
+       <row/>
+       <column>
+        <property name="text">
+         <string>Тип обсадной колонны</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Глубина спуска (ствол)</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Глубина спуска (вертикаль)</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Диаметр </string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Диаметр долота(мм)</string>
+        </property>
+       </column>
+      </widget>
+      <widget class="QPushButton" name="pushButton_10">
+       <property name="geometry">
+        <rect>
+         <x>1160</x>
+         <y>460</y>
+         <width>241</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Добавить обсадную колонну</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="pushButton_9">
+       <property name="geometry">
+        <rect>
+         <x>970</x>
+         <y>460</y>
+         <width>161</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Удалить</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_3">
+       <property name="geometry">
+        <rect>
+         <x>570</x>
+         <y>0</y>
+         <width>211</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>14</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Обсадные колонны</string>
        </property>
       </widget>
      </widget>
@@ -567,7 +579,7 @@
       <widget class="QPushButton" name="pushButton_3">
        <property name="geometry">
         <rect>
-         <x>1280</x>
+         <x>1250</x>
          <y>660</y>
          <width>181</width>
          <height>41</height>
@@ -585,7 +597,7 @@
       <widget class="QPushButton" name="pushButton_5">
        <property name="geometry">
         <rect>
-         <x>1100</x>
+         <x>1080</x>
          <y>660</y>
          <width>161</width>
          <height>41</height>
@@ -603,9 +615,9 @@
       <widget class="QTableWidget" name="tableWidget_2">
        <property name="geometry">
         <rect>
-         <x>10</x>
-         <y>30</y>
-         <width>1451</width>
+         <x>20</x>
+         <y>70</y>
+         <width>1411</width>
          <height>561</height>
         </rect>
        </property>
@@ -619,7 +631,7 @@
         <number>11</number>
        </property>
        <attribute name="horizontalHeaderVisible">
-        <bool>true</bool>
+        <bool>false</bool>
        </attribute>
        <attribute name="horizontalHeaderCascadingSectionResizes">
         <bool>true</bool>
@@ -712,67 +724,70 @@
       </widget>
      </widget>
     </widget>
-    <widget class="QWidget" name="page_4">
-     <widget class="QWidget" name="widget_3" native="true">
+    <widget class="QWidget" name="page_5">
+     <widget class="QWidget" name="widget_5" native="true">
       <property name="geometry">
        <rect>
-        <x>9</x>
-        <y>9</y>
-        <width>1421</width>
-        <height>701</height>
+        <x>0</x>
+        <y>0</y>
+        <width>1431</width>
+        <height>721</height>
        </rect>
       </property>
-      <widget class="QTableWidget" name="tableWidget_3">
+      <widget class="QTableWidget" name="tableWidget_5">
        <property name="geometry">
         <rect>
-         <x>10</x>
-         <y>10</y>
-         <width>1401</width>
-         <height>331</height>
+         <x>20</x>
+         <y>20</y>
+         <width>1411</width>
+         <height>421</height>
         </rect>
        </property>
        <property name="rowCount">
         <number>1</number>
        </property>
-       <property name="columnCount">
-        <number>5</number>
-       </property>
-       <attribute name="horizontalHeaderCascadingSectionResizes">
-        <bool>false</bool>
-       </attribute>
-       <row/>
+       <row>
+        <property name="text">
+         <string/>
+        </property>
+       </row>
        <column>
         <property name="text">
-         <string>Название</string>
+         <string>Наименнование </string>
         </property>
        </column>
        <column>
         <property name="text">
-         <string>Индексация</string>
+         <string>Глубина от (ствол)</string>
         </property>
        </column>
        <column>
         <property name="text">
-         <string>Вверх(м)</string>
+         <string>Глубина до (ствол)</string>
         </property>
        </column>
        <column>
         <property name="text">
-         <string>Низ(м)</string>
+         <string>Плотность г/см^3</string>
         </property>
        </column>
        <column>
         <property name="text">
-         <string>Коэффициент кавернозности</string>
+         <string>Пластическая вязкость </string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>ДНС</string>
         </property>
        </column>
       </widget>
-      <widget class="QPushButton" name="pushButton_7">
+      <widget class="QPushButton" name="pushButton">
        <property name="geometry">
         <rect>
-         <x>1230</x>
-         <y>360</y>
-         <width>181</width>
+         <x>1070</x>
+         <y>470</y>
+         <width>171</width>
          <height>41</height>
         </rect>
        </property>
@@ -782,15 +797,15 @@
         </font>
        </property>
        <property name="text">
-        <string>Добавить строку</string>
+        <string>Удалить раствор</string>
        </property>
       </widget>
-      <widget class="QPushButton" name="pushButton_8">
+      <widget class="QPushButton" name="pushButton_11">
        <property name="geometry">
         <rect>
-         <x>1030</x>
-         <y>360</y>
-         <width>161</width>
+         <x>1280</x>
+         <y>470</y>
+         <width>151</width>
          <height>41</height>
         </rect>
        </property>
@@ -800,7 +815,7 @@
         </font>
        </property>
        <property name="text">
-        <string>Удалить строку</string>
+        <string>Добавить раствор</string>
        </property>
       </widget>
      </widget>
@@ -810,7 +825,7 @@
     <property name="geometry">
      <rect>
       <x>1250</x>
-      <y>730</y>
+      <y>700</y>
       <width>181</width>
       <height>41</height>
      </rect>
@@ -828,7 +843,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>720</y>
+      <y>690</y>
       <width>221</width>
       <height>41</height>
      </rect>
