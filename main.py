@@ -1,7 +1,7 @@
 import sys
 import os
 import pandas as pd
-from PyQt6.QtGui import QAction, QKeySequence
+from PyQt6.QtGui import QAction, QUndoStack, QUndoCommand, QKeySequence
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QStackedWidget, QHeaderView,
                              QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDialog, QVBoxLayout, QTabWidget,
                              QMenu, QGraphicsScene, QGraphicsView)
@@ -9,16 +9,15 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6 import uic
 import csv
 import numpy as np
-import random
-from math import sqrt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from mpl_toolkits.mplot3d import Axes3D
 
 path1 = "D:/program/сsv_files/"
 
+
 class CsvTableDialog(QDialog):
-    data_selected = pyqtSignal(list)  # Измените сигнал для передачи списка строк
+    data_selected = pyqtSignal(list)
 
     def __init__(self, file_name, parent=None):
         super().__init__(parent)
@@ -62,17 +61,14 @@ class CsvTableDialog(QDialog):
                             self.tableWidget.setItem(row, col, item)
 
                     self.tableWidget.cellDoubleClicked.connect(self.cell_was_double_clicked)
-
                 else:
                     print("No data found in the file.")
-
         except FileNotFoundError:
             print(f"File {self.file_name} not found.")
         except Exception as e:
             print(f"An error occurred while reading the file: {e}")
 
     def cell_was_double_clicked(self, row, column):
-        # Извлечение данных всей строки
         row_data = []
         for col in range(self.tableWidget.columnCount()):
             item = self.tableWidget.item(row, col)
@@ -80,33 +76,45 @@ class CsvTableDialog(QDialog):
                 row_data.append(item.text())
             else:
                 row_data.append('')
-        # Вывод отладочной информации
         print(f"Row data: {row_data}")
-        # Передача данных строки через сигнал
-        self.data_selected.emit(row_data)  # Передаем список строк
+        self.data_selected.emit(row_data)
         self.accept()
-
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
-        # Загрузка интерфейса из файла ui
         uic.loadUi('app.ui', self)
-
         self.file_paths = {}
         self.current_file_path = None
+        self.setup_ui()
 
+    def setup_ui(self):
+        self.undo_stack = QUndoStack(self)
+
+        self.stackedWidget: QStackedWidget = self.findChild(QStackedWidget, 'stackedWidget')
         self.stackedWidget.setCurrentIndex(0)
-        menubar = self.menuBar()
-        fileMenu = menubar.addMenu('File')
-        self.menuBar().setNativeMenuBar(False)
-        self.open_file_act = QAction('Open', self)
-        self.open_file_act.setShortcut('Ctrl+O')
-        self.open_file_act.setStatusTip('Open new file')
-        self.open_file_act.triggered.connect(self.open_file)
-        fileMenu.addAction(self.open_file_act)
 
-        #self.pushButton1: QPushButton = self.findChild(QPushButton, 'pushButton')
+        self.tableWidget1: QTableWidget = self.findChild(QTableWidget, 'tableWidget')
+        self.tableWidget2: QTableWidget = self.findChild(QTableWidget, 'tableWidget_2')
+        self.tableWidget3: QTableWidget = self.findChild(QTableWidget, 'tableWidget_3')
+        self.tableWidget4: QTableWidget = self.findChild(QTableWidget, 'tableWidget_4')
+        self.tableWidget5: QTableWidget = self.findChild(QTableWidget, 'tableWidget_5')
+
+        allowed_tables = [self.tableWidget1, self.tableWidget3, self.tableWidget4, self.tableWidget5]
+
+        for table in [self.tableWidget1, self.tableWidget3, self.tableWidget4, self.tableWidget5]:
+            table.setContextMenuPolicy(Qt.ContextMenuPolicy.ActionsContextMenu)
+            paste_action = QAction('Вставить', self)
+            paste_action.setShortcut(QKeySequence.StandardKey.Paste)
+            undo_action = self.undo_stack.createUndoAction(self, "Отменить")
+            undo_action.setShortcut(QKeySequence.StandardKey.Undo)
+            table.addAction(paste_action)
+            table.addAction(undo_action)
+
+            if table in allowed_tables:
+                paste_action.triggered.connect(lambda checked, tbl=table: self.paste_from_clipboard(tbl))
+                undo_action.triggered.connect(lambda checked, tbl=table: self.undo_stack(tbl))
+
         self.pushButton2: QPushButton = self.findChild(QPushButton, 'pushButton_2')
         self.pushButton3: QPushButton = self.findChild(QPushButton, 'pushButton_3')
         self.pushButton4: QPushButton = self.findChild(QPushButton, 'pushButton_4')
@@ -118,46 +126,31 @@ class MainWindow(QMainWindow):
         self.pushButton10: QPushButton = self.findChild(QPushButton, 'pushButton_10')
         self.pushButton11: QPushButton = self.findChild(QPushButton, 'pushButton')
         self.pushButton12: QPushButton = self.findChild(QPushButton, 'pushButton_11')
+        self.pushButton13: QPushButton = self.findChild(QPushButton, 'pushButton_12')
 
         self.lineEdit1: QLineEdit = self.findChild(QLineEdit, 'lineEdit_1')
         self.lineEdit2: QLineEdit = self.findChild(QLineEdit, 'lineEdit_2')
         self.lineEdit3: QLineEdit = self.findChild(QLineEdit, 'lineEdit_3')
         self.lineEdit4: QLineEdit = self.findChild(QLineEdit, 'lineEdit_4')
 
-        self.stackedWidget: QStackedWidget = self.findChild(QStackedWidget, 'stackedWidget')
-
-        self.tableWidget1: QTableWidget = self.findChild(QTableWidget, 'tableWidget')
-        self.tableWidget2: QTableWidget = self.findChild(QTableWidget, 'tableWidget_2')
-        self.tableWidget3: QTableWidget = self.findChild(QTableWidget, 'tableWidget_3')
-        self.tableWidget4: QTableWidget = self.findChild(QTableWidget, 'tableWidget_4')
-        self.tableWidget5: QTableWidget = self.findChild(QTableWidget, 'tableWidget_5')
+        self.graphicsView = self.findChild(QGraphicsView, 'graphicsView')
 
         self.open_file_act: QAction = self.findChild(QAction, 'actionOpen')
 
-        self.graphicsView = self.findChild(QGraphicsView, 'graphicsView')
-
-        row_count2_1 = self.tableWidget2.rowCount()
-        self.tableWidget2.setRowCount(row_count2_1)
-        row_count2_2 = self.tableWidget3.rowCount()
-        self.tableWidget3.setRowCount(row_count2_2)
-        row_count2_3 = self.tableWidget4.rowCount()
-        self.tableWidget4.setRowCount(row_count2_3)
-        row_count2_4 = self.tableWidget5.rowCount()
-        self.tableWidget5.setRowCount(row_count2_4)
-
-        self.tableWidget2.setItem(0, 0, QTableWidgetItem("Долото"))
-
-
-        self.tableWidget1.setContextMenuPolicy(Qt.ContextMenuPolicy.ActionsContextMenu)
-        paste_action = QAction('Paste', self)
-        paste_action.setShortcut(QKeySequence.StandardKey.Paste)
-        paste_action.triggered.connect(self.paste_from_clipboard)
-        self.tableWidget1.addAction(paste_action)
-
-        self.tableWidget1.horizontalHeader().sectionClicked.connect(self.column_clicked)
+        if not self.open_file_act:
+            self.open_file_act = QAction('Open', self)
+            menubar = self.menuBar()
+            fileMenu = menubar.addMenu('File')
+            self.open_file_act.setShortcut('Ctrl+O')
+            self.open_file_act.setStatusTip('Open new file')
+            self.open_file_act.triggered.connect(self.open_file)
+            fileMenu.addAction(self.open_file_act)
+        else:
+            self.open_file_act.setShortcut('Ctrl+O')
+            self.open_file_act.setStatusTip('Open new file')
+            self.open_file_act.triggered.connect(self.open_file)
 
         self.stackedWidget.currentChanged.connect(self.on_current_index_changed)
-        #self.pushButton1.clicked.connect(self.on_button_click)
         self.pushButton2.clicked.connect(self.go_to_next_page)
         self.pushButton3.clicked.connect(self.add_row)
         self.pushButton4.clicked.connect(self.go_to_previous_page)
@@ -169,6 +162,7 @@ class MainWindow(QMainWindow):
         self.pushButton10.clicked.connect(self.add_row_3)
         self.pushButton11.clicked.connect(self.delete_row_4)
         self.pushButton12.clicked.connect(self.add_row_4)
+        self.pushButton13.clicked.connect(self.load_table)
 
         self.tableWidget1.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.tableWidget2.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -185,14 +179,15 @@ class MainWindow(QMainWindow):
         self.pushButton4.setVisible(False)
 
         self.tableWidget2.cellDoubleClicked.connect(self.open_csv_table_dialog)
+        self.tableWidget2.cellDoubleClicked.connect(self.open_fixed_path_csv_dialog)
 
-        self.buttons = []
-        self.button_rows = []
+        self.tableWidget2.setItem(0, 0, QTableWidgetItem("Долото"))
+        combo_1 = QComboBox()
+        combo_1.addItems(["Направление", "Кондуктор", "Промежуточная", "Промежуточная 1", "Промежуточная 2",
+                          "Потайная", "Эксплуатационная", "Хвостовик", "Райзер", "Фильтр", "Не определена"])
+        self.tableWidget4.setCellWidget(0, 0, combo_1)
 
-        # Проверка текущего рабочего каталога
         print("Current working directory:", os.getcwd())
-
-        # Вывод всех файлов в директории
         print("Files in directory 'csv_files':")
         csv_files_path = os.path.join(os.getcwd(), "csv_files")
         if os.path.exists(csv_files_path) and os.path.isdir(csv_files_path):
@@ -261,6 +256,17 @@ class MainWindow(QMainWindow):
                         dialog.rejected.connect(lambda: self.csv_dialog_rejected(row, column))
                         dialog.exec()
 
+    def open_fixed_path_csv_dialog(self, row, column):
+        print(f"open_fixed_path_csv_dialog called with row {row} and column {column}")
+        if column == 1 and row == 0:
+            fixed_file_path = path1 + "Долото.csv"  # Укажите здесь ваш фиксированный путь
+            if os.path.exists(fixed_file_path):
+                print(f"Opening file dialog for fixed file: {fixed_file_path}")
+                self.current_file_path = fixed_file_path  # Устанавливаем текущий путь к файлу
+                dialog = CsvTableDialog(fixed_file_path, self)
+                dialog.data_selected.connect(lambda data: self.update_table_data(data, row, column))
+                dialog.rejected.connect(lambda: self.csv_dialog_rejected_2(row, column))
+                dialog.exec()
 
     def store_file_path(self, file_key, file_path):
         self.file_paths[file_key] = file_path
@@ -287,29 +293,16 @@ class MainWindow(QMainWindow):
         else:
             self.tableWidget2.setItem(row, column, QTableWidgetItem(data))
 
-    def column_clicked(self, column_index):
-        print(f"Column {column_index} clicked")
-        try:
-            clipboard = QApplication.clipboard()
-            mime_data = clipboard.mimeData()
-            if mime_data.hasText():
-                text_data = mime_data.text()
-                rows = text_data.split('\n')
-                current_row = 0
+    def column_clicked(self, index):
+        print(f"Column {index} clicked")
 
-                for row_data in rows:
-                    columns = row_data.split('\t')
-                    if current_row >= self.tableWidget1.rowCount():
-                        self.tableWidget1.insertRow(self.tableWidget1.rowCount())
-                    for col_index, value in enumerate(columns):
-                        if column_index + col_index >= self.tableWidget1.columnCount():
-                            self.tableWidget1.insertColumn(self.tableWidget1.columnCount())
-                        self.tableWidget1.setItem(current_row, column_index + col_index, QTableWidgetItem(value))
-                    current_row += 1
-        except Exception as e:
-            print(f"Error processing column click: {e}")
+    def paste_from_clipboard(self, tableWidget):
+        allowed_tables = [self.tableWidget1, self.tableWidget3, self.tableWidget4, self.tableWidget5]
 
-    def paste_from_clipboard(self):
+        if tableWidget not in allowed_tables:
+            print("This table is not allowed for pasting.")
+            return
+
         print("Pasting from clipboard...")
         try:
             clipboard = QApplication.clipboard()
@@ -317,37 +310,40 @@ class MainWindow(QMainWindow):
             if mime_data.hasText():
                 text_data = mime_data.text()
                 rows = text_data.split('\n')
-                current_row = self.tableWidget1.currentRow()
-                current_column = self.tableWidget1.currentColumn()
+                current_row = tableWidget.currentRow()
+                current_column = tableWidget.currentColumn()
 
                 for row_data in rows:
                     columns = row_data.split('\t')
-                    if current_row >= self.tableWidget1.rowCount():
-                        self.tableWidget1.insertRow(self.tableWidget1.rowCount())
+                    if current_row >= tableWidget.rowCount():
+                        tableWidget.insertRow(tableWidget.rowCount())
                     for col_index, value in enumerate(columns):
-                        if current_column + col_index >= self.tableWidget1.columnCount():
-                            self.tableWidget1.insertColumn(self.tableWidget1.columnCount())
-                        self.tableWidget1.setItem(current_row, current_column + col_index, QTableWidgetItem(value))
+                        if current_column + col_index >= tableWidget.columnCount():
+                            tableWidget.insertColumn(tableWidget.columnCount())
+                        tableWidget.setItem(current_row, current_column + col_index, QTableWidgetItem(value))
                     current_row += 1
         except Exception as e:
             print(f"Error pasting from clipboard: {e}")
+    def undo_clipboard(self):
+
 
     def clear_table(self):
         print("Clearing table...")
         self.tableWidget1.clearContents()  # Очищает содержимое, не меняя количество строк и столбцов
 
-        # Повторно устанавливаем заголовки столбцов
         headers = ["Глубина по стволу (м)", "Зенитный угол (град)", "Азимут (град)", "Азимут маг(град)",
-                   "Азимут дир(град)", "Глубина по верт(м)" ]
+                   "Азимут дир(град)", "Глубина по верт(м)"]
         current_column_count = self.tableWidget1.columnCount()
 
-        # Если текущих столбцов меньше, чем заголовков, добавляем недостающие
         if current_column_count < len(headers):
             self.tableWidget1.setColumnCount(len(headers))
 
         self.tableWidget1.setHorizontalHeaderLabels(headers)
-        self.tableWidget1.horizontalHeader().setVisible(True)  # Устанавливаем видимость заголовков
-        self.tableWidget1.horizontalHeader().repaint()  # Перерисовываем заголовки
+        self.tableWidget1.horizontalHeader().setVisible(True)
+        self.tableWidget1.horizontalHeader().repaint()
+
+    def load_table(self):
+        print(1)
 
     def add_row_2(self):
         print("Adding row to tableWidget3...")
@@ -360,14 +356,20 @@ class MainWindow(QMainWindow):
         print("Adding row to tableWidget4...")
         row_count2_3 = self.tableWidget4.rowCount()
         self.tableWidget4.setRowCount(row_count2_3 + 1)
-        for column in range(self.tableWidget.columnCount()):
-            self.tableWidget4.setItem(row_count2_3, column, QTableWidgetItem(""))
+        for column in range(self.tableWidget4.columnCount()):
+            if column == 0:
+                combo = QComboBox()
+                combo.addItems(["Направление", "Кондуктор", "Промежуточная", "Промежуточная 1", "Промежуточная 2",
+                                "Потайная", "Эксплуатационная", "Хвостовик", "Райзер", "Фильтр", "Не определена"])
+                self.tableWidget4.setCellWidget(row_count2_3, column, combo)
+            else:
+                self.tableWidget4.setItem(row_count2_3, column, QTableWidgetItem(""))
 
     def add_row_4(self):
-        print("Adding row to tableWidget4...")
+        print("Adding row to tableWidget5...")
         row_count2_4 = self.tableWidget5.rowCount()
         self.tableWidget5.setRowCount(row_count2_4 + 1)
-        for column in range(self.tableWidget.columnCount()):
+        for column in range(self.tableWidget5.columnCount()):
             self.tableWidget5.setItem(row_count2_4, column, QTableWidgetItem(""))
 
     def open_file(self):
@@ -391,12 +393,12 @@ class MainWindow(QMainWindow):
         current_coordinates = np.array([0.0, 0.0, 0.0], dtype=np.float64)
         current_zenith_angle = np.radians(0)
         current_azimuth_angle = np.radians(0)
-        selected_data = [current_coordinates.copy()]  # Добавляем начальную точку в список выбранных данных
+        selected_data = [current_coordinates.copy()]
 
         for i in range(1, len(data)):
-            delta_L = data.iloc[i, 0] - data.iloc[i-1, 0]
-            delta_zenith_angle = np.radians(data.iloc[i, 1] - data.iloc[i-1, 1])
-            delta_azimuth_angle = np.radians(data.iloc[i, 2] - data.iloc[i-1, 2])
+            delta_L = data.iloc[i, 0] - data.iloc[i - 1, 0]
+            delta_zenith_angle = np.radians(data.iloc[i, 1] - data.iloc[i - 1, 1])
+            delta_azimuth_angle = np.radians(data.iloc[i, 2] - data.iloc[i - 1, 2])
 
             next_zenith_angle = current_zenith_angle + delta_zenith_angle
             next_azimuth_angle = current_azimuth_angle + delta_azimuth_angle
@@ -415,22 +417,20 @@ class MainWindow(QMainWindow):
         self.plot_graph(selected_data)
 
     def plot_graph(self, data):
-        # Создание 3D-графика с использованием matplotlib
         fig = Figure()
         ax = fig.add_subplot(111, projection='3d')
-        ax.plot(data[:, 0], data[:, 1], data[:, 2], marker='o', linewidth = 0.25)
+        ax.plot(data[:, 0], data[:, 1], data[:, 2], marker='o', linewidth=0.25)
         ax.set_xlim([max(data[:, 0]), min(data[:, 0])])
         ax.set_ylim([max(data[:, 1]), min(data[:, 1])])
         ax.set_zlim([max(data[:, 2]), min(data[:, 2])])
-        ax.view_init(elev = 20, azim = 35)
+        ax.view_init(elev=20, azim=35)
         ax.set_box_aspect([1, 1, 1])
-        # Создание сцены и добавление графика на сцену
+
         scene = QGraphicsScene()
         canvas = FigureCanvas(fig)
         canvas.setGeometry(0, 0, 400, 600)
         scene.addWidget(canvas)
 
-        # Отображение сцены в QGraphicsView
         self.graphicsView.setScene(scene)
 
     def delete_row_1(self):
@@ -456,7 +456,6 @@ class MainWindow(QMainWindow):
         row_count2_4 = self.tableWidget5.rowCount()
         if row_count2_4 > 0:
             self.tableWidget5.setRowCount(row_count2_4 - 1)
-
 
     def csv_dialog_rejected(self, row, column):
         print(f"CSV dialog closed without selection for row {row}, column {column}")
@@ -484,6 +483,22 @@ class MainWindow(QMainWindow):
                          "З-133", "З-140", "З-147", "З-152", "З-161", "З-163", "З-171"])
                     self.tableWidget2.setCellWidget(row, col, combo5)
 
+    def csv_dialog_rejected_2(self, row, column):
+        print(f"CSV dialog closed without selection for row {row}, column {column}")
+        item = self.tableWidget2.item(row, column)
+        if item is not None and item.text() == "":
+            for col in range(self.tableWidget2.columnCount()):
+                if col == 7:
+                    combo4 = QComboBox()
+                    combo4.addItems(["Ниппель", "Муфта"])
+                    self.tableWidget2.setCellWidget(row, col, combo4)
+                elif col == 8:
+                    combo5 = QComboBox()
+                    combo5.addItems(
+                        ["З-76", "З-86", "З-88", "З-94", "З-101", "З-102", "З-108", "З-118", "З-121", "З-122",
+                         "З-133", "З-140", "З-147", "З-152", "З-161", "З-163", "З-171"])
+                    self.tableWidget2.setCellWidget(row, col, combo5)
+
     def contextMenuEvent(self, event):
         if self.childAt(event.pos()) == self.tableWidget2.viewport():
             contextMenu = QMenu(self)
@@ -491,14 +506,17 @@ class MainWindow(QMainWindow):
             saveAstemplate_act.triggered.connect(self.saveAstemplate)
             contextMenu.addAction(saveAstemplate_act)
 
+            SaveAsall_act = QAction("Сохранить КНБК", self)
+            SaveAsall_act.triggered.connect(self.saveAsall)
+            contextMenu.addAction(SaveAsall_act)
+
             copyRow_act = QAction("Копировать строку", self)
             copyRow_act.triggered.connect(self.copyRow)
             contextMenu.addAction(copyRow_act)
 
-            action = contextMenu.exec(self.mapToGlobal(event.pos()))  # Исправлено на contextMenu
+            contextMenu.exec(self.mapToGlobal(event.pos()))
 
     def saveAstemplate(self):
-        # Check if current table is tableWidget2
         if self.tableWidget2.hasFocus():
             row = self.tableWidget2.currentRow()
             data = []
@@ -513,8 +531,10 @@ class MainWindow(QMainWindow):
             print(data)
             self.write_csv(data)
 
+    def saveAsall(self):
+        print(1)
+
     def copyRow(self):
-        # Check if current table is tableWidget2
         if self.tableWidget2.hasFocus():
             row = self.tableWidget2.currentRow()
             if row != -1:
@@ -528,19 +548,11 @@ class MainWindow(QMainWindow):
                         text = item.text() if item is not None else ''
                     data.append(text)
 
-                # Create a new row at the end and populate it with copied data
                 newRow = self.tableWidget2.rowCount()
                 self.tableWidget2.insertRow(newRow)
                 for column, text in enumerate(data):
                     newItem = QTableWidgetItem(text)
                     self.tableWidget2.setItem(newRow, column, newItem)
-
-    def store_file_path(self, file_key, file_path):
-        self.file_paths[file_key] = file_path
-        print(f"File path stored for {file_key}: {file_path}")
-
-    def get_file_path(self, file_key):
-        return self.file_paths.get(file_key, None)
 
     def write_csv(self, data):
         if self.current_file_path is None:
@@ -555,9 +567,9 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print(f"Error opening file: {e}")
 
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     mainWindow = MainWindow()
     mainWindow.show()
     sys.exit(app.exec())
-
