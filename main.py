@@ -1,7 +1,7 @@
 import sys
 import os
 import pandas as pd
-from PyQt6.QtGui import QAction, QUndoStack, QUndoCommand, QKeySequence
+from PyQt6.QtGui import QAction, QUndoStack, QUndoCommand, QKeySequence, QTextDocument
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QStackedWidget, QHeaderView,
                              QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDialog, QVBoxLayout, QTabWidget,
                              QMenu, QGraphicsScene, QGraphicsView)
@@ -12,9 +12,70 @@ import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from mpl_toolkits.mplot3d import Axes3D
+from bs4 import BeautifulSoup
 
-path1 = "D:/program/сsv_files/"
+path1 = "D:/program/csv_files/"
 
+class PasteCommand(QUndoCommand):
+    def __init__(self, tableWidget, text_data, start_row, start_col, description, parent=None):
+        super().__init__(description, parent)
+        self.tableWidget = tableWidget
+        self.text_data = text_data
+        self.start_row = start_row
+        self.start_col = start_col
+        self.old_data = []
+        self.new_rows_needed = 0
+
+    def undo(self):
+        for row, col_data in self.old_data:
+            for col, data in col_data.items():
+                item = QTableWidgetItem()
+                item.setData(Qt.ItemDataRole.DisplayRole, data)
+                self.tableWidget.setItem(row, col, item)
+        for _ in range(self.new_rows_needed):
+            self.tableWidget.removeRow(self.tableWidget.rowCount() - 1)
+
+    def redo(self):
+        rows = self.text_data.split('\n')
+        self.old_data = []
+
+        total_cells_needed = sum(len(row.split('\t')) for row in rows if row.strip() != "")
+        current_cells_available = (self.tableWidget.rowCount() - self.start_row) * self.tableWidget.columnCount() - self.start_col
+        self.new_rows_needed = max(0, (total_cells_needed - current_cells_available + self.tableWidget.columnCount() - 1) // self.tableWidget.columnCount())
+
+        for _ in range(self.new_rows_needed):
+            self.tableWidget.insertRow(self.tableWidget.rowCount())
+
+        doc = QTextDocument()
+
+        current_row = self.start_row
+        for row_data in rows:
+            columns = row_data.split('\t')
+            old_row_data = {}
+
+            if current_row >= self.tableWidget.rowCount():
+                self.tableWidget.insertRow(self.tableWidget.rowCount())
+
+            current_col = self.start_col
+            for col_index, value in enumerate(columns):
+                if current_col >= self.tableWidget.columnCount():
+                    current_row += 1
+                    current_col = 0
+                    if current_row >= self.tableWidget.rowCount():
+                        self.tableWidget.insertRow(self.tableWidget.rowCount())
+
+                print(f"Inserting '{value}' at row {current_row}, col {current_col}")  # Debug output
+                item = self.tableWidget.item(current_row, current_col)
+                old_row_data[current_col] = item.text() if item else ""
+
+                item = QTableWidgetItem()
+                doc.setHtml(value)
+                item.setData(Qt.ItemDataRole.DisplayRole, doc.toPlainText())
+                self.tableWidget.setItem(current_row, current_col, item)
+                current_col += 1
+
+            self.old_data.append((current_row, old_row_data))
+            current_row += 1
 
 class CsvTableDialog(QDialog):
     data_selected = pyqtSignal(list)
@@ -103,17 +164,15 @@ class MainWindow(QMainWindow):
         allowed_tables = [self.tableWidget1, self.tableWidget3, self.tableWidget4, self.tableWidget5]
 
         for table in [self.tableWidget1, self.tableWidget3, self.tableWidget4, self.tableWidget5]:
-            table.setContextMenuPolicy(Qt.ContextMenuPolicy.ActionsContextMenu)
+            table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            table.customContextMenuRequested.connect(lambda pos, tbl=table: self.create_context_menu(pos, tbl))
+
             paste_action = QAction('Вставить', self)
             paste_action.setShortcut(QKeySequence.StandardKey.Paste)
-            undo_action = self.undo_stack.createUndoAction(self, "Отменить")
-            undo_action.setShortcut(QKeySequence.StandardKey.Undo)
-            table.addAction(paste_action)
-            table.addAction(undo_action)
-
             if table in allowed_tables:
                 paste_action.triggered.connect(lambda checked, tbl=table: self.paste_from_clipboard(tbl))
-                undo_action.triggered.connect(lambda checked, tbl=table: self.undo_stack(tbl))
+
+            table.addAction(paste_action)
 
         self.pushButton2: QPushButton = self.findChild(QPushButton, 'pushButton_2')
         self.pushButton3: QPushButton = self.findChild(QPushButton, 'pushButton_3')
@@ -149,6 +208,16 @@ class MainWindow(QMainWindow):
             self.open_file_act.setShortcut('Ctrl+O')
             self.open_file_act.setStatusTip('Open new file')
             self.open_file_act.triggered.connect(self.open_file)
+
+        # Create undo and redo actions
+        self.undo_action = self.undo_stack.createUndoAction(self, "Отменить")
+        self.undo_action.setShortcut(QKeySequence.StandardKey.Undo)
+
+        self.redo_action = self.undo_stack.createRedoAction(self, "Повторить")
+        self.redo_action.setShortcut(QKeySequence.StandardKey.Redo)
+
+        self.addAction(self.undo_action)
+        self.addAction(self.redo_action)
 
         self.stackedWidget.currentChanged.connect(self.on_current_index_changed)
         self.pushButton2.clicked.connect(self.go_to_next_page)
@@ -193,6 +262,20 @@ class MainWindow(QMainWindow):
         if os.path.exists(csv_files_path) and os.path.isdir(csv_files_path):
             for filename in os.listdir(csv_files_path):
                 print(filename)
+
+    def create_context_menu(self, pos, table):
+        context_menu = QMenu(self)
+
+        context_menu.addAction(self.undo_action)
+        context_menu.addAction(self.redo_action)
+
+        paste_action = QAction('Вставить', self)
+        paste_action.setShortcut(QKeySequence.StandardKey.Paste)
+        paste_action.triggered.connect(lambda checked, tbl=table: self.paste_from_clipboard(tbl))
+
+        context_menu.addAction(paste_action)
+
+        context_menu.exec(table.viewport().mapToGlobal(pos))
 
     def on_current_index_changed(self, index):
         if index == 0:
@@ -307,25 +390,35 @@ class MainWindow(QMainWindow):
         try:
             clipboard = QApplication.clipboard()
             mime_data = clipboard.mimeData()
-            if mime_data.hasText():
-                text_data = mime_data.text()
-                rows = text_data.split('\n')
-                current_row = tableWidget.currentRow()
-                current_column = tableWidget.currentColumn()
 
-                for row_data in rows:
-                    columns = row_data.split('\t')
-                    if current_row >= tableWidget.rowCount():
-                        tableWidget.insertRow(tableWidget.rowCount())
-                    for col_index, value in enumerate(columns):
-                        if current_column + col_index >= tableWidget.columnCount():
-                            tableWidget.insertColumn(tableWidget.columnCount())
-                        tableWidget.setItem(current_row, current_column + col_index, QTableWidgetItem(value))
-                    current_row += 1
+            if mime_data.hasHtml():
+                text_data = mime_data.html()
+                text_data = self.convert_html_to_plain_text(text_data)
+            elif mime_data.hasText():
+                text_data = mime_data.text()
+            else:
+                print("Clipboard does not contain text data.")
+                return
+
+            current_row = tableWidget.currentRow()
+            current_col = tableWidget.currentColumn()
+
+            command = PasteCommand(tableWidget, text_data, current_row, current_col, "вставку")
+            self.undo_stack.push(command)
         except Exception as e:
             print(f"Error pasting from clipboard: {e}")
-    def undo_clipboard(self):
 
+    def convert_html_to_plain_text(self, html):
+        soup = BeautifulSoup(html, "html.parser")
+        for script in soup(["script", "style"]):
+            script.extract()
+
+        text = soup.get_text(separator="\n")
+
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        text = '\n'.join(lines)
+
+        return text
 
     def clear_table(self):
         print("Clearing table...")
