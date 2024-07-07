@@ -38,8 +38,6 @@ class PasteCommand(QUndoCommand):
     def redo(self):
         rows = self.text_data.split('\n')
         self.old_data = []
-        current_row = self.start_row
-        current_col = self.start_col
 
         total_cells_needed = sum(len(row.split('\t')) for row in rows if row.strip() != "")
         current_cells_available = (self.tableWidget.rowCount() - self.start_row) * self.tableWidget.columnCount() - self.start_col
@@ -50,17 +48,21 @@ class PasteCommand(QUndoCommand):
 
         doc = QTextDocument()
 
+        current_row = self.start_row
         for row_data in rows:
-            row_data = row_data.strip()
-            if row_data == "":
-                continue
             columns = row_data.split('\t')
             old_row_data = {}
 
+            if current_row >= self.tableWidget.rowCount():
+                self.tableWidget.insertRow(self.tableWidget.rowCount())
+
+            current_col = self.start_col
             for col_index, value in enumerate(columns):
                 if current_col >= self.tableWidget.columnCount():
                     current_row += 1
                     current_col = 0
+                    if current_row >= self.tableWidget.rowCount():
+                        self.tableWidget.insertRow(self.tableWidget.rowCount())
 
                 print(f"Inserting '{value}' at row {current_row}, col {current_col}")  # Debug output
                 item = self.tableWidget.item(current_row, current_col)
@@ -73,7 +75,7 @@ class PasteCommand(QUndoCommand):
                 current_col += 1
 
             self.old_data.append((current_row, old_row_data))
-            current_row += 1 if current_col == self.tableWidget.columnCount() else 0
+            current_row += 1
 
 class CsvTableDialog(QDialog):
     data_selected = pyqtSignal(list)
@@ -409,7 +411,7 @@ class MainWindow(QMainWindow):
     def convert_html_to_plain_text(self, html):
         from bs4 import BeautifulSoup
 
-        soup = BeautifulSoup(html, "html.parser")
+        soup = BeautifulSoup(html, "lxml")
         return soup.get_text("\t", strip=True)
 
     def clear_table(self):
