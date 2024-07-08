@@ -1,10 +1,9 @@
 import sys
-import os
 import pandas as pd
 from PyQt6.QtGui import QAction, QUndoStack, QUndoCommand, QKeySequence, QTextDocument
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QStackedWidget, QHeaderView,
-                             QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDialog, QVBoxLayout, QTabWidget,
-                             QMenu, QGraphicsScene, QGraphicsView)
+                             QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDialog, QVBoxLayout, QMenu,
+                             QGraphicsScene, QGraphicsView)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6 import uic
 import csv
@@ -14,7 +13,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from mpl_toolkits.mplot3d import Axes3D
 from bs4 import BeautifulSoup
 
-path1 = "D:/program/csv_files/"
+path1 = "D:/program/сsv_files/"
 
 class PasteCommand(QUndoCommand):
     def __init__(self, tableWidget, text_data, start_row, start_col, description, parent=None):
@@ -36,10 +35,10 @@ class PasteCommand(QUndoCommand):
             self.tableWidget.removeRow(self.tableWidget.rowCount() - 1)
 
     def redo(self):
-        rows = self.text_data.split('\n')
+        rows = self.text_data
         self.old_data = []
 
-        total_cells_needed = sum(len(row.split('\t')) for row in rows if row.strip() != "")
+        total_cells_needed = sum(len(row) for row in rows)
         current_cells_available = (self.tableWidget.rowCount() - self.start_row) * self.tableWidget.columnCount() - self.start_col
         self.new_rows_needed = max(0, (total_cells_needed - current_cells_available + self.tableWidget.columnCount() - 1) // self.tableWidget.columnCount())
 
@@ -50,7 +49,7 @@ class PasteCommand(QUndoCommand):
 
         current_row = self.start_row
         for row_data in rows:
-            columns = row_data.split('\t')
+            columns = row_data
             old_row_data = {}
 
             if current_row >= self.tableWidget.rowCount():
@@ -256,13 +255,6 @@ class MainWindow(QMainWindow):
                           "Потайная", "Эксплуатационная", "Хвостовик", "Райзер", "Фильтр", "Не определена"])
         self.tableWidget4.setCellWidget(0, 0, combo_1)
 
-        print("Current working directory:", os.getcwd())
-        print("Files in directory 'csv_files':")
-        csv_files_path = os.path.join(os.getcwd(), "csv_files")
-        if os.path.exists(csv_files_path) and os.path.isdir(csv_files_path):
-            for filename in os.listdir(csv_files_path):
-                print(filename)
-
     def create_context_menu(self, pos, table):
         context_menu = QMenu(self)
 
@@ -317,39 +309,37 @@ class MainWindow(QMainWindow):
                 file_key = combo.currentText()
                 print(f"Selected file key: {file_key}")
                 files = {
-                    "ВЗД": path1 + "/ВЗД.csv",
-                    "РУС": path1 + "/РУС.csv",
-                    "Бурильные трубы": path1 + "/Бурильные трубы.csv",
-                    "Переводник": path1 + "/Переводник.csv",
-                    "Предохранительный переводник": path1 + "/Предохранительный переводник.csv",
-                    "Обратный клапан": path1 + "/Обратный клапан.csv",
-                    "Ясс": path1 + "/Ясс.csv",
-                    "Калибратор": path1 + "/Калибратор.csv",
-                    "УБТ": path1 + "/УБТ.csv",
-                    "Телеметрия": path1 + "/Телеметрия.csv"
+                    "ВЗД": path1 + "ВЗД.csv",
+                    "РУС": path1 + "РУС.csv",
+                    "Бурильные трубы": path1 + "Бурильные трубы.csv",
+                    "Переводник": path1 + "Переводник.csv",
+                    "Предохранительный переводник": path1 + "Предохранительный переводник.csv",
+                    "Обратный клапан": path1 + "Обратный клапан.csv",
+                    "Ясс": path1 + "Ясс.csv",
+                    "Калибратор": path1 + "Калибратор.csv",
+                    "УБТ": path1 + "УБТ.csv",
+                    "Телеметрия": path1 + "Телеметрия.csv"
                 }
 
                 if file_key in files:
                     file_name = files[file_key]
-                    if os.path.exists(file_name):
-                        print(f"Opening file dialog for file: {file_name}")
-                        self.current_file_path = file_name  # Устанавливаем текущий путь к файлу
-                        dialog = CsvTableDialog(file_name, self)
-                        dialog.data_selected.connect(lambda data: self.update_table_data(data, row, column))
-                        dialog.rejected.connect(lambda: self.csv_dialog_rejected(row, column))
-                        dialog.exec()
+                    print(f"Opening file dialog for file: {file_name}")
+                    self.current_file_path = file_name
+                    dialog = CsvTableDialog(file_name, self)
+                    dialog.data_selected.connect(lambda data: self.update_table_data(data, row, column))
+                    dialog.rejected.connect(lambda: self.csv_dialog_rejected(row, column))
+                    dialog.exec()
 
     def open_fixed_path_csv_dialog(self, row, column):
         print(f"open_fixed_path_csv_dialog called with row {row} and column {column}")
         if column == 1 and row == 0:
             fixed_file_path = path1 + "Долото.csv"  # Укажите здесь ваш фиксированный путь
-            if os.path.exists(fixed_file_path):
-                print(f"Opening file dialog for fixed file: {fixed_file_path}")
-                self.current_file_path = fixed_file_path  # Устанавливаем текущий путь к файлу
-                dialog = CsvTableDialog(fixed_file_path, self)
-                dialog.data_selected.connect(lambda data: self.update_table_data(data, row, column))
-                dialog.rejected.connect(lambda: self.csv_dialog_rejected_2(row, column))
-                dialog.exec()
+            print(f"Opening file dialog for fixed file: {fixed_file_path}")
+            self.current_file_path = fixed_file_path  # Устанавливаем текущий путь к файлу
+            dialog = CsvTableDialog(fixed_file_path, self)
+            dialog.data_selected.connect(lambda data: self.update_table_data(data, row, column))
+            dialog.rejected.connect(lambda: self.csv_dialog_rejected_2(row, column))
+            dialog.exec()
 
     def store_file_path(self, file_key, file_path):
         self.file_paths[file_key] = file_path
@@ -410,9 +400,15 @@ class MainWindow(QMainWindow):
 
     def convert_html_to_plain_text(self, html):
         from bs4 import BeautifulSoup
-
+        data = []
         soup = BeautifulSoup(html, "lxml")
-        return soup.get_text("\t", strip=True)
+        table = soup.find('table')
+        rows = table.find_all('tr')
+        for row in rows:
+            cols = row.find_all('td') + row.find_all('th')
+            cols = [ele.text.strip() for ele in cols]
+            data.append([ele for ele in cols if ele])  # Get rid of empty values
+        return data
 
     def clear_table(self):
         print("Clearing table...")
@@ -619,7 +615,16 @@ class MainWindow(QMainWindow):
             self.write_csv(data)
 
     def saveAsall(self):
-        print(1)
+        if self.tableWidget.hasFocus():
+            row = self.tableWidget3.currentRow()
+            data = []
+            for column in range(self.tableWidget3.columnCount()):
+                combo = self.tableWidget2.cellWidget(row, column)
+                item = self.tableWidget2.item(row, column)
+                text = item.text() if item is not None else ''
+                data.append(text)
+            print(data)
+            self.write_csv(data)
 
     def copyRow(self):
         if self.tableWidget2.hasFocus():
@@ -653,7 +658,6 @@ class MainWindow(QMainWindow):
             print(f"Data written to {self.current_file_path}")
         except Exception as e:
             print(f"Error opening file: {e}")
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
