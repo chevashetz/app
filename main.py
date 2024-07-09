@@ -597,6 +597,8 @@ class MainWindow(QMainWindow):
             copyRow_act.triggered.connect(self.copyRow)
             contextMenu.addAction(copyRow_act)
 
+
+
             contextMenu.exec(self.mapToGlobal(event.pos()))
 
     def saveAstemplate(self):
@@ -615,16 +617,34 @@ class MainWindow(QMainWindow):
             self.write_csv(data)
 
     def saveAsall(self):
-        if self.tableWidget.hasFocus():
-            row = self.tableWidget3.currentRow()
+        if self.tableWidget2.hasFocus():
             data = []
-            for column in range(self.tableWidget3.columnCount()):
-                combo = self.tableWidget2.cellWidget(row, column)
-                item = self.tableWidget2.item(row, column)
-                text = item.text() if item is not None else ''
-                data.append(text)
-            print(data)
-            self.write_csv(data)
+
+            item_0_4 = self.tableWidget2.item(0, 4)
+            text_0_4 = item_0_4.text() if item_0_4 is not None else ''
+            data.append(f"{text_0_4},")
+            item_0_0 = self.tableWidget2.item(0, 0)
+            text_0_0 = item_0_0.text() if item_0_0 is not None else ''
+            data.append(f" {text_0_0}")
+            item_0_1 = self.tableWidget2.item(0, 1)
+            text_0_1 = item_0_1.text() if item_0_1 is not None else ''
+            data.append(f" {text_0_1};")
+            # Обрабатываем остальные строки
+            for row in range(1,self.tableWidget2.rowCount()):  # Итерируемся по всем строкам
+                combo_0 = self.tableWidget2.cellWidget(row, 0)  # Первый столбец с QComboBox
+                item_1 = self.tableWidget2.item(row, 1)  # Второй столбец с обычным элементом
+
+                text_0 = combo_0.currentText() if combo_0 is not None else ''
+                text_1 = item_1.text() if item_1 is not None else ''
+
+                combined_text = f" {text_0} {text_1};"
+                data.append(combined_text)
+
+            # Объединяем список данных в одну строку
+            data_str = ''.join(data)  # Объединяем с пробелом
+
+            print(data_str)
+            self.write_csv(data_str)
 
     def copyRow(self):
         if self.tableWidget2.hasFocus():
@@ -647,14 +667,15 @@ class MainWindow(QMainWindow):
                     self.tableWidget2.setItem(newRow, column, newItem)
 
     def write_csv(self, data):
+        fixed_file_path = path1+"КНБК.csv"
+        self.current_file_path = fixed_file_path
         if self.current_file_path is None:
             print("Error: No file path set for writing data.")
             return
 
         try:
             with open(self.current_file_path, 'a', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
-                writer.writerow(data)
+                f.write('\n'+data )  # Записываем строку данных как одну строку в CSV
             print(f"Data written to {self.current_file_path}")
         except Exception as e:
             print(f"Error opening file: {e}")
