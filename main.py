@@ -426,7 +426,9 @@ class MainWindow(QMainWindow):
         self.tableWidget1.horizontalHeader().repaint()
 
     def load_table(self):
-        print(1)
+        dialog = CsvTableDialog(path1+'КНБК.csv', self)
+        #dialog.data_selected.connect(lambda data: self.update_table_data(data))
+        dialog.exec()
 
     def add_row_2(self):
         print("Adding row to tableWidget3...")
@@ -459,13 +461,37 @@ class MainWindow(QMainWindow):
         try:
             xl, _ = QFileDialog.getOpenFileName(self, 'Open file', 'D:/Программа бурения/', 'Excel Files (*.xlsx)')
             if xl:
-                k = pd.read_excel(xl)
+                # Читаем первые несколько строк для определения наличия заголовков
+                sample_data = pd.read_excel(xl, nrows=5)
+
+                def has_headers(df):
+                    first_row = df.iloc[0]
+                    return all(isinstance(val, str) for val in first_row) and len(set(first_row)) == len(first_row)
+
+                # Определяем наличие заголовков
+                has_headers_flag = has_headers(sample_data)
+
+                # Загрузка данных из файла
+                k = pd.read_excel(xl, header=0 if has_headers_flag else None)
                 num_rows, num_cols = k.shape
                 self.tableWidget1.setRowCount(num_rows)
                 self.tableWidget1.setColumnCount(num_cols)
+
+                # Предопределенные заголовки
+                predefined_headers = ["Глубина по стволу (м)", "Зенитный угол (град)", "Азимут (град)",
+                                      "Азимут маг(град)", "Азимут дир(град)", "Глубина по верт(м)"]
+
+                # Установка заголовков, если они есть, или создание их автоматически
+                if has_headers_flag:
+                    self.tableWidget1.setHorizontalHeaderLabels(k.columns.astype(str).tolist())
+                else:
+                    self.tableWidget1.setHorizontalHeaderLabels(predefined_headers[:num_cols])
+
+                # Заполнение таблицы данными
                 for index, row in k.iterrows():
                     for col_index, value in enumerate(row):
                         self.tableWidget1.setItem(index, col_index, QTableWidgetItem(str(value)))
+
                 self.tableWidget1.horizontalHeader().setVisible(True)
 
                 self.process_and_plot_data(k)
@@ -498,7 +524,6 @@ class MainWindow(QMainWindow):
 
         selected_data = np.array(selected_data)
         self.plot_graph(selected_data)
-
     def plot_graph(self, data):
         fig = Figure()
         ax = fig.add_subplot(111, projection='3d')
