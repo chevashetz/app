@@ -63,7 +63,6 @@ class PasteCommand(QUndoCommand):
                     if current_row >= self.tableWidget.rowCount():
                         self.tableWidget.insertRow(self.tableWidget.rowCount())
 
-                print(f"Inserting '{value}' at row {current_row}, col {current_col}")  # Debug output
                 item = self.tableWidget.item(current_row, current_col)
                 old_row_data[current_col] = item.text() if item else ""
 
@@ -77,35 +76,30 @@ class PasteCommand(QUndoCommand):
             current_row += 1
 
 class CsvTableDialog(QDialog):
-    data_selected = pyqtSignal(list)
+    data_selected = pyqtSignal(list, str)  # Обновляем сигнал, чтобы принимать два аргумента
 
-    def __init__(self, file_name, parent=None):
+    def __init__(self, file_name, load_table=False, parent=None):
         super().__init__(parent)
         self.file_name = file_name
+        self.load_table = load_table
         self.initUI()
 
     def initUI(self):
         self.setWindowTitle('CSV Data')
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(100, 100, 1100, 700)
         layout = QVBoxLayout()
 
         self.tableWidget = QTableWidget(self)
         layout.addWidget(self.tableWidget)
 
         self.setLayout(layout)
-
         self.load_csv()
 
     def load_csv(self):
         try:
-            print(f"Loading file: {self.file_name}")
             with open(self.file_name, newline='', encoding='utf-8') as csvfile:
                 csvreader = csv.reader(csvfile)
                 data = list(csvreader)
-
-                print("Data loaded from CSV file:")
-                for row in data:
-                    print(row)
 
                 if data:
                     headers = data[0]
@@ -117,28 +111,72 @@ class CsvTableDialog(QDialog):
                         row = self.tableWidget.rowCount()
                         self.tableWidget.insertRow(row)
                         for col, cell_data in enumerate(row_data):
-                            item = QTableWidgetItem(cell_data)
+                            item = QTableWidgetItem(cell_data.strip())
                             self.tableWidget.setItem(row, col, item)
 
-                    self.tableWidget.cellDoubleClicked.connect(self.cell_was_double_clicked)
+                    if not self.load_table:
+                        self.tableWidget.cellDoubleClicked.connect(self.cell_was_double_clicked)
+                    else:
+                        self.tableWidget.cellDoubleClicked.connect(self.cell_was_double_clicked_2)
                 else:
                     print("No data found in the file.")
-        except FileNotFoundError:
-            print(f"File {self.file_name} not found.")
         except Exception as e:
-            print(f"An error occurred while reading the file: {e}")
+            print(f"Error loading CSV: {e}")
 
     def cell_was_double_clicked(self, row, column):
-        row_data = []
-        for col in range(self.tableWidget.columnCount()):
-            item = self.tableWidget.item(row, col)
+        try:
+            row_data = []
+            for col in range(self.tableWidget.columnCount()):
+                item = self.tableWidget.item(row, col)
+                if item:
+                    row_data.append(item.text())
+                else:
+                    row_data.append('')
+            self.data_selected.emit(row_data, "")
+            self.accept()
+        except Exception as e:
+            print(f"Error in cell_was_double_clicked: {e}")
+
+    def cell_was_double_clicked_2(self, row, column):
+        try:
+            item = self.tableWidget.item(row, 1)
             if item:
-                row_data.append(item.text())
-            else:
-                row_data.append('')
-        print(f"Row data: {row_data}")
-        self.data_selected.emit(row_data)
-        self.accept()
+                data = item.text()
+                print(f"Double clicked data: {data}")
+                row_data = []
+                keys = []
+                for part in data.split(';'):
+                    part = part.strip()
+                    print(f"Processing part: {part}")
+                    if '_' in part:
+                        key, name = part.split('_')
+                        key = key.strip()
+                        name = name.strip()
+                        keys.append(key)
+                        csv_path = f'{path1}{key}.csv'
+                        print(f"Opening file: {csv_path}")
+                        try:
+                            with open(csv_path, "r", encoding='utf-8') as csvfile:
+                                csv_reader = csv.reader(csvfile)
+                                for csv_row in csv_reader:
+                                    print(f"Checking row in {csv_path}: {csv_row}")
+                                    if name == csv_row[0].strip():
+                                        print(f"Found match: {csv_row}")
+                                        row_data.append([key] + csv_row)  # Добавляем ключ в начало данных строки
+                                        break
+                                    else:
+                                        print(f"No match for {name} in {csv_row[0].strip()}")
+                        except FileNotFoundError:
+                            print(f"File not found: {csv_path}")
+                        except Exception as e:
+                            print(f"Error reading {csv_path}: {e}")
+                    else:
+                        print(f"No '_' found in part: {part}")
+                print(f"Emitting data: {row_data} with keys: {keys}")
+                self.data_selected.emit(row_data, ", ".join(keys))  # Передаем данные и ключи
+                self.accept()
+        except Exception as e:
+            print(f"Error in cell_was_double_clicked_2: {e}")
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -289,7 +327,6 @@ class MainWindow(QMainWindow):
             self.stackedWidget.setCurrentIndex(current_index - 1)
 
     def add_row(self):
-        print("Adding row...")
         row_count2_1 = self.tableWidget2.rowCount()
         self.tableWidget2.setRowCount(row_count2_1 + 1)
         for column in range(self.tableWidget2.columnCount()):
@@ -302,7 +339,6 @@ class MainWindow(QMainWindow):
                 self.tableWidget2.setItem(row_count2_1, column, QTableWidgetItem(""))
 
     def open_csv_table_dialog(self, row, column):
-        print(f"open_csv_table_dialog called with row {row} and column {column}")
         if column == 1:
             combo = self.tableWidget2.cellWidget(row, 0)
             if combo:
@@ -325,28 +361,19 @@ class MainWindow(QMainWindow):
                     file_name = files[file_key]
                     print(f"Opening file dialog for file: {file_name}")
                     self.current_file_path = file_name
-                    dialog = CsvTableDialog(file_name, self)
+                    dialog = CsvTableDialog(file_name, load_table=False,parent=self )
                     dialog.data_selected.connect(lambda data: self.update_table_data(data, row, column))
                     dialog.rejected.connect(lambda: self.csv_dialog_rejected(row, column))
                     dialog.exec()
 
     def open_fixed_path_csv_dialog(self, row, column):
-        print(f"open_fixed_path_csv_dialog called with row {row} and column {column}")
         if column == 1 and row == 0:
-            fixed_file_path = path1 + "Долото.csv"  # Укажите здесь ваш фиксированный путь
-            print(f"Opening file dialog for fixed file: {fixed_file_path}")
-            self.current_file_path = fixed_file_path  # Устанавливаем текущий путь к файлу
-            dialog = CsvTableDialog(fixed_file_path, self)
+            fixed_file_path = path1 + "Долото.csv"
+            self.current_file_path = fixed_file_path
+            dialog = CsvTableDialog(fixed_file_path, load_table=False,parent=self)
             dialog.data_selected.connect(lambda data: self.update_table_data(data, row, column))
             dialog.rejected.connect(lambda: self.csv_dialog_rejected_2(row, column))
             dialog.exec()
-
-    def store_file_path(self, file_key, file_path):
-        self.file_paths[file_key] = file_path
-        print(f"File path stored for {file_key}: {file_path}")
-
-    def get_file_path(self, file_key):
-        return self.file_paths.get(file_key, None)
 
     def remove_widgets_from_row(self, table, row):
         for column in range(1, table.columnCount()):
@@ -356,7 +383,6 @@ class MainWindow(QMainWindow):
                 widget.deleteLater()
 
     def update_table_data(self, data, row, column):
-        print(f"Updating table data at row {row}, column {column} with {data}")
         self.remove_widgets_from_row(self.tableWidget2, row)
 
         if isinstance(data, list):
@@ -366,17 +392,29 @@ class MainWindow(QMainWindow):
         else:
             self.tableWidget2.setItem(row, column, QTableWidgetItem(data))
 
-    def column_clicked(self, index):
-        print(f"Column {index} clicked")
+    def update_table_data_list_2(self, data, key):
+        try:
+            print(f"Received data: {data} with key: {key}")
+            self.tableWidget2.clearContents()
+            self.tableWidget2.setRowCount(0)
+            self.tableWidget2.setRowCount(len(data))
+            for row_index, row_data in enumerate(data):
+                print(f"Updating row {row_index} with key {key} and data {row_data}")
+                for col_index, value in enumerate(row_data):
+                    if value is None:
+                        value = ""
+                    print(f"Setting item at row {row_index}, column {col_index} with value {value}")
+                    self.tableWidget2.setItem(row_index, col_index, QTableWidgetItem(value))
+            print("Table updated successfully.")
+        except Exception as e:
+            print(f"Error in update_table_data_list_2: {e}")
 
     def paste_from_clipboard(self, tableWidget):
         allowed_tables = [self.tableWidget1, self.tableWidget3, self.tableWidget4, self.tableWidget5]
 
         if tableWidget not in allowed_tables:
-            print("This table is not allowed for pasting.")
             return
 
-        print("Pasting from clipboard...")
         try:
             clipboard = QApplication.clipboard()
             mime_data = clipboard.mimeData()
@@ -411,7 +449,6 @@ class MainWindow(QMainWindow):
         return data
 
     def clear_table(self):
-        print("Clearing table...")
         self.tableWidget1.clearContents()  # Очищает содержимое, не меняя количество строк и столбцов
 
         headers = ["Глубина по стволу (м)", "Зенитный угол (град)", "Азимут (град)", "Азимут маг(град)",
@@ -426,19 +463,17 @@ class MainWindow(QMainWindow):
         self.tableWidget1.horizontalHeader().repaint()
 
     def load_table(self):
-        dialog = CsvTableDialog(path1+'КНБК.csv', self)
-        #dialog.data_selected.connect(lambda data: self.update_table_data(data))
+        dialog = CsvTableDialog(path1 + 'КНБК.csv', load_table=True, parent=self)
+        dialog.data_selected.connect(self.update_table_data_list_2)
         dialog.exec()
 
     def add_row_2(self):
-        print("Adding row to tableWidget3...")
         row_count2_2 = self.tableWidget3.rowCount()
         self.tableWidget3.setRowCount(row_count2_2 + 1)
         for column in range(self.tableWidget3.columnCount()):
             self.tableWidget3.setItem(row_count2_2, column, QTableWidgetItem(""))
 
     def add_row_3(self):
-        print("Adding row to tableWidget4...")
         row_count2_3 = self.tableWidget4.rowCount()
         self.tableWidget4.setRowCount(row_count2_3 + 1)
         for column in range(self.tableWidget4.columnCount()):
@@ -451,7 +486,6 @@ class MainWindow(QMainWindow):
                 self.tableWidget4.setItem(row_count2_3, column, QTableWidgetItem(""))
 
     def add_row_4(self):
-        print("Adding row to tableWidget5...")
         row_count2_4 = self.tableWidget5.rowCount()
         self.tableWidget5.setRowCount(row_count2_4 + 1)
         for column in range(self.tableWidget5.columnCount()):
@@ -524,6 +558,7 @@ class MainWindow(QMainWindow):
 
         selected_data = np.array(selected_data)
         self.plot_graph(selected_data)
+
     def plot_graph(self, data):
         fig = Figure()
         ax = fig.add_subplot(111, projection='3d')
@@ -542,31 +577,26 @@ class MainWindow(QMainWindow):
         self.graphicsView.setScene(scene)
 
     def delete_row_1(self):
-        print("Deleting row...")
         row_count2_1 = self.tableWidget2.rowCount()
         if row_count2_1 > 0:
             self.tableWidget2.setRowCount(row_count2_1 - 1)
 
     def delete_row_2(self):
-        print("Deleting row...")
         row_count2_2 = self.tableWidget3.rowCount()
         if row_count2_2 > 0:
             self.tableWidget3.setRowCount(row_count2_2 - 1)
 
     def delete_row_3(self):
-        print("Deleting row...")
         row_count2_3 = self.tableWidget4.rowCount()
         if row_count2_3 > 0:
             self.tableWidget4.setRowCount(row_count2_3 - 1)
 
     def delete_row_4(self):
-        print("Deleting row...")
         row_count2_4 = self.tableWidget5.rowCount()
         if row_count2_4 > 0:
             self.tableWidget5.setRowCount(row_count2_4 - 1)
 
     def csv_dialog_rejected(self, row, column):
-        print(f"CSV dialog closed without selection for row {row}, column {column}")
         item = self.tableWidget2.item(row, column)
         if item is not None and item.text() == "":
             for col in range(self.tableWidget2.columnCount()):
@@ -592,7 +622,6 @@ class MainWindow(QMainWindow):
                     self.tableWidget2.setCellWidget(row, col, combo5)
 
     def csv_dialog_rejected_2(self, row, column):
-        print(f"CSV dialog closed without selection for row {row}, column {column}")
         item = self.tableWidget2.item(row, column)
         if item is not None and item.text() == "":
             for col in range(self.tableWidget2.columnCount()):
@@ -622,7 +651,11 @@ class MainWindow(QMainWindow):
             copyRow_act.triggered.connect(self.copyRow)
             contextMenu.addAction(copyRow_act)
 
+            undo_act = self.undo_stack.createUndoAction(self, "Отменить")
+            contextMenu.addAction(undo_act)
 
+            redo_act = self.undo_stack.createRedoAction(self, "Повторить")
+            contextMenu.addAction(redo_act)
 
             contextMenu.exec(self.mapToGlobal(event.pos()))
 
@@ -630,7 +663,7 @@ class MainWindow(QMainWindow):
         if self.tableWidget2.hasFocus():
             row = self.tableWidget2.currentRow()
             data = []
-            for column in range(self.tableWidget2.columnCount()):
+            for column in range(1,self.tableWidget2.columnCount()):
                 combo = self.tableWidget2.cellWidget(row, column)
                 if combo and isinstance(combo, QComboBox):
                     text = combo.currentText()
@@ -638,8 +671,7 @@ class MainWindow(QMainWindow):
                     item = self.tableWidget2.item(row, column)
                     text = item.text() if item is not None else ''
                 data.append(text)
-            print(data)
-            self.write_csv(data)
+            self.write_csv_2(data)
 
     def saveAsall(self):
         if self.tableWidget2.hasFocus():
@@ -653,7 +685,7 @@ class MainWindow(QMainWindow):
             data.append(f" {text_0_0}")
             item_0_1 = self.tableWidget2.item(0, 1)
             text_0_1 = item_0_1.text() if item_0_1 is not None else ''
-            data.append(f" {text_0_1};")
+            data.append(f"_{text_0_1};")
             # Обрабатываем остальные строки
             for row in range(1,self.tableWidget2.rowCount()):  # Итерируемся по всем строкам
                 combo_0 = self.tableWidget2.cellWidget(row, 0)  # Первый столбец с QComboBox
@@ -662,13 +694,11 @@ class MainWindow(QMainWindow):
                 text_0 = combo_0.currentText() if combo_0 is not None else ''
                 text_1 = item_1.text() if item_1 is not None else ''
 
-                combined_text = f" {text_0} {text_1};"
+                combined_text = f" {text_0}_{text_1};"
                 data.append(combined_text)
 
-            # Объединяем список данных в одну строку
             data_str = ''.join(data)  # Объединяем с пробелом
 
-            print(data_str)
             self.write_csv(data_str)
 
     def copyRow(self):
@@ -693,17 +723,26 @@ class MainWindow(QMainWindow):
 
     def write_csv(self, data):
         fixed_file_path = path1+"КНБК.csv"
-        self.current_file_path = fixed_file_path
+        try:
+            with open(fixed_file_path, 'a', newline='', encoding='utf-8') as f:
+                f.write('\n'+data )
+        except Exception as e:
+            print(f"Error opening file: {e}")
+
+    def write_csv_2(self, data):
         if self.current_file_path is None:
             print("Error: No file path set for writing data.")
             return
 
         try:
+            # Открываем файл в режиме добавления ('a') с параметром 'newline'
             with open(self.current_file_path, 'a', newline='', encoding='utf-8') as f:
-                f.write('\n'+data )  # Записываем строку данных как одну строку в CSV
+                writer = csv.writer(f)
+                writer.writerow(data)
             print(f"Data written to {self.current_file_path}")
         except Exception as e:
             print(f"Error opening file: {e}")
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
