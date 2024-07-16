@@ -1,4 +1,5 @@
 import sys
+import sqlite3
 import pandas as pd
 from PyQt6.QtGui import QAction, QUndoStack, QUndoCommand, QKeySequence, QTextDocument
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QStackedWidget, QHeaderView,
@@ -97,13 +98,17 @@ class PasteCommand(QUndoCommand):
             self.old_data.append((current_row, old_row_data))
             current_row += 1
 
+
 class CsvTableDialog(QDialog):
     data_selected = pyqtSignal(list, str)  # Обновляем сигнал, чтобы принимать два аргумента
 
-    def __init__(self, file_name, load_table=False, parent=None):
+    def __init__(self, file_name, load_table=False, initial_sort_column=5, initial_sort_value=None, parent=None):
         super().__init__(parent)
         self.file_name = file_name
         self.load_table = load_table
+        self.sort_order = Qt.SortOrder.AscendingOrder
+        self.sort_column = initial_sort_column
+        self.initial_sort_value = initial_sort_value
         self.initUI()
 
     def initUI(self):
@@ -116,6 +121,11 @@ class CsvTableDialog(QDialog):
 
         self.setLayout(layout)
         self.load_csv()
+
+        # Включаем сортировку по заголовкам столбцов
+        self.tableWidget.setSortingEnabled(False)
+        self.tableWidget.horizontalHeader().setSortIndicatorShown(True)
+        self.tableWidget.horizontalHeader().sectionClicked.connect(self.on_header_clicked)
 
     def load_csv(self):
         try:
@@ -140,10 +150,58 @@ class CsvTableDialog(QDialog):
                         self.tableWidget.cellDoubleClicked.connect(self.cell_was_double_clicked)
                     else:
                         self.tableWidget.cellDoubleClicked.connect(self.cell_was_double_clicked_2)
+
+                    if self.sort_column is not None and self.initial_sort_value is not None:
+                        self.sort_table(self.sort_order, initial_sort=True)
                 else:
                     print("No data found in the file.")
         except Exception as e:
             print(f"Error loading CSV: {e}")
+
+    def custom_sort_key(self, row_data):
+        text = row_data[self.sort_column]
+        if self.sort_column == 0:
+            return text  # Текстовые значения для 0-го столбца
+        elif self.sort_column in [1, 2, 3, 8, 9]:  # Числовые значения
+            try:
+                return float(text)
+            except ValueError:
+                return float('-inf')  # Обработка некорректных числовых значений
+        elif self.sort_column in [4, 6]:  # Индексы столбцов, которые имеют только 2 текстовых значения
+            return text
+        elif self.sort_column in [5, 7]:  # Индексы столбцов вида "З-76"
+            if text.startswith('З-'):
+                return int(text.split('-')[1])
+        return text
+
+    def on_header_clicked(self, logical_index):
+        # Устанавливаем индекс столбца для сортировки
+        self.sort_column = logical_index
+        self.sort_table(self.sort_order)
+        # Переключение направления сортировки
+        self.sort_order = Qt.SortOrder.DescendingOrder if self.sort_order == Qt.SortOrder.AscendingOrder else Qt.SortOrder.AscendingOrder
+
+    def sort_table(self, order, initial_sort=False):
+        data = []
+        for row in range(self.tableWidget.rowCount()):
+            row_data = []
+            for column in range(self.tableWidget.columnCount()):
+                item = self.tableWidget.item(row, column)
+                row_data.append(item.text() if item else "")
+            data.append(row_data)
+
+        if initial_sort and self.initial_sort_value is not None:
+            # Первоначальная сортировка по значению из 8-го столбца
+            data.sort(key=lambda row: (row[self.sort_column] != self.initial_sort_value, self.custom_sort_key(row)))
+        else:
+            data.sort(key=self.custom_sort_key, reverse=(order == Qt.SortOrder.DescendingOrder))
+
+        self.tableWidget.setRowCount(0)
+        for row_data in data:
+            row = self.tableWidget.rowCount()
+            self.tableWidget.insertRow(row)
+            for column, item in enumerate(row_data):
+                self.tableWidget.setItem(row, column, QTableWidgetItem(item))
 
     def cell_was_double_clicked(self, row, column):
         try:
@@ -254,6 +312,8 @@ class MainWindow(QMainWindow):
         self.pushButton13: QPushButton = self.findChild(QPushButton, 'pushButton_12')
         self.pushButton14: QPushButton = self.findChild(QPushButton, 'pushButton_15')
         self.pushButton15: QPushButton = self.findChild(QPushButton, 'pushButton_16')
+        self.pushButton16: QPushButton = self.findChild(QPushButton, 'pushButton_17')
+        self.pushButton17: QPushButton = self.findChild(QPushButton, 'pushButton_18')
 
         self.lineEdit1: QLineEdit = self.findChild(QLineEdit, 'lineEdit_1')
         self.lineEdit2: QLineEdit = self.findChild(QLineEdit, 'lineEdit_2')
@@ -302,6 +362,7 @@ class MainWindow(QMainWindow):
         self.pushButton13.clicked.connect(self.load_table)
         self.pushButton14.clicked.connect(self.row_up)
         self.pushButton15.clicked.connect(self.row_down)
+        self.pushButton17.clicked.connect(self.add_page)
 
         self.tableWidget1.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.tableWidget2.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -340,12 +401,18 @@ class MainWindow(QMainWindow):
 
         context_menu.exec(table.viewport().mapToGlobal(pos))
 
+    def get_page_count(self):
+        return self.stackedWidget.count()
+
     def on_current_index_changed(self, index):
+        total_pages = self.get_page_count()
+
         if index == 0:
             self.pushButton4.setVisible(False)
         else:
             self.pushButton4.setVisible(True)
-        if index == 4:
+
+        if index == total_pages - 1:  # Last page
             self.pushButton2.setVisible(False)
         else:
             self.pushButton2.setVisible(True)
@@ -371,6 +438,28 @@ class MainWindow(QMainWindow):
             else:
                 self.tableWidget2.setItem(row_count2_1, column, QTableWidgetItem(""))
 
+    # Добавляем отладочную печать в get_initial_sort_value
+    def get_initial_sort_value(self):
+        row_count = self.tableWidget2.rowCount()
+        column_count = self.tableWidget2.columnCount()
+        print(f"Row count: {row_count}, Column count: {column_count}")
+
+        # Проверяем, есть ли строки в главной таблице
+        if row_count > 1:
+            # Получаем значение из 8-го столбца предпоследней строки
+            penultimate_row_index = row_count - 2
+            item = self.tableWidget2.item(penultimate_row_index, 8)
+            if item:
+                value = item.text().strip()
+                print(f"Value in the 8th column of the penultimate row: {value}")
+                return value
+            else:
+                print(f"No item found in row {penultimate_row_index}, column 8")
+        else:
+            print("Not enough rows in the table")
+
+        return None
+
     def open_csv_table_dialog(self, row, column):
         if column == 1:
             combo = self.tableWidget2.cellWidget(row, 0)
@@ -394,7 +483,10 @@ class MainWindow(QMainWindow):
                     file_name = files[file_key]
                     print(f"Opening file dialog for file: {file_name}")
                     self.current_file_path = file_name
-                    dialog = CsvTableDialog(file_name, load_table=False, parent=self)
+                    # Получаем значение для первоначальной сортировки из 8-го столбца предпоследней строки
+                    initial_sort_value = self.get_initial_sort_value()
+                    dialog = CsvTableDialog(file_name, load_table=False, initial_sort_column=5,
+                                            initial_sort_value=initial_sort_value, parent=self)
                     dialog.data_selected.connect(lambda data: self.update_table_data(data, row, column))
                     dialog.rejected.connect(lambda: self.csv_dialog_rejected(row, column))
                     dialog.exec()
@@ -403,7 +495,10 @@ class MainWindow(QMainWindow):
         if column == 1 and row == 0:
             fixed_file_path = path1 + "Долото.csv"
             self.current_file_path = fixed_file_path
-            dialog = CsvTableDialog(fixed_file_path, load_table=False, parent=self)
+            # Получаем значение для первоначальной сортировки из 8-го столбца предпоследней строки
+            initial_sort_value = self.get_initial_sort_value()
+            dialog = CsvTableDialog(fixed_file_path, load_table=False, initial_sort_column=5,
+                                    initial_sort_value=initial_sort_value, parent=self)
             dialog.data_selected.connect(lambda data: self.update_table_data(data, row, column))
             dialog.rejected.connect(lambda: self.csv_dialog_rejected_2(row, column))
             dialog.exec()
@@ -849,6 +944,17 @@ class MainWindow(QMainWindow):
                 text2 = item2.text() if item2 else ''
                 self.tableWidget2.setItem(row1, column, QTableWidgetItem(text2))
                 self.tableWidget2.setItem(row2, column, QTableWidgetItem(text1))
+
+    def add_page(self):
+        new_page = QWidget()
+        layout = QVBoxLayout()
+        new_page.setLayout(layout)
+
+        current_index = self.stackedWidget.currentIndex()
+
+        self.stackedWidget.insertWidget(current_index + 1, new_page)
+
+        self.stackedWidget.setCurrentWidget(new_page)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
