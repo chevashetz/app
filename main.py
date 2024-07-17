@@ -4,7 +4,7 @@ import pandas as pd
 from PyQt6.QtGui import QAction, QUndoStack, QUndoCommand, QKeySequence, QTextDocument
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QStackedWidget, QHeaderView,
                              QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDialog, QVBoxLayout, QMenu,
-                             QGraphicsScene, QGraphicsView, QUndoView, QWidget)
+                             QGraphicsScene, QGraphicsView, QUndoView, QWidget, QHBoxLayout, QLabel)
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 from PyQt6 import uic
 import csv
@@ -258,173 +258,37 @@ class CsvTableDialog(QDialog):
         except Exception as e:
             print(f"Error in cell_was_double_clicked_2: {e}")
 
-class MainWindow(QMainWindow):
-    def __init__(self, *args, **kwargs):
-        super(MainWindow, self).__init__(*args, **kwargs)
-        uic.loadUi('app.ui', self)
-
-        # Проверка загрузки файла .ui
-        print("app.ui loaded successfully")
-
-        self.undo_stack = QUndoStack(self)
-        self.undo_view = QUndoView(self.undo_stack)
-        self.file_paths = {}
-        self.current_file_path = None
+class KNBK_Table(QWidget):
+    def __init__(self, index, parent=None):
+        super(KNBK_Table,self).__init__(parent)
+        uic.loadUi('table.ui', self)
         self.setup_ui()
 
     def setup_ui(self):
-        self.stackedWidget: QStackedWidget = self.findChild(QStackedWidget, 'stackedWidget')
-        if self.stackedWidget is None:
-            print("Error: QStackedWidget not found in the .ui file")
-            return
-
-        self.stackedWidget.setCurrentIndex(0)
-
-        self.tableWidget1: QTableWidget = self.findChild(QTableWidget, 'tableWidget')
+        self.undo_stack = QUndoStack(self)
+        self.undo_view = QUndoView(self.undo_stack)
         self.tableWidget2: QTableWidget = self.findChild(QTableWidget, 'tableWidget_2')
-        self.tableWidget3: QTableWidget = self.findChild(QTableWidget, 'tableWidget_3')
-        self.tableWidget4: QTableWidget = self.findChild(QTableWidget, 'tableWidget_4')
-        self.tableWidget5: QTableWidget = self.findChild(QTableWidget, 'tableWidget_5')
 
-        allowed_tables = [self.tableWidget1, self.tableWidget3, self.tableWidget4, self.tableWidget5]
-
-        for table in allowed_tables:
-            table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-            table.customContextMenuRequested.connect(lambda pos, tbl=table: self.create_context_menu(pos, tbl))
-
-            paste_action = QAction('Вставить', self)
-            paste_action.setShortcut(QKeySequence.StandardKey.Paste)
-            paste_action.triggered.connect(lambda checked, tbl=table: self.paste_from_clipboard(tbl))
-
-            table.addAction(paste_action)
-
-        self.pushButton2: QPushButton = self.findChild(QPushButton, 'pushButton_2')
         self.pushButton3: QPushButton = self.findChild(QPushButton, 'pushButton_3')
-        self.pushButton4: QPushButton = self.findChild(QPushButton, 'pushButton_4')
         self.pushButton5: QPushButton = self.findChild(QPushButton, 'pushButton_5')
-        self.pushButton6: QPushButton = self.findChild(QPushButton, 'pushButton_6')
-        self.pushButton7: QPushButton = self.findChild(QPushButton, 'pushButton_7')
-        self.pushButton8: QPushButton = self.findChild(QPushButton, 'pushButton_8')
-        self.pushButton9: QPushButton = self.findChild(QPushButton, 'pushButton_9')
-        self.pushButton10: QPushButton = self.findChild(QPushButton, 'pushButton_10')
-        self.pushButton11: QPushButton = self.findChild(QPushButton, 'pushButton')
-        self.pushButton12: QPushButton = self.findChild(QPushButton, 'pushButton_11')
         self.pushButton13: QPushButton = self.findChild(QPushButton, 'pushButton_12')
         self.pushButton14: QPushButton = self.findChild(QPushButton, 'pushButton_15')
         self.pushButton15: QPushButton = self.findChild(QPushButton, 'pushButton_16')
-        self.pushButton16: QPushButton = self.findChild(QPushButton, 'pushButton_17')
         self.pushButton17: QPushButton = self.findChild(QPushButton, 'pushButton_18')
 
-        self.lineEdit1: QLineEdit = self.findChild(QLineEdit, 'lineEdit_1')
-        self.lineEdit2: QLineEdit = self.findChild(QLineEdit, 'lineEdit_2')
-        self.lineEdit3: QLineEdit = self.findChild(QLineEdit, 'lineEdit_3')
-        self.lineEdit4: QLineEdit = self.findChild(QLineEdit, 'lineEdit_4')
-
-        self.graphicsView = self.findChild(QGraphicsView, 'graphicsView')
-
         self.open_file_act: QAction = self.findChild(QAction, 'actionOpen')
-
-        if not self.open_file_act:
-            self.open_file_act = QAction('Open', self)
-            menubar = self.menuBar()
-            fileMenu = menubar.addMenu('File')
-            self.open_file_act.setShortcut('Ctrl+O')
-            self.open_file_act.setStatusTip('Open new file')
-            self.open_file_act.triggered.connect(self.open_file)
-            fileMenu.addAction(self.open_file_act)
-        else:
-            self.open_file_act.setShortcut('Ctrl+O')
-            self.open_file_act.setStatusTip('Open new file')
-            self.open_file_act.triggered.connect(self.open_file)
-
-        # Create undo and redo actions
-        self.undo_action = self.undo_stack.createUndoAction(self, "Отменить")
-        self.undo_action.setShortcut(QKeySequence.StandardKey.Undo)
-
-        self.redo_action = self.undo_stack.createRedoAction(self, "Повторить")
-        self.redo_action.setShortcut(QKeySequence.StandardKey.Redo)
-
-        self.addAction(self.undo_action)
-        self.addAction(self.redo_action)
-
-        self.stackedWidget.currentChanged.connect(self.on_current_index_changed)
-        self.pushButton2.clicked.connect(self.go_to_next_page)
-        self.pushButton3.clicked.connect(self.add_row)
-        self.pushButton4.clicked.connect(self.go_to_previous_page)
-        self.pushButton5.clicked.connect(self.delete_row_1)
-        self.pushButton6.clicked.connect(self.clear_table)
-        self.pushButton7.clicked.connect(self.add_row_2)
-        self.pushButton8.clicked.connect(self.delete_row_2)
-        self.pushButton9.clicked.connect(self.delete_row_3)
-        self.pushButton10.clicked.connect(self.add_row_3)
-        self.pushButton11.clicked.connect(self.delete_row_4)
-        self.pushButton12.clicked.connect(self.add_row_4)
-        self.pushButton13.clicked.connect(self.load_table)
-        self.pushButton14.clicked.connect(self.row_up)
-        self.pushButton15.clicked.connect(self.row_down)
-        self.pushButton17.clicked.connect(self.add_page)
-
-        self.tableWidget1.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.tableWidget2.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.tableWidget3.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.tableWidget4.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.tableWidget5.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-
-        self.tableWidget1.horizontalHeader().setVisible(True)
-        self.tableWidget2.horizontalHeader().setVisible(True)
-        self.tableWidget3.horizontalHeader().setVisible(True)
-        self.tableWidget4.horizontalHeader().setVisible(True)
-        self.tableWidget5.horizontalHeader().setVisible(True)
-
-        self.pushButton4.setVisible(False)
 
         self.tableWidget2.cellDoubleClicked.connect(self.open_csv_table_dialog)
         self.tableWidget2.cellDoubleClicked.connect(self.open_fixed_path_csv_dialog)
 
         self.tableWidget2.setItem(0, 0, QTableWidgetItem("Долото"))
-        combo_1 = QComboBox()
-        combo_1.addItems(["Направление", "Кондуктор", "Промежуточная", "Промежуточная 1", "Промежуточная 2",
-                          "Потайная", "Эксплуатационная", "Хвостовик", "Райзер", "Фильтр", "Не определена"])
-        self.tableWidget4.setCellWidget(0, 0, combo_1)
 
-    def create_context_menu(self, pos, table):
-        context_menu = QMenu(self)
-
-        context_menu.addAction(self.undo_action)
-        context_menu.addAction(self.redo_action)
-
-        paste_action = QAction('Вставить', self)
-        paste_action.setShortcut(QKeySequence.StandardKey.Paste)
-        paste_action.triggered.connect(lambda checked, tbl=table: self.paste_from_clipboard(tbl))
-
-        context_menu.addAction(paste_action)
-
-        context_menu.exec(table.viewport().mapToGlobal(pos))
-
-    def get_page_count(self):
-        return self.stackedWidget.count()
-
-    def on_current_index_changed(self, index):
-        total_pages = self.get_page_count()
-
-        if index == 0:
-            self.pushButton4.setVisible(False)
-        else:
-            self.pushButton4.setVisible(True)
-
-        if index == total_pages - 1:  # Last page
-            self.pushButton2.setVisible(False)
-        else:
-            self.pushButton2.setVisible(True)
-
-    def go_to_next_page(self):
-        current_index = self.stackedWidget.currentIndex()
-        self.stackedWidget.setCurrentIndex(current_index + 1)
-
-    def go_to_previous_page(self):
-        current_index = self.stackedWidget.currentIndex()
-        if current_index > 0:
-            self.stackedWidget.setCurrentIndex(current_index - 1)
+        self.pushButton3.clicked.connect(self.add_row)
+        self.pushButton5.clicked.connect(self.delete_row_1)
+        self.pushButton13.clicked.connect(self.load_table)
+        self.pushButton14.clicked.connect(self.row_up)
+        self.pushButton15.clicked.connect(self.row_down)
+        self.pushButton17.clicked.connect(self.parentWidget().add_page)
 
     def add_row(self):
         row_count2_1 = self.tableWidget2.rowCount()
@@ -438,28 +302,73 @@ class MainWindow(QMainWindow):
             else:
                 self.tableWidget2.setItem(row_count2_1, column, QTableWidgetItem(""))
 
-    # Добавляем отладочную печать в get_initial_sort_value
-    def get_initial_sort_value(self):
-        row_count = self.tableWidget2.rowCount()
-        column_count = self.tableWidget2.columnCount()
-        print(f"Row count: {row_count}, Column count: {column_count}")
+    def delete_row_1(self):
+        row_count2_1 = self.tableWidget2.rowCount()
+        if row_count2_1 > 0:
+            self.tableWidget2.setRowCount(row_count2_1 - 1)
 
-        # Проверяем, есть ли строки в главной таблице
-        if row_count > 1:
-            # Получаем значение из 8-го столбца предпоследней строки
-            penultimate_row_index = row_count - 2
-            item = self.tableWidget2.item(penultimate_row_index, 8)
-            if item:
-                value = item.text().strip()
-                print(f"Value in the 8th column of the penultimate row: {value}")
-                return value
-            else:
-                print(f"No item found in row {penultimate_row_index}, column 8")
-        else:
-            print("Not enough rows in the table")
+    def load_table(self):
+        dialog = CsvTableDialog(path1 + 'КНБК.csv', load_table=True, parent=self)
+        dialog.data_selected.connect(self.update_table_data_list_2)
+        dialog.exec()
 
-        return None
+    def row_up(self):
+        current_row = self.tableWidget2.currentRow()
+        if current_row > 0:
+            self.swap_rows(current_row, current_row - 1)
+            self.tableWidget2.setCurrentCell(current_row - 1, 0)
 
+    def row_down(self):
+        current_row = self.tableWidget2.currentRow()
+        if current_row < self.tableWidget2.rowCount() - 1:
+            self.swap_rows(current_row, current_row + 1)
+            self.tableWidget2.setCurrentCell(current_row + 1, 0)
+
+    def swap_rows(self, row1, row2):
+        for column in range(self.tableWidget2.columnCount()):
+            widget1 = self.tableWidget2.cellWidget(row1, column)
+            widget2 = self.tableWidget2.cellWidget(row2, column)
+            item1 = self.tableWidget2.item(row1, column)
+            item2 = self.tableWidget2.item(row2, column)
+
+            if widget1 or widget2:
+                if isinstance(widget1, QComboBox):
+                    index1 = widget1.currentIndex()
+                    text1 = widget1.currentText()
+                else:
+                    index1 = None
+                    text1 = None
+
+                if isinstance(widget2, QComboBox):
+                    index2 = widget2.currentIndex()
+                    text2 = widget2.currentText()
+                else:
+                    index2 = None
+                    text2 = None
+
+                if text1 is not None:
+                    combo1 = QComboBox()
+                    combo1.addItems(["ВЗД", "РУС", "Бурильные трубы", "Переводник", "Предохранительный переводник", "УБТ",
+                                     "Телеметрия", "Ясс", "Калибратор", "Обратный клапан"])
+                    combo1.setCurrentIndex(index1)
+                    self.tableWidget2.setCellWidget(row2, column, combo1)
+                else:
+                    self.tableWidget2.removeCellWidget(row2, column)
+
+                if text2 is not None:
+                    combo2 = QComboBox()
+                    combo2.addItems(["ВЗД", "РУС", "Бурильные трубы", "Переводник", "Предохранительный переводник", "УБТ",
+                                     "Телеметрия", "Ясс", "Калибратор", "Обратный клапан"])
+                    combo2.setCurrentIndex(index2)
+                    self.tableWidget2.setCellWidget(row1, column, combo2)
+                else:
+                    self.tableWidget2.removeCellWidget(row1, column)
+
+            if item1 or item2:
+                text1 = item1.text() if item1 else ''
+                text2 = item2.text() if item2 else ''
+                self.tableWidget2.setItem(row1, column, QTableWidgetItem(text2))
+                self.tableWidget2.setItem(row2, column, QTableWidgetItem(text1))
     def open_csv_table_dialog(self, row, column):
         if column == 1:
             combo = self.tableWidget2.cellWidget(row, 0)
@@ -502,242 +411,6 @@ class MainWindow(QMainWindow):
             dialog.data_selected.connect(lambda data: self.update_table_data(data, row, column))
             dialog.rejected.connect(lambda: self.csv_dialog_rejected_2(row, column))
             dialog.exec()
-
-    def remove_widgets_from_row(self, table, row):
-        for column in range(1, table.columnCount()):
-            widget = table.cellWidget(row, column)
-            if widget:
-                table.removeCellWidget(row, column)
-                widget.deleteLater()
-
-    def update_table_data(self, data, row, column):
-        self.remove_widgets_from_row(self.tableWidget2, row)
-
-        if isinstance(data, list):
-            offset = 0
-            for col_index, value in enumerate(data):
-                self.tableWidget2.setItem(row, column + col_index + offset, QTableWidgetItem(value))
-        else:
-            self.tableWidget2.setItem(row, column, QTableWidgetItem(data))
-
-    def update_table_data_list_2(self, data, key):
-        try:
-            print(f"Received data: {data} with key: {key}")
-
-            # Сохраняем старые данные перед обновлением
-            old_data = []
-            for row in range(self.tableWidget2.rowCount()):
-                row_data = []
-                for col in range(self.tableWidget2.columnCount()):
-                    item = self.tableWidget2.item(row, col)
-                    row_data.append(item.text() if item else "")
-                old_data.append(row_data)
-
-            # Добавляем команду в стек отмены
-            self.undo_stack.push(UpdateTableCommand(self.tableWidget2, old_data, data))
-
-            # Обновляем данные таблицы (сейчас это будет сделано в UpdateTableCommand)
-            self.update_table_widget(self.tableWidget2, data)
-
-        except Exception as e:
-            print(f"Error in update_table_data_list_2: {e}")
-
-    def update_table_widget(self, tableWidget, data):
-        tableWidget.clearContents()
-        tableWidget.setRowCount(len(data))
-        for row_index, row_data in enumerate(data):
-            for col_index, value in enumerate(row_data):
-                if value is None:
-                    value = ""
-                tableWidget.setItem(row_index, col_index, QTableWidgetItem(value))
-
-    def paste_from_clipboard(self, tableWidget):
-        allowed_tables = [self.tableWidget1, self.tableWidget3, self.tableWidget4, self.tableWidget5]
-
-        if tableWidget not in allowed_tables:
-            return
-
-        try:
-            clipboard = QApplication.clipboard()
-            mime_data = clipboard.mimeData()
-
-            if mime_data.hasHtml():
-                text_data = mime_data.html()
-                text_data = self.convert_html_to_plain_text(text_data)
-            elif mime_data.hasText():
-                text_data = mime_data.text()
-            else:
-                print("Clipboard does not contain text data.")
-                return
-
-            current_row = tableWidget.currentRow()
-            current_column = tableWidget.currentColumn()
-
-            command = PasteCommand(tableWidget, text_data, current_row, current_column, "вставку")
-            self.undo_stack.push(command)
-        except Exception as e:
-            print(f"Error pasting from clipboard: {e}")
-
-    def convert_html_to_plain_text(self, html):
-        from bs4 import BeautifulSoup
-        data = []
-        soup = BeautifulSoup(html, "lxml")
-        table = soup.find('table')
-        rows = table.find_all('tr')
-        for row in rows:
-            cols = row.find_all('td') + row.find_all('th')
-            cols = [ele.text.strip() for ele in cols]
-            data.append([ele for ele in cols if ele])  # Get rid of empty values
-        return data
-
-    def clear_table(self):
-        self.tableWidget1.clearContents()  # Очищает содержимое, не меняя количество строк и столбцов
-
-        headers = ["Глубина по стволу (м)", "Зенитный угол (град)", "Азимут (град)", "Азимут маг(град)",
-                   "Азимут дир(град)", "Глубина по верт(м)"]
-        current_column_count = self.tableWidget1.columnCount()
-
-        if current_column_count < len(headers):
-            self.tableWidget1.setColumnCount(len(headers))
-
-        self.tableWidget1.setHorizontalHeaderLabels(headers)
-        self.tableWidget1.horizontalHeader().setVisible(True)
-        self.tableWidget1.horizontalHeader().repaint()
-
-    def load_table(self):
-        dialog = CsvTableDialog(path1 + 'КНБК.csv', load_table=True, parent=self)
-        dialog.data_selected.connect(self.update_table_data_list_2)
-        dialog.exec()
-
-    def add_row_2(self):
-        row_count2_2 = self.tableWidget3.rowCount()
-        self.tableWidget3.setRowCount(row_count2_2 + 1)
-        for column in range(self.tableWidget3.columnCount()):
-            self.tableWidget3.setItem(row_count2_2, column, QTableWidgetItem(""))
-
-    def add_row_3(self):
-        row_count2_3 = self.tableWidget4.rowCount()
-        self.tableWidget4.setRowCount(row_count2_3 + 1)
-        for column in range(self.tableWidget4.columnCount()):
-            if column == 0:
-                combo = QComboBox()
-                combo.addItems(["Направление", "Кондуктор", "Промежуточная", "Промежуточная 1", "Промежуточная 2",
-                                "Потайная", "Эксплуатационная", "Хвостовик", "Райзер", "Фильтр", "Не определена"])
-                self.tableWidget4.setCellWidget(row_count2_3, column, combo)
-            else:
-                self.tableWidget4.setItem(row_count2_3, column, QTableWidgetItem(""))
-
-    def add_row_4(self):
-        row_count2_4 = self.tableWidget5.rowCount()
-        self.tableWidget5.setRowCount(row_count2_4 + 1)
-        for column in range(self.tableWidget5.columnCount()):
-            self.tableWidget5.setItem(row_count2_4, column, QTableWidgetItem(""))
-
-    def open_file(self):
-        try:
-            xl, _ = QFileDialog.getOpenFileName(self, 'Open file', 'D:/Программа бурения/', 'Excel Files (*.xlsx)')
-            if xl:
-                # Читаем первые несколько строк для определения наличия заголовков
-                sample_data = pd.read_excel(xl, nrows=5)
-
-                def has_headers(df):
-                    first_row = df.iloc[0]
-                    return all(isinstance(val, str) for val in first_row) and len(set(first_row)) == len(first_row)
-
-                # Определяем наличие заголовков
-                has_headers_flag = has_headers(sample_data)
-
-                # Загрузка данных из файла
-                k = pd.read_excel(xl, header=0 if has_headers_flag else None)
-                num_rows, num_cols = k.shape
-                self.tableWidget1.setRowCount(num_rows)
-                self.tableWidget1.setColumnCount(num_cols)
-
-                # Предопределенные заголовки
-                predefined_headers = ["Глубина по стволу (м)", "Зенитный угол (град)", "Азимут (град)",
-                                      "Азимут маг(град)", "Азимут дир(град)", "Глубина по верт(м)"]
-
-                # Установка заголовков, если они есть, или создание их автоматически
-                if has_headers_flag:
-                    self.tableWidget1.setHorizontalHeaderLabels(k.columns.astype(str).tolist())
-                else:
-                    self.tableWidget1.setHorizontalHeaderLabels(predefined_headers[:num_cols])
-
-                # Заполнение таблицы данными
-                for index, row in k.iterrows():
-                    for col_index, value in enumerate(row):
-                        self.tableWidget1.setItem(index, col_index, QTableWidgetItem(str(value)))
-
-                self.tableWidget1.horizontalHeader().setVisible(True)
-
-                self.process_and_plot_data(k)
-        except Exception as e:
-            print(f"Error opening file: {e}")
-
-    def process_and_plot_data(self, data):
-        current_coordinates = np.array([0.0, 0.0, 0.0], dtype=np.float64)
-        current_zenith_angle = np.radians(0)
-        current_azimuth_angle = np.radians(0)
-        selected_data = [current_coordinates.copy()]
-
-        for i in range(1, len(data)):
-            delta_L = data.iloc[i, 0] - data.iloc[i - 1, 0]
-            delta_zenith_angle = np.radians(data.iloc[i, 1] - data.iloc[i - 1, 1])
-            delta_azimuth_angle = np.radians(data.iloc[i, 2] - data.iloc[i - 1, 2])
-
-            next_zenith_angle = current_zenith_angle + delta_zenith_angle
-            next_azimuth_angle = current_azimuth_angle + delta_azimuth_angle
-
-            delta_x = delta_L * np.sin(next_zenith_angle) * np.cos(next_azimuth_angle)
-            delta_y = delta_L * np.sin(next_zenith_angle) * np.sin(next_azimuth_angle)
-            delta_z = delta_L * np.cos(next_zenith_angle)
-
-            current_coordinates += np.array([delta_x, delta_y, delta_z])
-            selected_data.append(current_coordinates.copy())
-
-            current_zenith_angle = next_zenith_angle
-            current_azimuth_angle = next_azimuth_angle
-
-        selected_data = np.array(selected_data)
-        self.plot_graph(selected_data)
-
-    def plot_graph(self, data):
-        fig = Figure()
-        ax = fig.add_subplot(111, projection='3d')
-        ax.plot(data[:, 0], data[:, 1], data[:, 2], marker='o', linewidth=0.25)
-        ax.set_xlim([max(data[:, 0]), min(data[:, 0])])
-        ax.set_ylim([max(data[:, 1]), min(data[:, 1])])
-        ax.set_zlim([max(data[:, 2]), min(data[:, 2])])
-        ax.view_init(elev=20, azim=35)
-        ax.set_box_aspect([1, 1, 1])
-
-        scene = QGraphicsScene()
-        canvas = FigureCanvas(fig)
-        canvas.setGeometry(0, 0, 400, 600)
-        scene.addWidget(canvas)
-
-        self.graphicsView.setScene(scene)
-
-    def delete_row_1(self):
-        row_count2_1 = self.tableWidget2.rowCount()
-        if row_count2_1 > 0:
-            self.tableWidget2.setRowCount(row_count2_1 - 1)
-
-    def delete_row_2(self):
-        row_count2_2 = self.tableWidget3.rowCount()
-        if row_count2_2 > 0:
-            self.tableWidget3.setRowCount(row_count2_2 - 1)
-
-    def delete_row_3(self):
-        row_count2_3 = self.tableWidget4.rowCount()
-        if row_count2_3 > 0:
-            self.tableWidget4.setRowCount(row_count2_3 - 1)
-
-    def delete_row_4(self):
-        row_count2_4 = self.tableWidget5.rowCount()
-        if row_count2_4 > 0:
-            self.tableWidget5.setRowCount(row_count2_4 - 1)
-
     def csv_dialog_rejected(self, row, column):
         item = self.tableWidget2.item(row, column)
         if item is not None and item.text() == "":
@@ -886,64 +559,405 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print(f"Error opening file: {e}")
 
+    def get_initial_sort_value(self):
+        row_count = self.tableWidget2.rowCount()
+        column_count = self.tableWidget2.columnCount()
+        print(f"Row count: {row_count}, Column count: {column_count}")
 
-    def row_up(self):
-        current_row = self.tableWidget2.currentRow()
-        if current_row > 0:
-            self.swap_rows(current_row, current_row - 1)
-            self.tableWidget2.setCurrentCell(current_row - 1, 0)
+        # Проверяем, есть ли строки в главной таблице
+        if row_count > 1:
+            # Получаем значение из 8-го столбца предпоследней строки
+            penultimate_row_index = row_count - 2
+            item = self.tableWidget2.item(penultimate_row_index, 8)
+            if item:
+                value = item.text().strip()
+                print(f"Value in the 8th column of the penultimate row: {value}")
+                return value
+            else:
+                print(f"No item found in row {penultimate_row_index}, column 8")
+        else:
+            print("Not enough rows in the table")
 
-    def row_down(self):
-        current_row = self.tableWidget2.currentRow()
-        if current_row < self.tableWidget2.rowCount() - 1:
-            self.swap_rows(current_row, current_row + 1)
-            self.tableWidget2.setCurrentCell(current_row + 1, 0)
+        return None
 
-    def swap_rows(self, row1, row2):
-        for column in range(self.tableWidget2.columnCount()):
-            widget1 = self.tableWidget2.cellWidget(row1, column)
-            widget2 = self.tableWidget2.cellWidget(row2, column)
-            item1 = self.tableWidget2.item(row1, column)
-            item2 = self.tableWidget2.item(row2, column)
+    def remove_widgets_from_row(self, table, row):
+        for column in range(1, table.columnCount()):
+            widget = table.cellWidget(row, column)
+            if widget:
+                table.removeCellWidget(row, column)
+                widget.deleteLater()
 
-            if widget1 or widget2:
-                if isinstance(widget1, QComboBox):
-                    index1 = widget1.currentIndex()
-                    text1 = widget1.currentText()
+    def update_table_data(self, data, row, column):
+        self.remove_widgets_from_row(self.tableWidget2, row)
+
+        if isinstance(data, list):
+            offset = 0
+            for col_index, value in enumerate(data):
+                self.tableWidget2.setItem(row, column + col_index + offset, QTableWidgetItem(value))
+        else:
+            self.tableWidget2.setItem(row, column, QTableWidgetItem(data))
+
+    def update_table_data_list_2(self, data, key):
+        try:
+            print(f"Received data: {data} with key: {key}")
+
+            # Сохраняем старые данные перед обновлением
+            old_data = []
+            for row in range(self.tableWidget2.rowCount()):
+                row_data = []
+                for col in range(self.tableWidget2.columnCount()):
+                    item = self.tableWidget2.item(row, col)
+                    row_data.append(item.text() if item else "")
+                old_data.append(row_data)
+
+            # Добавляем команду в стек отмены
+            self.undo_stack.push(UpdateTableCommand(self.tableWidget2, old_data, data))
+
+            # Обновляем данные таблицы (сейчас это будет сделано в UpdateTableCommand)
+            self.update_table_widget(self.tableWidget2, data)
+
+        except Exception as e:
+            print(f"Error in update_table_data_list_2: {e}")
+
+    def update_table_widget(self, tableWidget, data):
+        tableWidget.clearContents()
+        tableWidget.setRowCount(len(data))
+        for row_index, row_data in enumerate(data):
+            for col_index, value in enumerate(row_data):
+                if value is None:
+                    value = ""
+                tableWidget.setItem(row_index, col_index, QTableWidgetItem(value))
+
+class MainWindow(QMainWindow):
+    def __init__(self, *args, **kwargs):
+        super(MainWindow, self).__init__(*args, **kwargs)
+        uic.loadUi('app.ui', self)
+
+        # Проверка загрузки файла .ui
+        print("app.ui loaded successfully")
+
+        self.undo_stack = QUndoStack(self)
+        self.undo_view = QUndoView(self.undo_stack)
+        self.file_paths = {}
+        self.current_file_path = None
+        self.setup_ui()
+
+    def setup_ui(self):
+        self.stackedWidget: QStackedWidget = self.findChild(QStackedWidget, 'stackedWidget')
+        if self.stackedWidget is None:
+            print("Error: QStackedWidget not found in the .ui file")
+            return
+
+        self.stackedWidget.setCurrentIndex(0)
+        self.stackedWidget.insertWidget(4,KNBK_Table(index = 4, parent = self))
+
+        self.tableWidget1: QTableWidget = self.findChild(QTableWidget, 'tableWidget')
+        self.tableWidget3: QTableWidget = self.findChild(QTableWidget, 'tableWidget_3')
+        self.tableWidget4: QTableWidget = self.findChild(QTableWidget, 'tableWidget_4')
+        self.tableWidget5: QTableWidget = self.findChild(QTableWidget, 'tableWidget_5')
+
+        combo_1 = QComboBox()
+        combo_1.addItems(["Направление", "Кондуктор", "Промежуточная", "Промежуточная 1", "Промежуточная 2",
+                          "Потайная", "Эксплуатационная", "Хвостовик", "Райзер", "Фильтр", "Не определена"])
+        self.tableWidget4.setCellWidget(0, 0, combo_1)
+
+        allowed_tables = [self.tableWidget1, self.tableWidget3, self.tableWidget4, self.tableWidget5]
+
+        for table in allowed_tables:
+            table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            table.customContextMenuRequested.connect(lambda pos, tbl=table: self.create_context_menu(pos, tbl))
+
+            paste_action = QAction('Вставить', self)
+            paste_action.setShortcut(QKeySequence.StandardKey.Paste)
+            paste_action.triggered.connect(lambda checked, tbl=table: self.paste_from_clipboard(tbl))
+
+            table.addAction(paste_action)
+
+        self.pushButton2: QPushButton = self.findChild(QPushButton, 'pushButton_2')
+        self.pushButton4: QPushButton = self.findChild(QPushButton, 'pushButton_4')
+        self.pushButton6: QPushButton = self.findChild(QPushButton, 'pushButton_6')
+        self.pushButton7: QPushButton = self.findChild(QPushButton, 'pushButton_7')
+        self.pushButton8: QPushButton = self.findChild(QPushButton, 'pushButton_8')
+        self.pushButton9: QPushButton = self.findChild(QPushButton, 'pushButton_9')
+        self.pushButton10: QPushButton = self.findChild(QPushButton, 'pushButton_10')
+        self.pushButton11: QPushButton = self.findChild(QPushButton, 'pushButton')
+        self.pushButton12: QPushButton = self.findChild(QPushButton, 'pushButton_11')
+        self.pushButton16: QPushButton = self.findChild(QPushButton, 'pushButton_17')
+
+        self.lineEdit1: QLineEdit = self.findChild(QLineEdit, 'lineEdit_1')
+        self.lineEdit2: QLineEdit = self.findChild(QLineEdit, 'lineEdit_2')
+        self.lineEdit3: QLineEdit = self.findChild(QLineEdit, 'lineEdit_3')
+        self.lineEdit4: QLineEdit = self.findChild(QLineEdit, 'lineEdit_4')
+
+        self.graphicsView = self.findChild(QGraphicsView, 'graphicsView')
+
+        self.open_file_act: QAction = self.findChild(QAction, 'actionOpen')
+
+        if not self.open_file_act:
+            self.open_file_act = QAction('Open', self)
+            menubar = self.menuBar()
+            fileMenu = menubar.addMenu('File')
+            self.open_file_act.setShortcut('Ctrl+O')
+            self.open_file_act.setStatusTip('Open new file')
+            self.open_file_act.triggered.connect(self.open_file)
+            fileMenu.addAction(self.open_file_act)
+        else:
+            self.open_file_act.setShortcut('Ctrl+O')
+            self.open_file_act.setStatusTip('Open new file')
+            self.open_file_act.triggered.connect(self.open_file)
+
+        # Create undo and redo actions
+
+        self.stackedWidget.currentChanged.connect(self.on_current_index_changed)
+        self.pushButton2.clicked.connect(self.go_to_next_page)
+        self.pushButton4.clicked.connect(self.go_to_previous_page)
+        self.pushButton6.clicked.connect(self.clear_table)
+        self.pushButton7.clicked.connect(self.add_row_2)
+        self.pushButton8.clicked.connect(self.delete_row_2)
+        self.pushButton9.clicked.connect(self.delete_row_3)
+        self.pushButton10.clicked.connect(self.add_row_3)
+        self.pushButton11.clicked.connect(self.delete_row_4)
+        self.pushButton12.clicked.connect(self.add_row_4)
+
+
+
+        self.tableWidget1.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.tableWidget3.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.tableWidget4.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.tableWidget5.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
+        self.tableWidget1.horizontalHeader().setVisible(True)
+        self.tableWidget3.horizontalHeader().setVisible(True)
+        self.tableWidget4.horizontalHeader().setVisible(True)
+        self.tableWidget5.horizontalHeader().setVisible(True)
+
+        self.pushButton4.setVisible(False)
+
+        self.undo_action = self.undo_stack.createUndoAction(self, "Отменить")
+        self.undo_action.setShortcut(QKeySequence.StandardKey.Undo)
+
+        self.redo_action = self.undo_stack.createRedoAction(self, "Повторить")
+        self.redo_action.setShortcut(QKeySequence.StandardKey.Redo)
+
+        self.addAction(self.undo_action)
+        self.addAction(self.redo_action)
+
+
+    def create_context_menu(self, pos, table):
+        context_menu = QMenu(self)
+
+        context_menu.addAction(self.undo_action)
+        context_menu.addAction(self.redo_action)
+
+        paste_action = QAction('Вставить', self)
+        paste_action.setShortcut(QKeySequence.StandardKey.Paste)
+        paste_action.triggered.connect(lambda checked, tbl=table: self.paste_from_clipboard(tbl))
+
+        context_menu.addAction(paste_action)
+
+        context_menu.exec(table.viewport().mapToGlobal(pos))
+
+    def get_page_count(self):
+        return self.stackedWidget.count()
+
+    def on_current_index_changed(self, index):
+        total_pages = self.get_page_count()
+
+        if index == 0:
+            self.pushButton4.setVisible(False)
+        else:
+            self.pushButton4.setVisible(True)
+
+        if index == total_pages - 1:  # Last page
+            self.pushButton2.setVisible(False)
+        else:
+            self.pushButton2.setVisible(True)
+
+    def go_to_next_page(self):
+        current_index = self.stackedWidget.currentIndex()
+        self.stackedWidget.setCurrentIndex(current_index + 1)
+
+    def go_to_previous_page(self):
+        current_index = self.stackedWidget.currentIndex()
+        if current_index > 0:
+            self.stackedWidget.setCurrentIndex(current_index - 1)
+
+    def paste_from_clipboard(self, tableWidget):
+        allowed_tables = [self.tableWidget1, self.tableWidget3, self.tableWidget4, self.tableWidget5]
+
+        if tableWidget not in allowed_tables:
+            return
+
+        try:
+            clipboard = QApplication.clipboard()
+            mime_data = clipboard.mimeData()
+
+            if mime_data.hasHtml():
+                text_data = mime_data.html()
+                text_data = self.convert_html_to_plain_text(text_data)
+            elif mime_data.hasText():
+                text_data = mime_data.text()
+            else:
+                print("Clipboard does not contain text data.")
+                return
+
+            current_row = tableWidget.currentRow()
+            current_column = tableWidget.currentColumn()
+
+            command = PasteCommand(tableWidget, text_data, current_row, current_column, "вставку")
+            self.undo_stack.push(command)
+        except Exception as e:
+            print(f"Error pasting from clipboard: {e}")
+
+    def convert_html_to_plain_text(self, html):
+        from bs4 import BeautifulSoup
+        data = []
+        soup = BeautifulSoup(html, "lxml")
+        table = soup.find('table')
+        rows = table.find_all('tr')
+        for row in rows:
+            cols = row.find_all('td') + row.find_all('th')
+            cols = [ele.text.strip() for ele in cols]
+            data.append([ele for ele in cols if ele])  # Get rid of empty values
+        return data
+
+    def clear_table(self):
+        self.tableWidget1.clearContents()  # Очищает содержимое, не меняя количество строк и столбцов
+
+        headers = ["Глубина по стволу (м)", "Зенитный угол (град)", "Азимут (град)", "Азимут маг(град)",
+                   "Азимут дир(град)", "Глубина по верт(м)"]
+        current_column_count = self.tableWidget1.columnCount()
+
+        if current_column_count < len(headers):
+            self.tableWidget1.setColumnCount(len(headers))
+
+        self.tableWidget1.setHorizontalHeaderLabels(headers)
+        self.tableWidget1.horizontalHeader().setVisible(True)
+        self.tableWidget1.horizontalHeader().repaint()
+
+    def add_row_2(self):
+        row_count2_2 = self.tableWidget3.rowCount()
+        self.tableWidget3.setRowCount(row_count2_2 + 1)
+        for column in range(self.tableWidget3.columnCount()):
+            self.tableWidget3.setItem(row_count2_2, column, QTableWidgetItem(""))
+
+    def add_row_3(self):
+        row_count2_3 = self.tableWidget4.rowCount()
+        self.tableWidget4.setRowCount(row_count2_3 + 1)
+        for column in range(self.tableWidget4.columnCount()):
+            if column == 0:
+                combo = QComboBox()
+                combo.addItems(["Направление", "Кондуктор", "Промежуточная", "Промежуточная 1", "Промежуточная 2",
+                                "Потайная", "Эксплуатационная", "Хвостовик", "Райзер", "Фильтр", "Не определена"])
+                self.tableWidget4.setCellWidget(row_count2_3, column, combo)
+            else:
+                self.tableWidget4.setItem(row_count2_3, column, QTableWidgetItem(""))
+
+    def add_row_4(self):
+        row_count2_4 = self.tableWidget5.rowCount()
+        self.tableWidget5.setRowCount(row_count2_4 + 1)
+        for column in range(self.tableWidget5.columnCount()):
+            self.tableWidget5.setItem(row_count2_4, column, QTableWidgetItem(""))
+
+    def open_file(self):
+        try:
+            xl, _ = QFileDialog.getOpenFileName(self, 'Open file', 'D:/Программа бурения/', 'Excel Files (*.xlsx)')
+            if xl:
+                # Читаем первые несколько строк для определения наличия заголовков
+                sample_data = pd.read_excel(xl, nrows=5)
+
+                def has_headers(df):
+                    first_row = df.iloc[0]
+                    return all(isinstance(val, str) for val in first_row) and len(set(first_row)) == len(first_row)
+
+                # Определяем наличие заголовков
+                has_headers_flag = has_headers(sample_data)
+
+                # Загрузка данных из файла
+                k = pd.read_excel(xl, header=0 if has_headers_flag else None)
+                num_rows, num_cols = k.shape
+                self.tableWidget1.setRowCount(num_rows)
+                self.tableWidget1.setColumnCount(num_cols)
+
+                # Предопределенные заголовки
+                predefined_headers = ["Глубина по стволу (м)", "Зенитный угол (град)", "Азимут (град)",
+                                      "Азимут маг(град)", "Азимут дир(град)", "Глубина по верт(м)"]
+
+                # Установка заголовков, если они есть, или создание их автоматически
+                if has_headers_flag:
+                    self.tableWidget1.setHorizontalHeaderLabels(k.columns.astype(str).tolist())
                 else:
-                    index1 = None
-                    text1 = None
+                    self.tableWidget1.setHorizontalHeaderLabels(predefined_headers[:num_cols])
 
-                if isinstance(widget2, QComboBox):
-                    index2 = widget2.currentIndex()
-                    text2 = widget2.currentText()
-                else:
-                    index2 = None
-                    text2 = None
+                # Заполнение таблицы данными
+                for index, row in k.iterrows():
+                    for col_index, value in enumerate(row):
+                        self.tableWidget1.setItem(index, col_index, QTableWidgetItem(str(value)))
 
-                if text1 is not None:
-                    combo1 = QComboBox()
-                    combo1.addItems(["ВЗД", "РУС", "Бурильные трубы", "Переводник", "Предохранительный переводник", "УБТ",
-                                     "Телеметрия", "Ясс", "Калибратор", "Обратный клапан"])
-                    combo1.setCurrentIndex(index1)
-                    self.tableWidget2.setCellWidget(row2, column, combo1)
-                else:
-                    self.tableWidget2.removeCellWidget(row2, column)
+                self.tableWidget1.horizontalHeader().setVisible(True)
 
-                if text2 is not None:
-                    combo2 = QComboBox()
-                    combo2.addItems(["ВЗД", "РУС", "Бурильные трубы", "Переводник", "Предохранительный переводник", "УБТ",
-                                     "Телеметрия", "Ясс", "Калибратор", "Обратный клапан"])
-                    combo2.setCurrentIndex(index2)
-                    self.tableWidget2.setCellWidget(row1, column, combo2)
-                else:
-                    self.tableWidget2.removeCellWidget(row1, column)
+                self.process_and_plot_data(k)
+        except Exception as e:
+            print(f"Error opening file: {e}")
 
-            if item1 or item2:
-                text1 = item1.text() if item1 else ''
-                text2 = item2.text() if item2 else ''
-                self.tableWidget2.setItem(row1, column, QTableWidgetItem(text2))
-                self.tableWidget2.setItem(row2, column, QTableWidgetItem(text1))
+    def process_and_plot_data(self, data):
+        current_coordinates = np.array([0.0, 0.0, 0.0], dtype=np.float64)
+        current_zenith_angle = np.radians(0)
+        current_azimuth_angle = np.radians(0)
+        selected_data = [current_coordinates.copy()]
+
+        for i in range(1, len(data)):
+            delta_L = data.iloc[i, 0] - data.iloc[i - 1, 0]
+            delta_zenith_angle = np.radians(data.iloc[i, 1] - data.iloc[i - 1, 1])
+            delta_azimuth_angle = np.radians(data.iloc[i, 2] - data.iloc[i - 1, 2])
+
+            next_zenith_angle = current_zenith_angle + delta_zenith_angle
+            next_azimuth_angle = current_azimuth_angle + delta_azimuth_angle
+
+            delta_x = delta_L * np.sin(next_zenith_angle) * np.cos(next_azimuth_angle)
+            delta_y = delta_L * np.sin(next_zenith_angle) * np.sin(next_azimuth_angle)
+            delta_z = delta_L * np.cos(next_zenith_angle)
+
+            current_coordinates += np.array([delta_x, delta_y, delta_z])
+            selected_data.append(current_coordinates.copy())
+
+            current_zenith_angle = next_zenith_angle
+            current_azimuth_angle = next_azimuth_angle
+
+        selected_data = np.array(selected_data)
+        self.plot_graph(selected_data)
+
+    def plot_graph(self, data):
+        fig = Figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot(data[:, 0], data[:, 1], data[:, 2], marker='o', linewidth=0.25)
+        ax.set_xlim([max(data[:, 0]), min(data[:, 0])])
+        ax.set_ylim([max(data[:, 1]), min(data[:, 1])])
+        ax.set_zlim([max(data[:, 2]), min(data[:, 2])])
+        ax.view_init(elev=20, azim=35)
+        ax.set_box_aspect([1, 1, 1])
+
+        scene = QGraphicsScene()
+        canvas = FigureCanvas(fig)
+        canvas.setGeometry(0, 0, 400, 600)
+        scene.addWidget(canvas)
+
+        self.graphicsView.setScene(scene)
+
+    def delete_row_2(self):
+        row_count2_2 = self.tableWidget3.rowCount()
+        if row_count2_2 > 0:
+            self.tableWidget3.setRowCount(row_count2_2 - 1)
+
+    def delete_row_3(self):
+        row_count2_3 = self.tableWidget4.rowCount()
+        if row_count2_3 > 0:
+            self.tableWidget4.setRowCount(row_count2_3 - 1)
+
+    def delete_row_4(self):
+        row_count2_4 = self.tableWidget5.rowCount()
+        if row_count2_4 > 0:
+            self.tableWidget5.setRowCount(row_count2_4 - 1)
 
     def add_page(self):
         new_page = QWidget()
