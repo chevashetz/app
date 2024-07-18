@@ -1,7 +1,7 @@
 import sys
 import sqlite3
 import pandas as pd
-from PyQt6.QtGui import QAction, QUndoStack, QUndoCommand, QKeySequence, QTextDocument
+from PyQt6.QtGui import QAction, QUndoStack, QUndoCommand, QKeySequence, QTextDocument, QFontMetrics
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QStackedWidget, QHeaderView,
                              QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDialog, QVBoxLayout, QMenu,
                              QGraphicsScene, QGraphicsView, QUndoView, QWidget, QHBoxLayout, QLabel)
@@ -121,11 +121,10 @@ class CsvTableDialog(QDialog):
 
         self.setLayout(layout)
         self.load_csv()
-
-        # Включаем сортировку по заголовкам столбцов
         self.tableWidget.setSortingEnabled(False)
         self.tableWidget.horizontalHeader().setSortIndicatorShown(True)
         self.tableWidget.horizontalHeader().sectionClicked.connect(self.on_header_clicked)
+
 
     def load_csv(self):
         try:
@@ -179,7 +178,8 @@ class CsvTableDialog(QDialog):
         self.sort_column = logical_index
         self.sort_table(self.sort_order)
         # Переключение направления сортировки
-        self.sort_order = Qt.SortOrder.DescendingOrder if self.sort_order == Qt.SortOrder.AscendingOrder else Qt.SortOrder.AscendingOrder
+        self.sort_order = Qt.SortOrder.DescendingOrder if self.sort_order == Qt.SortOrder.AscendingOrder \
+            else Qt.SortOrder.AscendingOrder
 
     def sort_table(self, order, initial_sort=False):
         data = []
@@ -267,69 +267,69 @@ class KNBK_Table(QWidget):
     def setup_ui(self):
         self.undo_stack = QUndoStack(self)
         self.undo_view = QUndoView(self.undo_stack)
-        self.tableWidget2: QTableWidget = self.findChild(QTableWidget, 'tableWidget_2')
+        self.tbl_KNBK: QTableWidget = self.findChild(QTableWidget, 'KNBK')
 
-        self.pushButton3: QPushButton = self.findChild(QPushButton, 'pushButton_3')
-        self.pushButton5: QPushButton = self.findChild(QPushButton, 'pushButton_5')
-        self.pushButton13: QPushButton = self.findChild(QPushButton, 'pushButton_12')
-        self.pushButton14: QPushButton = self.findChild(QPushButton, 'pushButton_15')
-        self.pushButton15: QPushButton = self.findChild(QPushButton, 'pushButton_16')
-        self.pushButton17: QPushButton = self.findChild(QPushButton, 'pushButton_18')
+        self.btn_add_row_KNBK: QPushButton = self.findChild(QPushButton, 'add_row')
+        self.btn_delete_row_KNBK: QPushButton = self.findChild(QPushButton, 'delete_row')
+        self.btn_load_table: QPushButton = self.findChild(QPushButton, 'load_KNBK')
+        self.btn_row_up: QPushButton = self.findChild(QPushButton, 'row_up')
+        self.btn_row_down: QPushButton = self.findChild(QPushButton, 'row_down')
+        self.btn_add_page_KNBK: QPushButton = self.findChild(QPushButton, 'add_page')
 
         self.open_file_act: QAction = self.findChild(QAction, 'actionOpen')
 
-        self.tableWidget2.cellDoubleClicked.connect(self.open_csv_table_dialog)
-        self.tableWidget2.cellDoubleClicked.connect(self.open_fixed_path_csv_dialog)
+        self.tbl_KNBK.cellDoubleClicked.connect(self.open_csv_table_dialog)
+        self.tbl_KNBK.cellDoubleClicked.connect(self.open_fixed_path_csv_dialog)
+        self.tbl_KNBK.setItem(0, 0, QTableWidgetItem("Долото"))
 
-        self.tableWidget2.setItem(0, 0, QTableWidgetItem("Долото"))
+        self.btn_add_row_KNBK.clicked.connect(self.add_row_KNBK)
+        self.btn_delete_row_KNBK.clicked.connect(self.delete_row_KNBK)
+        self.btn_load_table.clicked.connect(self.load_table_KNBK)
+        self.btn_row_up.clicked.connect(self.row_up_KNBK)
+        self.btn_row_down.clicked.connect(self.row_down_KNBK)
 
-        self.pushButton3.clicked.connect(self.add_row)
-        self.pushButton5.clicked.connect(self.delete_row_1)
-        self.pushButton13.clicked.connect(self.load_table)
-        self.pushButton14.clicked.connect(self.row_up)
-        self.pushButton15.clicked.connect(self.row_down)
-        self.pushButton17.clicked.connect(self.parentWidget().add_page)
 
-    def add_row(self):
-        row_count2_1 = self.tableWidget2.rowCount()
-        self.tableWidget2.setRowCount(row_count2_1 + 1)
-        for column in range(self.tableWidget2.columnCount()):
+    def add_row_KNBK(self):
+        row_count2_1 = self.tbl_KNBK.rowCount()
+        self.tbl_KNBK.setRowCount(row_count2_1 + 1)
+        for column in range(self.tbl_KNBK.columnCount()):
             if column == 0:
                 combo = QComboBox()
                 combo.addItems(["ВЗД", "РУС", "Бурильные трубы", "Переводник", "Предохранительный переводник", "УБТ",
                                 "Телеметрия", "Ясс", "Калибратор", "Обратный клапан"])
-                self.tableWidget2.setCellWidget(row_count2_1, column, combo)
+                self.tbl_KNBK.setCellWidget(row_count2_1, column, combo)
             else:
-                self.tableWidget2.setItem(row_count2_1, column, QTableWidgetItem(""))
+                self.tbl_KNBK.setItem(row_count2_1, column, QTableWidgetItem(""))
+        #self.tbl_KNBK.resizeRowsToContents()
 
-    def delete_row_1(self):
-        row_count2_1 = self.tableWidget2.rowCount()
+    def delete_row_KNBK(self):
+        row_count2_1 = self.tbl_KNBK.rowCount()
         if row_count2_1 > 0:
-            self.tableWidget2.setRowCount(row_count2_1 - 1)
+            self.tbl_KNBK.setRowCount(row_count2_1 - 1)
 
-    def load_table(self):
+    def load_table_KNBK(self):
         dialog = CsvTableDialog(path1 + 'КНБК.csv', load_table=True, parent=self)
         dialog.data_selected.connect(self.update_table_data_list_2)
         dialog.exec()
 
-    def row_up(self):
-        current_row = self.tableWidget2.currentRow()
+    def row_up_KNBK(self):
+        current_row = self.tbl_KNBK.currentRow()
         if current_row > 0:
             self.swap_rows(current_row, current_row - 1)
-            self.tableWidget2.setCurrentCell(current_row - 1, 0)
+            self.tbl_KNBK.setCurrentCell(current_row - 1, 0)
 
-    def row_down(self):
-        current_row = self.tableWidget2.currentRow()
-        if current_row < self.tableWidget2.rowCount() - 1:
+    def row_down_KNBK(self):
+        current_row = self.tbl_KNBK.currentRow()
+        if current_row < self.tbl_KNBK.rowCount() - 1:
             self.swap_rows(current_row, current_row + 1)
-            self.tableWidget2.setCurrentCell(current_row + 1, 0)
+            self.tbl_KNBK.setCurrentCell(current_row + 1, 0)
 
     def swap_rows(self, row1, row2):
-        for column in range(self.tableWidget2.columnCount()):
-            widget1 = self.tableWidget2.cellWidget(row1, column)
-            widget2 = self.tableWidget2.cellWidget(row2, column)
-            item1 = self.tableWidget2.item(row1, column)
-            item2 = self.tableWidget2.item(row2, column)
+        for column in range(self.tbl_KNBK.columnCount()):
+            widget1 = self.tbl_KNBK.cellWidget(row1, column)
+            widget2 = self.tbl_KNBK.cellWidget(row2, column)
+            item1 = self.tbl_KNBK.item(row1, column)
+            item2 = self.tbl_KNBK.item(row2, column)
 
             if widget1 or widget2:
                 if isinstance(widget1, QComboBox):
@@ -351,27 +351,28 @@ class KNBK_Table(QWidget):
                     combo1.addItems(["ВЗД", "РУС", "Бурильные трубы", "Переводник", "Предохранительный переводник", "УБТ",
                                      "Телеметрия", "Ясс", "Калибратор", "Обратный клапан"])
                     combo1.setCurrentIndex(index1)
-                    self.tableWidget2.setCellWidget(row2, column, combo1)
+                    self.tbl_KNBK.setCellWidget(row2, column, combo1)
                 else:
-                    self.tableWidget2.removeCellWidget(row2, column)
+                    self.tbl_KNBK.removeCellWidget(row2, column)
 
                 if text2 is not None:
                     combo2 = QComboBox()
                     combo2.addItems(["ВЗД", "РУС", "Бурильные трубы", "Переводник", "Предохранительный переводник", "УБТ",
                                      "Телеметрия", "Ясс", "Калибратор", "Обратный клапан"])
                     combo2.setCurrentIndex(index2)
-                    self.tableWidget2.setCellWidget(row1, column, combo2)
+                    self.tbl_KNBK.setCellWidget(row1, column, combo2)
                 else:
-                    self.tableWidget2.removeCellWidget(row1, column)
+                    self.tbl_KNBK.removeCellWidget(row1, column)
 
             if item1 or item2:
                 text1 = item1.text() if item1 else ''
                 text2 = item2.text() if item2 else ''
-                self.tableWidget2.setItem(row1, column, QTableWidgetItem(text2))
-                self.tableWidget2.setItem(row2, column, QTableWidgetItem(text1))
+                self.tbl_KNBK.setItem(row1, column, QTableWidgetItem(text2))
+                self.tbl_KNBK.setItem(row2, column, QTableWidgetItem(text1))
+
     def open_csv_table_dialog(self, row, column):
         if column == 1:
-            combo = self.tableWidget2.cellWidget(row, 0)
+            combo = self.tbl_KNBK.cellWidget(row, 0)
             if combo:
                 file_key = combo.currentText()
                 print(f"Selected file key: {file_key}")
@@ -411,48 +412,49 @@ class KNBK_Table(QWidget):
             dialog.data_selected.connect(lambda data: self.update_table_data(data, row, column))
             dialog.rejected.connect(lambda: self.csv_dialog_rejected_2(row, column))
             dialog.exec()
+
     def csv_dialog_rejected(self, row, column):
-        item = self.tableWidget2.item(row, column)
+        item = self.tbl_KNBK.item(row, column)
         if item is not None and item.text() == "":
-            for col in range(self.tableWidget2.columnCount()):
+            for col in range(self.tbl_KNBK.columnCount()):
                 if col == 5:
                     combo2 = QComboBox()
                     combo2.addItems(["Ниппель", "Муфта"])
-                    self.tableWidget2.setCellWidget(row, col, combo2)
+                    self.tbl_KNBK.setCellWidget(row, col, combo2)
                 elif col == 6:
                     combo3 = QComboBox()
                     combo3.addItems(
                         ["З-76", "З-86", "З-88", "З-94", "З-101", "З-102", "З-108", "З-118", "З-121", "З-122",
                          "З-133", "З-140", "З-147", "З-152", "З-161", "З-163", "З-171"])
-                    self.tableWidget2.setCellWidget(row, col, combo3)
+                    self.tbl_KNBK.setCellWidget(row, col, combo3)
                 elif col == 7:
                     combo4 = QComboBox()
                     combo4.addItems(["Ниппель", "Муфта"])
-                    self.tableWidget2.setCellWidget(row, col, combo4)
+                    self.tbl_KNBK.setCellWidget(row, col, combo4)
                 elif col == 8:
                     combo5 = QComboBox()
                     combo5.addItems(
                         ["З-76", "З-86", "З-88", "З-94", "З-101", "З-102", "З-108", "З-118", "З-121", "З-122",
                          "З-133", "З-140", "З-147", "З-152", "З-161", "З-163", "З-171"])
-                    self.tableWidget2.setCellWidget(row, col, combo5)
+                    self.tbl_KNBK.setCellWidget(row, col, combo5)
 
     def csv_dialog_rejected_2(self, row, column):
-        item = self.tableWidget2.item(row, column)
+        item = self.tbl_KNBK.item(row, column)
         if item is not None and item.text() == "":
-            for col in range(self.tableWidget2.columnCount()):
+            for col in range(self.tbl_KNBK.columnCount()):
                 if col == 7:
                     combo4 = QComboBox()
                     combo4.addItems(["Ниппель", "Муфта"])
-                    self.tableWidget2.setCellWidget(row, col, combo4)
+                    self.tbl_KNBK.setCellWidget(row, col, combo4)
                 elif col == 8:
                     combo5 = QComboBox()
                     combo5.addItems(
                         ["З-76", "З-86", "З-88", "З-94", "З-101", "З-102", "З-108", "З-118", "З-121", "З-122",
                          "З-133", "З-140", "З-147", "З-152", "З-161", "З-163", "З-171"])
-                    self.tableWidget2.setCellWidget(row, col, combo5)
+                    self.tbl_KNBK.setCellWidget(row, col, combo5)
 
     def contextMenuEvent(self, event):
-        if self.childAt(event.pos()) == self.tableWidget2.viewport():
+        if self.childAt(event.pos()) == self.tbl_KNBK.viewport():
             contextMenu = QMenu(self)
 
             saveAstemplate_act = QAction("Сохранить строку", self)
@@ -476,36 +478,36 @@ class KNBK_Table(QWidget):
             contextMenu.exec(self.mapToGlobal(event.pos()))
 
     def saveAstemplate(self):
-        if self.tableWidget2.hasFocus():
-            row = self.tableWidget2.currentRow()
+        if self.tbl_KNBK.hasFocus():
+            row = self.tbl_KNBK.currentRow()
             data = []
-            for column in range(1, self.tableWidget2.columnCount()):
-                combo = self.tableWidget2.cellWidget(row, column)
+            for column in range(1, self.tbl_KNBK.columnCount()):
+                combo = self.tbl_KNBK.cellWidget(row, column)
                 if combo and isinstance(combo, QComboBox):
                     text = combo.currentText()
                 else:
-                    item = self.tableWidget2.item(row, column)
+                    item = self.tbl_KNBK.item(row, column)
                     text = item.text() if item is not None else ''
                 data.append(text)
             self.write_csv_2(data)
 
     def saveAsall(self):
-        if self.tableWidget2.hasFocus():
+        if self.tbl_KNBK.hasFocus():
             data = []
 
-            item_0_4 = self.tableWidget2.item(0, 4)
+            item_0_4 = self.tbl_KNBK.item(0, 4)
             text_0_4 = item_0_4.text() if item_0_4 is not None else ''
             data.append(f"{text_0_4},")
-            item_0_0 = self.tableWidget2.item(0, 0)
+            item_0_0 = self.tbl_KNBK.item(0, 0)
             text_0_0 = item_0_0.text() if item_0_0 is not None else ''
             data.append(f" {text_0_0}")
-            item_0_1 = self.tableWidget2.item(0, 1)
+            item_0_1 = self.tbl_KNBK.item(0, 1)
             text_0_1 = item_0_1.text() if item_0_1 is not None else ''
             data.append(f"_{text_0_1};")
             # Обрабатываем остальные строки
-            for row in range(1,self.tableWidget2.rowCount()):  # Итерируемся по всем строкам
-                combo_0 = self.tableWidget2.cellWidget(row, 0)  # Первый столбец с QComboBox
-                item_1 = self.tableWidget2.item(row, 1)  # Второй столбец с обычным элементом
+            for row in range(1,self.tbl_KNBK.rowCount()):  # Итерируемся по всем строкам
+                combo_0 = self.tbl_KNBK.cellWidget(row, 0)  # Первый столбец с QComboBox
+                item_1 = self.tbl_KNBK.item(row, 1)  # Второй столбец с обычным элементом
 
                 text_0 = combo_0.currentText() if combo_0 is not None else ''
                 text_1 = item_1.text() if item_1 is not None else ''
@@ -518,24 +520,24 @@ class KNBK_Table(QWidget):
             self.write_csv(data_str)
 
     def copyRow(self):
-        if self.tableWidget2.hasFocus():
-            row = self.tableWidget2.currentRow()
+        if self.tbl_KNBK.hasFocus():
+            row = self.tbl_KNBK.currentRow()
             if row != -1:
                 data = []
-                for column in range(self.tableWidget2.columnCount()):
-                    combo = self.tableWidget2.cellWidget(row, column)
+                for column in range(self.tbl_KNBK.columnCount()):
+                    combo = self.tbl_KNBK.cellWidget(row, column)
                     if combo and isinstance(combo, QComboBox):
                         text = combo.currentText()
                     else:
-                        item = self.tableWidget2.item(row, column)
+                        item = self.tbl_KNBK.item(row, column)
                         text = item.text() if item is not None else ''
                     data.append(text)
 
-                newRow = self.tableWidget2.rowCount()
-                self.tableWidget2.insertRow(newRow)
+                newRow = self.tbl_KNBK.rowCount()
+                self.tbl_KNBK.insertRow(newRow)
                 for column, text in enumerate(data):
                     newItem = QTableWidgetItem(text)
-                    self.tableWidget2.setItem(newRow, column, newItem)
+                    self.tbl_KNBK.setItem(newRow, column, newItem)
 
     def write_csv(self, data):
         fixed_file_path = path1+"КНБК.csv"
@@ -560,15 +562,15 @@ class KNBK_Table(QWidget):
             print(f"Error opening file: {e}")
 
     def get_initial_sort_value(self):
-        row_count = self.tableWidget2.rowCount()
-        column_count = self.tableWidget2.columnCount()
+        row_count = self.tbl_KNBK.rowCount()
+        column_count = self.tbl_KNBK.columnCount()
         print(f"Row count: {row_count}, Column count: {column_count}")
 
         # Проверяем, есть ли строки в главной таблице
         if row_count > 1:
             # Получаем значение из 8-го столбца предпоследней строки
             penultimate_row_index = row_count - 2
-            item = self.tableWidget2.item(penultimate_row_index, 8)
+            item = self.tbl_KNBK.item(penultimate_row_index, 8)
             if item:
                 value = item.text().strip()
                 print(f"Value in the 8th column of the penultimate row: {value}")
@@ -588,14 +590,14 @@ class KNBK_Table(QWidget):
                 widget.deleteLater()
 
     def update_table_data(self, data, row, column):
-        self.remove_widgets_from_row(self.tableWidget2, row)
+        self.remove_widgets_from_row(self.tbl_KNBK, row)
 
         if isinstance(data, list):
             offset = 0
             for col_index, value in enumerate(data):
-                self.tableWidget2.setItem(row, column + col_index + offset, QTableWidgetItem(value))
+                self.tbl_KNBK.setItem(row, column + col_index + offset, QTableWidgetItem(value))
         else:
-            self.tableWidget2.setItem(row, column, QTableWidgetItem(data))
+            self.tbl_KNBK.setItem(row, column, QTableWidgetItem(data))
 
     def update_table_data_list_2(self, data, key):
         try:
@@ -603,18 +605,18 @@ class KNBK_Table(QWidget):
 
             # Сохраняем старые данные перед обновлением
             old_data = []
-            for row in range(self.tableWidget2.rowCount()):
+            for row in range(self.tbl_KNBK.rowCount()):
                 row_data = []
-                for col in range(self.tableWidget2.columnCount()):
-                    item = self.tableWidget2.item(row, col)
+                for col in range(self.tbl_KNBK.columnCount()):
+                    item = self.tbl_KNBK.item(row, col)
                     row_data.append(item.text() if item else "")
                 old_data.append(row_data)
 
             # Добавляем команду в стек отмены
-            self.undo_stack.push(UpdateTableCommand(self.tableWidget2, old_data, data))
+            self.undo_stack.push(UpdateTableCommand(self.tbl_KNBK, old_data, data))
 
             # Обновляем данные таблицы (сейчас это будет сделано в UpdateTableCommand)
-            self.update_table_widget(self.tableWidget2, data)
+            self.update_table_widget(self.tbl_KNBK, data)
 
         except Exception as e:
             print(f"Error in update_table_data_list_2: {e}")
@@ -651,17 +653,17 @@ class MainWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(0)
         self.stackedWidget.insertWidget(4,KNBK_Table(index = 4, parent = self))
 
-        self.tableWidget1: QTableWidget = self.findChild(QTableWidget, 'tableWidget')
+        self.tableWidget1: QTableWidget = self.findChild(QTableWidget, 'tableWidget_1')
+        self.tableWidget2: QTableWidget = self.findChild(QTableWidget, 'tableWidget_2')
         self.tableWidget3: QTableWidget = self.findChild(QTableWidget, 'tableWidget_3')
         self.tableWidget4: QTableWidget = self.findChild(QTableWidget, 'tableWidget_4')
-        self.tableWidget5: QTableWidget = self.findChild(QTableWidget, 'tableWidget_5')
 
         combo_1 = QComboBox()
         combo_1.addItems(["Направление", "Кондуктор", "Промежуточная", "Промежуточная 1", "Промежуточная 2",
                           "Потайная", "Эксплуатационная", "Хвостовик", "Райзер", "Фильтр", "Не определена"])
-        self.tableWidget4.setCellWidget(0, 0, combo_1)
+        self.tableWidget3.setCellWidget(0, 0, combo_1)
 
-        allowed_tables = [self.tableWidget1, self.tableWidget3, self.tableWidget4, self.tableWidget5]
+        allowed_tables = [self.tableWidget1, self.tableWidget2, self.tableWidget3, self.tableWidget4]
 
         for table in allowed_tables:
             table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -721,15 +723,16 @@ class MainWindow(QMainWindow):
 
 
 
+
         self.tableWidget1.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.tableWidget2.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.tableWidget3.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.tableWidget4.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.tableWidget5.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
         self.tableWidget1.horizontalHeader().setVisible(True)
+        self.tableWidget2.horizontalHeader().setVisible(True)
         self.tableWidget3.horizontalHeader().setVisible(True)
         self.tableWidget4.horizontalHeader().setVisible(True)
-        self.tableWidget5.horizontalHeader().setVisible(True)
 
         self.pushButton4.setVisible(False)
 
@@ -783,7 +786,7 @@ class MainWindow(QMainWindow):
             self.stackedWidget.setCurrentIndex(current_index - 1)
 
     def paste_from_clipboard(self, tableWidget):
-        allowed_tables = [self.tableWidget1, self.tableWidget3, self.tableWidget4, self.tableWidget5]
+        allowed_tables = [self.tableWidget1, self.tableWidget2, self.tableWidget3, self.tableWidget4]
 
         if tableWidget not in allowed_tables:
             return
@@ -836,10 +839,10 @@ class MainWindow(QMainWindow):
         self.tableWidget1.horizontalHeader().repaint()
 
     def add_row_2(self):
-        row_count2_2 = self.tableWidget3.rowCount()
-        self.tableWidget3.setRowCount(row_count2_2 + 1)
-        for column in range(self.tableWidget3.columnCount()):
-            self.tableWidget3.setItem(row_count2_2, column, QTableWidgetItem(""))
+        row_count2_2 = self.tableWidget2.rowCount()
+        self.tableWidget2.setRowCount(row_count2_2 + 1)
+        for column in range(self.tableWidget2.columnCount()):
+            self.tableWidget2.setItem(row_count2_2, column, QTableWidgetItem(""))
 
     def add_row_3(self):
         row_count2_3 = self.tableWidget4.rowCount()
@@ -854,10 +857,10 @@ class MainWindow(QMainWindow):
                 self.tableWidget4.setItem(row_count2_3, column, QTableWidgetItem(""))
 
     def add_row_4(self):
-        row_count2_4 = self.tableWidget5.rowCount()
-        self.tableWidget5.setRowCount(row_count2_4 + 1)
-        for column in range(self.tableWidget5.columnCount()):
-            self.tableWidget5.setItem(row_count2_4, column, QTableWidgetItem(""))
+        row_count2_4 = self.tableWidget4.rowCount()
+        self.tableWidget4.setRowCount(row_count2_4 + 1)
+        for column in range(self.tableWidget4.columnCount()):
+            self.tableWidget4.setItem(row_count2_4, column, QTableWidgetItem(""))
 
     def open_file(self):
         try:
@@ -945,9 +948,9 @@ class MainWindow(QMainWindow):
         self.graphicsView.setScene(scene)
 
     def delete_row_2(self):
-        row_count2_2 = self.tableWidget3.rowCount()
+        row_count2_2 = self.tableWidget2.rowCount()
         if row_count2_2 > 0:
-            self.tableWidget3.setRowCount(row_count2_2 - 1)
+            self.tableWidget2.setRowCount(row_count2_2 - 1)
 
     def delete_row_3(self):
         row_count2_3 = self.tableWidget4.rowCount()
@@ -955,16 +958,14 @@ class MainWindow(QMainWindow):
             self.tableWidget4.setRowCount(row_count2_3 - 1)
 
     def delete_row_4(self):
-        row_count2_4 = self.tableWidget5.rowCount()
+        row_count2_4 = self.tableWidget4.rowCount()
         if row_count2_4 > 0:
-            self.tableWidget5.setRowCount(row_count2_4 - 1)
+            self.tableWidget4.setRowCount(row_count2_4 - 1)
 
     def add_page(self):
-        new_page = QWidget()
-        layout = QVBoxLayout()
-        new_page.setLayout(layout)
-
         current_index = self.stackedWidget.currentIndex()
+
+        new_page = KNBK_Table(index = current_index+1, parent = self)
 
         self.stackedWidget.insertWidget(current_index + 1, new_page)
 

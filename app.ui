@@ -20,11 +20,11 @@
       <x>0</x>
       <y>0</y>
       <width>1651</width>
-      <height>711</height>
+      <height>691</height>
      </rect>
     </property>
     <property name="currentIndex">
-     <number>4</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="page_1">
      <widget class="QWidget" name="widget_1" native="true">
@@ -36,7 +36,7 @@
         <height>681</height>
        </rect>
       </property>
-      <widget class="QTableWidget" name="tableWidget">
+      <widget class="QTableWidget" name="tableWidget_1">
        <property name="geometry">
         <rect>
          <x>50</x>
@@ -352,7 +352,7 @@
         <height>661</height>
        </rect>
       </property>
-      <widget class="QTableWidget" name="tableWidget_3">
+      <widget class="QTableWidget" name="tableWidget_2">
        <property name="geometry">
         <rect>
          <x>20</x>
@@ -476,7 +476,7 @@
       </widget>
      </widget>
     </widget>
-    <widget class="QWidget" name="page">
+    <widget class="QWidget" name="page_3">
      <widget class="QWidget" name="widget" native="true">
       <property name="geometry">
        <rect>
@@ -488,7 +488,7 @@
       </property>
      </widget>
     </widget>
-    <widget class="QWidget" name="page_3">
+    <widget class="QWidget" name="page_4">
      <widget class="QWidget" name="widget_3" native="true">
       <property name="geometry">
        <rect>
@@ -498,7 +498,7 @@
         <height>681</height>
        </rect>
       </property>
-      <widget class="QTableWidget" name="tableWidget_4">
+      <widget class="QTableWidget" name="tableWidget_3">
        <property name="geometry">
         <rect>
          <x>20</x>
@@ -614,7 +614,6 @@
       </widget>
      </widget>
     </widget>
-    <widget class="QWidget" name="page_4"/>
     <widget class="QWidget" name="page_5">
      <widget class="QWidget" name="widget_5" native="true">
       <property name="geometry">
@@ -625,7 +624,7 @@
         <height>721</height>
        </rect>
       </property>
-      <widget class="QTableWidget" name="tableWidget_5">
+      <widget class="QTableWidget" name="tableWidget_4">
        <property name="geometry">
         <rect>
          <x>20</x>
