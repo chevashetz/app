@@ -36,12 +36,12 @@
         <height>681</height>
        </rect>
       </property>
-      <widget class="QTableWidget" name="tableWidget">
+      <widget class="QTableWidget" name="tableWidget_profile">
        <property name="geometry">
         <rect>
          <x>50</x>
          <y>60</y>
-         <width>891</width>
+         <width>921</width>
          <height>551</height>
         </rect>
        </property>
@@ -294,12 +294,12 @@
         </property>
        </column>
       </widget>
-      <widget class="QPushButton" name="pushButton_6">
+      <widget class="QPushButton" name="pushButton_clear_table">
        <property name="geometry">
         <rect>
          <x>50</x>
          <y>630</y>
-         <width>891</width>
+         <width>921</width>
          <height>41</height>
         </rect>
        </property>
@@ -333,9 +333,9 @@
       <widget class="QGraphicsView" name="graphicsView">
        <property name="geometry">
         <rect>
-         <x>960</x>
+         <x>990</x>
          <y>60</y>
-         <width>501</width>
+         <width>471</width>
          <height>611</height>
         </rect>
        </property>
@@ -352,7 +352,7 @@
         <height>661</height>
        </rect>
       </property>
-      <widget class="QTableWidget" name="tableWidget_3">
+      <widget class="QTableWidget" name="tableWidget_stratigraphy">
        <property name="geometry">
         <rect>
          <x>20</x>
@@ -402,7 +402,7 @@
         </property>
        </column>
       </widget>
-      <widget class="QPushButton" name="pushButton_7">
+      <widget class="QPushButton" name="pushButton_add_row_stratigraphy">
        <property name="geometry">
         <rect>
          <x>970</x>
@@ -420,7 +420,7 @@
         <string>Добавить пласт</string>
        </property>
       </widget>
-      <widget class="QPushButton" name="pushButton_8">
+      <widget class="QPushButton" name="pushButton_delete_row_stratigraphy">
        <property name="geometry">
         <rect>
          <x>495</x>
@@ -456,7 +456,7 @@
         <string>Стратиграфия</string>
        </property>
       </widget>
-      <widget class="QPushButton" name="pushButton_17">
+      <widget class="QPushButton" name="pushButton_load_stratigraphy">
        <property name="geometry">
         <rect>
          <x>20</x>
@@ -476,8 +476,8 @@
       </widget>
      </widget>
     </widget>
-    <widget class="QWidget" name="page">
-     <widget class="QWidget" name="widget" native="true">
+    <widget class="QWidget" name="page_3">
+     <widget class="QWidget" name="widget_3" native="true">
       <property name="geometry">
        <rect>
         <x>0</x>
@@ -488,8 +488,8 @@
       </property>
      </widget>
     </widget>
-    <widget class="QWidget" name="page_3">
-     <widget class="QWidget" name="widget_3" native="true">
+    <widget class="QWidget" name="page_4">
+     <widget class="QWidget" name="widget_4" native="true">
       <property name="geometry">
        <rect>
         <x>0</x>
@@ -498,7 +498,7 @@
         <height>681</height>
        </rect>
       </property>
-      <widget class="QTableWidget" name="tableWidget_4">
+      <widget class="QTableWidget" name="tableWidget_casing_strings">
        <property name="geometry">
         <rect>
          <x>20</x>
@@ -511,6 +511,18 @@
         <number>1</number>
        </property>
        <attribute name="horizontalHeaderCascadingSectionResizes">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="horizontalHeaderHighlightSections">
+        <bool>true</bool>
+       </attribute>
+       <attribute name="horizontalHeaderStretchLastSection">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="verticalHeaderVisible">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="verticalHeaderStretchLastSection">
         <bool>false</bool>
        </attribute>
        <row/>
@@ -531,7 +543,7 @@
        </column>
        <column>
         <property name="text">
-         <string>Диаметр </string>
+         <string>Диаметр(мм)</string>
         </property>
        </column>
        <column>
@@ -540,7 +552,7 @@
         </property>
        </column>
       </widget>
-      <widget class="QPushButton" name="pushButton_10">
+      <widget class="QPushButton" name="pushButton_add_row_casing_strings">
        <property name="geometry">
         <rect>
          <x>970</x>
@@ -558,7 +570,7 @@
         <string>Добавить обсадную колонну</string>
        </property>
       </widget>
-      <widget class="QPushButton" name="pushButton_9">
+      <widget class="QPushButton" name="pushButton_delete_row_casing_strings">
        <property name="geometry">
         <rect>
          <x>495</x>
@@ -594,7 +606,7 @@
         <string>Обсадные колонны</string>
        </property>
       </widget>
-      <widget class="QPushButton" name="pushButton_14">
+      <widget class="QPushButton" name="pushButton_form_KNBK">
        <property name="geometry">
         <rect>
          <x>20</x>
@@ -614,7 +626,6 @@
       </widget>
      </widget>
     </widget>
-    <widget class="QWidget" name="page_4"/>
     <widget class="QWidget" name="page_5">
      <widget class="QWidget" name="widget_5" native="true">
       <property name="geometry">
@@ -625,12 +636,12 @@
         <height>721</height>
        </rect>
       </property>
-      <widget class="QTableWidget" name="tableWidget_5">
+      <widget class="QTableWidget" name="tableWidget_drilling_fluids">
        <property name="geometry">
         <rect>
          <x>20</x>
          <y>60</y>
-         <width>1411</width>
+         <width>1410</width>
          <height>411</height>
         </rect>
        </property>
@@ -691,12 +702,12 @@
         </property>
        </column>
       </widget>
-      <widget class="QPushButton" name="pushButton">
+      <widget class="QPushButton" name="pushButton_delete_row_drilling_fluids">
        <property name="geometry">
         <rect>
-         <x>495</x>
+         <x>375</x>
          <y>500</y>
-         <width>460</width>
+         <width>345</width>
          <height>41</height>
         </rect>
        </property>
@@ -709,12 +720,12 @@
         <string>Удалить раствор</string>
        </property>
       </widget>
-      <widget class="QPushButton" name="pushButton_11">
+      <widget class="QPushButton" name="pushButton_add_row_drilling_fluids">
        <property name="geometry">
         <rect>
-         <x>970</x>
+         <x>730</x>
          <y>500</y>
-         <width>460</width>
+         <width>345</width>
          <height>41</height>
         </rect>
        </property>
@@ -745,12 +756,12 @@
         <string>Буровые растворы</string>
        </property>
       </widget>
-      <widget class="QPushButton" name="pushButton_13">
+      <widget class="QPushButton" name="pushButton_form_fluids">
        <property name="geometry">
         <rect>
          <x>20</x>
          <y>500</y>
-         <width>460</width>
+         <width>345</width>
          <height>41</height>
         </rect>
        </property>
@@ -763,10 +774,28 @@
         <string>Сформировать по колоннам</string>
        </property>
       </widget>
+      <widget class="QPushButton" name="pushButton_add_row_drilling_fluids_2">
+       <property name="geometry">
+        <rect>
+         <x>1085</x>
+         <y>500</y>
+         <width>345</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Справочник растворов </string>
+       </property>
+      </widget>
      </widget>
     </widget>
    </widget>
-   <widget class="QPushButton" name="pushButton_2">
+   <widget class="QPushButton" name="pushButton_next_page">
     <property name="geometry">
      <rect>
       <x>1210</x>
@@ -784,7 +813,7 @@
      <string>Следующая страница</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_4">
+   <widget class="QPushButton" name="pushButton_previous_page">
     <property name="geometry">
      <rect>
       <x>20</x>
