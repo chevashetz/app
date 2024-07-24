@@ -36,7 +36,26 @@ class UpdateTableCommand(QUndoCommand):
             for col_index, value in enumerate(row_data):
                 if value is None:
                     value = ""
-                self.tableWidget.setItem(row_index, col_index, QTableWidgetItem(value))
+                item = QTableWidgetItem(value)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)  # Add text alignment
+                self.tableWidget.setItem(row_index, col_index, item)
+        self.add_doloto_item()
+
+    def add_doloto_item(self):
+        item_0_0_KNBK = QTableWidgetItem("Долото")
+        item_0_0_KNBK.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.tableWidget.setItem(0, 0, item_0_0_KNBK)
+
+    def update_table_widget(self, tableWidget, data):
+        tableWidget.clearContents()
+        tableWidget.setRowCount(len(data))
+        for row_index, row_data in enumerate(data):
+            for col_index, value in enumerate(row_data):
+                if value is None:
+                    value = ""
+                item = QTableWidgetItem(value)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)  # Add text alignment
+                tableWidget.setItem(row_index, col_index, item)
 
 class PasteCommand(QUndoCommand):
     def __init__(self, tableWidget, text_data, start_row, start_col, description, parent=None):
@@ -113,7 +132,7 @@ class CsvTableDialog(QDialog):
 
     def initUI(self):
         self.setWindowTitle('CSV Data')
-        self.setGeometry(100, 100, 1100, 700)
+        self.setGeometry(60, 100, 1400, 700)
         layout = QVBoxLayout()
 
         self.tableWidget = QTableWidget(self)
@@ -138,7 +157,6 @@ class CsvTableDialog(QDialog):
                     self.tableWidget.setColumnCount(len(headers))
                     self.tableWidget.setHorizontalHeaderLabels(headers)
                     self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-                    #self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 
                     for row_data in data[1:]:
                         row = self.tableWidget.rowCount()
@@ -164,15 +182,15 @@ class CsvTableDialog(QDialog):
     def custom_sort_key(self, row_data):
         text = row_data[self.sort_column]
         if self.sort_column == 0:
-            return text  # Текстовые значения для 0-го столбца
-        elif self.sort_column in [1, 2, 3, 8, 9]:  # Числовые значения
+            return text
+        elif self.sort_column in [1, 2, 3, 8, 9]:
             try:
                 return float(text)
             except ValueError:
-                return float('-inf')  # Обработка некорректных числовых значений
-        elif self.sort_column in [4, 6]:  # Индексы столбцов, которые имеют только 2 текстовых значения
+                return float('-inf')
+        elif self.sort_column in [4, 6]:
             return text
-        elif self.sort_column in [5, 7]:  # Индексы столбцов вида "З-76"
+        elif self.sort_column in [5, 7]:
             if text.startswith('З-'):
                 return int(text.split('-')[1])
         return text
@@ -224,16 +242,20 @@ class CsvTableDialog(QDialog):
         try:
             item = self.tableWidget.item(row, column)
             if item:
-                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 data = item.text()
-                print(f"Double clicked data: {data}")
+                print(f"Double clicked data: {data} in row {row}, column {column}")
+                parts = data.split(';')
+                print(f"Parts after split: {parts}")
+
                 row_data = []
                 keys = []
-                for part in data.split(';'):
+                for part in parts:
                     part = part.strip()
+                    if not part:
+                        continue
                     print(f"Processing part: {part}")
                     if '_' in part:
-                        key, name = part.split('_')
+                        key, name = part.split('_', 1)  # Разделяем только по первому подчеркиванию
                         key = key.strip()
                         name = name.strip()
                         keys.append(key)
@@ -318,7 +340,7 @@ class KNBK_Table(QWidget):
 
     def delete_row_KNBK(self):
         row_count2_1 = self.tbl_KNBK.rowCount()
-        if row_count2_1 > 0:
+        if row_count2_1 > 1:
             self.tbl_KNBK.setRowCount(row_count2_1 - 1)
 
     def load_table(self):
@@ -644,8 +666,19 @@ class KNBK_Table(QWidget):
             for row in range(self.tbl_KNBK.rowCount()):
                 row_data = []
                 for col in range(self.tbl_KNBK.columnCount()):
-                    item = self.tbl_KNBK.item(row, col)
-                    row_data.append(item.text() if item else "")
+                    if col == 0:  # Проверка на первый столбец с QComboBox
+                        combo = self.tbl_KNBK.cellWidget(row, col)
+                        if combo and isinstance(combo, QComboBox):
+                            row_data.append(combo.currentText())
+                        else:
+                            row_data.append("")
+                    else:
+                        item = self.tbl_KNBK.item(row, col)
+                        if not item:  # Проверка на None
+                            item = QTableWidgetItem("")  # Создаем пустой элемент, если его нет
+                            self.tbl_KNBK.setItem(row, col, item)
+                        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                        row_data.append(item.text())
                 old_data.append(row_data)
 
             # Добавляем команду в стек отмены
@@ -657,6 +690,13 @@ class KNBK_Table(QWidget):
         except Exception as e:
             print(f"Error in update_table_data_list_2: {e}")
 
+    def remove_widgets_from_row(self, table, row):
+        for column in range(1, table.columnCount()):
+            widget = table.cellWidget(row, column)
+            if widget:
+                table.removeCellWidget(row, column)
+                widget.deleteLater()
+
     def update_table_widget(self, tableWidget, data):
         tableWidget.clearContents()
         tableWidget.setRowCount(len(data))
@@ -665,7 +705,7 @@ class KNBK_Table(QWidget):
                 if value is None:
                     value = ""
                 item = QTableWidgetItem(value)
-                #item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 tableWidget.setItem(row_index, col_index, item)
 
 class MainWindow(QMainWindow):
