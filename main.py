@@ -73,6 +73,7 @@ class PasteCommand(QUndoCommand):
                 item = QTableWidgetItem()
                 item.setData(Qt.ItemDataRole.DisplayRole, data)
                 self.tableWidget.setItem(row, col, item)
+        # Remove the newly added rows
         for _ in range(self.new_rows_needed):
             self.tableWidget.removeRow(self.tableWidget.rowCount() - 1)
 
@@ -117,9 +118,19 @@ class PasteCommand(QUndoCommand):
             self.old_data.append((current_row, old_row_data))
             current_row += 1
 
+    def set_table_data(self, data):
+        self.tableWidget.clearContents()
+        self.tableWidget.setRowCount(len(data))
+        for row_index, row_data in enumerate(data):
+            for col_index, value in enumerate(row_data):
+                if value is None:
+                    value = ""
+                item = QTableWidgetItem(value)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.tableWidget.setItem(row_index, col_index, item)
 
 class CsvTableDialog(QDialog):
-    data_selected = pyqtSignal(list, str)  # Обновляем сигнал, чтобы принимать два аргумента
+    data_selected = pyqtSignal(list, str)
 
     def __init__(self, file_name, load_table=False, initial_sort_column=5, initial_sort_value=None, parent=None):
         super().__init__(parent)
@@ -196,10 +207,8 @@ class CsvTableDialog(QDialog):
         return text
 
     def on_header_clicked(self, logical_index):
-        # Устанавливаем индекс столбца для сортировки
         self.sort_column = logical_index
         self.sort_table(self.sort_order)
-        # Переключение направления сортировки
         self.sort_order = Qt.SortOrder.DescendingOrder if self.sort_order == Qt.SortOrder.AscendingOrder else Qt.SortOrder.AscendingOrder
 
     def sort_table(self, order, initial_sort=False):
@@ -212,7 +221,6 @@ class CsvTableDialog(QDialog):
             data.append(row_data)
 
         if initial_sort and self.initial_sort_value is not None:
-            # Первоначальная сортировка по значению из 8-го столбца
             data.sort(key=lambda row: (row[self.sort_column] != self.initial_sort_value, self.custom_sort_key(row)))
         else:
             data.sort(key=self.custom_sort_key, reverse=(order == Qt.SortOrder.DescendingOrder))
@@ -268,7 +276,7 @@ class CsvTableDialog(QDialog):
                                     print(f"Checking row in {csv_path}: {csv_row}")
                                     if name == csv_row[0].strip():
                                         print(f"Found match: {csv_row}")
-                                        row_data.append([key] + csv_row)  # Добавляем ключ в начало данных строки
+                                        row_data.append([key] + csv_row)
                                         break
                                     else:
                                         print(f"No match for {name} in {csv_row[0].strip()}")
@@ -279,18 +287,44 @@ class CsvTableDialog(QDialog):
                     else:
                         print(f"No '_' found in part: {part}")
                 print(f"Emitting data: {row_data} with keys: {keys}")
-                self.data_selected.emit(row_data, ", ".join(keys))  # Передаем данные и ключи
+                self.data_selected.emit(row_data, ", ".join(keys))
                 self.accept()
             else:
                 print("Error: item is None")
         except Exception as e:
             print(f"Error in cell_was_double_clicked_2: {e}")
 
+class LabelManager:
+    def __init__(self, table_widget, parent_widget):
+        self.table_widget = table_widget
+        self.parent_widget = parent_widget
+        self.label = None
+
+    def add_label(self, text):
+        if self.table_widget is None:
+            print("Error: Table is not initialized")
+            return
+
+        if self.parent_widget is None:
+            print("Error: Parent widget is not initialized")
+            return
+
+        if self.label is None:
+            self.label = QLabel(text, self.parent_widget)
+            self.label.setGeometry(660, 10, 200, 50)
+            font = QFont('MS Shell Dlg 2', 14)
+            self.label.setFont(font)
+            self.label.show()
+        else:
+            self.label.setText(text)
+
+
 class KNBK_Table(QWidget):
     def __init__(self, index, parent=None):
-        super(KNBK_Table,self).__init__(parent)
+        super(KNBK_Table, self).__init__(parent)
         uic.loadUi('table.ui', self)
         self.setup_ui()
+        self.label_manager = LabelManager(self.tbl_KNBK, self)
 
     def setup_ui(self):
         self.undo_stack = QUndoStack(self)
@@ -384,8 +418,8 @@ class KNBK_Table(QWidget):
 
                 if text1 is not None:
                     combo1 = QComboBox()
-                    combo1.addItems(["ВЗД", "РУС", "Бурильные трубы", "Переводник", "Предохранительный переводник", "УБТ",
-                                     "Телеметрия", "Ясс", "Калибратор", "Обратный клапан"])
+                    combo1.addItems(["ВЗД", "РУС", "Бурильные трубы", "Переводник", "Предохранительный переводник",
+                                     "УБТ", "Телеметрия", "Ясс", "Калибратор", "Обратный клапан"])
                     combo1.setCurrentIndex(index1)
                     self.tbl_KNBK.setCellWidget(row2, column, combo1)
                 else:
@@ -393,8 +427,8 @@ class KNBK_Table(QWidget):
 
                 if text2 is not None:
                     combo2 = QComboBox()
-                    combo2.addItems(["ВЗД", "РУС", "Бурильные трубы", "Переводник", "Предохранительный переводник", "УБТ",
-                                     "Телеметрия", "Ясс", "Калибратор", "Обратный клапан"])
+                    combo2.addItems(["ВЗД", "РУС", "Бурильные трубы", "Переводник", "Предохранительный переводник",
+                                     "УБТ", "Телеметрия", "Ясс", "Калибратор", "Обратный клапан"])
                     combo2.setCurrentIndex(index2)
                     self.tbl_KNBK.setCellWidget(row1, column, combo2)
                 else:
@@ -429,25 +463,25 @@ class KNBK_Table(QWidget):
                     file_name = files[file_key]
                     print(f"Opening file dialog for file: {file_name}")
                     self.current_file_path = file_name
-                    # Получаем значение для первоначальной сортировки из 8-го столбца предпоследней строки
                     initial_sort_value = self.get_initial_sort_value()
                     dialog = CsvTableDialog(file_name, load_table=False, initial_sort_column=5,
                                             initial_sort_value=initial_sort_value, parent=self)
                     dialog.data_selected.connect(lambda data: self.update_table_data(data, row, column))
                     dialog.rejected.connect(lambda: self.csv_dialog_rejected(row, column))
                     dialog.exec()
+                    self.label_manager.add_label(f"КНБК - {self.tbl_KNBK.item(0, 4).text()} мм")
 
     def open_fixed_path_csv_dialog(self, row, column):
         if column == 1 and row == 0:
             fixed_file_path = path1 + "Долото.csv"
             self.current_file_path = fixed_file_path
-            # Получаем значение для первоначальной сортировки из 8-го столбца предпоследней строки
             initial_sort_value = self.get_initial_sort_value()
             dialog = CsvTableDialog(fixed_file_path, load_table=False, initial_sort_column=5,
                                     initial_sort_value=initial_sort_value, parent=self)
             dialog.data_selected.connect(lambda data: self.update_table_data(data, row, column))
             dialog.rejected.connect(lambda: self.csv_dialog_rejected_2(row, column))
             dialog.exec()
+            self.label_manager.add_label(f"КНБК - {self.tbl_KNBK.item(0, 4).text()} мм")
 
     def csv_dialog_rejected(self, row, column):
         item = self.tbl_KNBK.item(row, column)
@@ -558,10 +592,10 @@ class KNBK_Table(QWidget):
             item_0_1 = self.tbl_KNBK.item(0, 1)
             text_0_1 = item_0_1.text() if item_0_1 is not None else ''
             data.append(f"_{text_0_1};")
-            # Обрабатываем остальные строки
-            for row in range(1,self.tbl_KNBK.rowCount()):  # Итерируемся по всем строкам
-                combo_0 = self.tbl_KNBK.cellWidget(row, 0)  # Первый столбец с QComboBox
-                item_1 = self.tbl_KNBK.item(row, 1)  # Второй столбец с обычным элементом
+
+            for row in range(1, self.tbl_KNBK.rowCount()):
+                combo_0 = self.tbl_KNBK.cellWidget(row, 0)
+                item_1 = self.tbl_KNBK.item(row, 1)
 
                 text_0 = combo_0.currentText() if combo_0 is not None else ''
                 text_1 = item_1.text() if item_1 is not None else ''
@@ -569,7 +603,7 @@ class KNBK_Table(QWidget):
                 combined_text = f" {text_0}_{text_1};"
                 data.append(combined_text)
 
-            data_str = ''.join(data)  # Объединяем с пробелом
+            data_str = ''.join(data)
 
             self.write_csv(data_str)
 
@@ -594,10 +628,10 @@ class KNBK_Table(QWidget):
                     self.tbl_KNBK.setItem(newRow, column, newItem)
 
     def write_csv(self, data):
-        fixed_file_path = path1+"КНБК.csv"
+        fixed_file_path = path1 + "КНБК.csv"
         try:
             with open(fixed_file_path, 'a', newline='', encoding='utf-8') as f:
-                f.write('\n'+data )
+                f.write('\n' + data)
         except Exception as e:
             print(f"Error opening file: {e}")
 
@@ -607,7 +641,6 @@ class KNBK_Table(QWidget):
             return
 
         try:
-            # Открываем файл в режиме добавления ('a') с параметром 'newline'
             with open(self.current_file_path, 'a', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
                 writer.writerow(data)
@@ -620,9 +653,7 @@ class KNBK_Table(QWidget):
         column_count = self.tbl_KNBK.columnCount()
         print(f"Row count: {row_count}, Column count: {column_count}")
 
-        # Проверяем, есть ли строки в главной таблице
         if row_count > 1:
-            # Получаем значение из 8-го столбца предпоследней строки
             penultimate_row_index = row_count - 2
             item = self.tbl_KNBK.item(penultimate_row_index, 8)
             if item:
@@ -656,17 +687,18 @@ class KNBK_Table(QWidget):
             item = QTableWidgetItem(data)
             item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tbl_KNBK.setItem(row, column, item)
+        self.restore_initial_state()
+        self.label_manager.add_label(f"КНБК - {self.tbl_KNBK.item(0, 4).text()} мм")
 
     def update_table_data_list_2(self, data, key):
         try:
             print(f"Received data: {data} with key: {key}")
 
-            # Сохраняем старые данные перед обновлением
             old_data = []
             for row in range(self.tbl_KNBK.rowCount()):
                 row_data = []
                 for col in range(self.tbl_KNBK.columnCount()):
-                    if col == 0:  # Проверка на первый столбец с QComboBox
+                    if col == 0:
                         combo = self.tbl_KNBK.cellWidget(row, col)
                         if combo and isinstance(combo, QComboBox):
                             row_data.append(combo.currentText())
@@ -674,18 +706,17 @@ class KNBK_Table(QWidget):
                             row_data.append("")
                     else:
                         item = self.tbl_KNBK.item(row, col)
-                        if not item:  # Проверка на None
-                            item = QTableWidgetItem("")  # Создаем пустой элемент, если его нет
+                        if not item:
+                            item = QTableWidgetItem("")
                             self.tbl_KNBK.setItem(row, col, item)
                         item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                         row_data.append(item.text())
                 old_data.append(row_data)
 
-            # Добавляем команду в стек отмены
             self.undo_stack.push(UpdateTableCommand(self.tbl_KNBK, old_data, data))
 
-            # Обновляем данные таблицы (сейчас это будет сделано в UpdateTableCommand)
             self.update_table_widget(self.tbl_KNBK, data)
+            self.label_manager.add_label(f"КНБК - {self.tbl_KNBK.item(0, 4).text()} мм")
 
         except Exception as e:
             print(f"Error in update_table_data_list_2: {e}")
@@ -707,6 +738,14 @@ class KNBK_Table(QWidget):
                 item = QTableWidgetItem(value)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 tableWidget.setItem(row_index, col_index, item)
+
+        self.restore_initial_state()
+        self.label_manager.add_label(f"КНБК - {self.tbl_KNBK.item(0, 4).text()} мм")
+
+    def restore_initial_state(self):
+        item_0_0_KNBK = QTableWidgetItem("Долото")
+        item_0_0_KNBK.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.tbl_KNBK.setItem(0, 0, item_0_0_KNBK)
 
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
@@ -912,7 +951,7 @@ class MainWindow(QMainWindow):
         for row in rows:
             cols = row.find_all('td') + row.find_all('th')
             cols = [ele.text.strip() for ele in cols]
-            data.append([ele for ele in cols if ele])  # Get rid of empty values
+            data.append([ele for ele in cols if ele])
         return data
 
     def clear_table(self):
