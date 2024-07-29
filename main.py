@@ -348,6 +348,9 @@ class KNBK_Table(QWidget):
         item_0_0_KNBK.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         self.tbl_KNBK.setItem(0, 0, item_0_0_KNBK)
 
+        self.label_manager = LabelManager(self.tbl_KNBK, self.parentWidget())
+        self.tbl_KNBK.itemChanged.connect(self.update_label)  # Подключение сигнала itemChanged
+
         self.btn_add_row_KNBK.clicked.connect(self.add_row_KNBK)
         self.btn_delete_row_KNBK.clicked.connect(self.delete_row_KNBK)
         self.btn_load_table.clicked.connect(self.load_table)
@@ -746,6 +749,10 @@ class KNBK_Table(QWidget):
         item_0_0_KNBK = QTableWidgetItem("Долото")
         item_0_0_KNBK.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         self.tbl_KNBK.setItem(0, 0, item_0_0_KNBK)
+
+    def update_label(self, item):
+        if item.row() == 0 and item.column() == 4:
+            self.label_manager.add_label(f"КНБК - {item.text()} мм")
 
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
