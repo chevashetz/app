@@ -24,7 +24,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>2</number>
     </property>
     <widget class="QWidget" name="page_1">
      <widget class="QWidget" name="widget_1" native="true">
@@ -52,7 +52,7 @@
         <number>6</number>
        </property>
        <attribute name="horizontalHeaderVisible">
-        <bool>true</bool>
+        <bool>false</bool>
        </attribute>
        <attribute name="horizontalHeaderCascadingSectionResizes">
         <bool>false</bool>
@@ -486,6 +486,97 @@
         <height>681</height>
        </rect>
       </property>
+      <widget class="QLabel" name="label_5">
+       <property name="geometry">
+        <rect>
+         <x>660</x>
+         <y>10</y>
+         <width>141</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>14</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Давления</string>
+       </property>
+      </widget>
+      <widget class="QTableWidget" name="tableWidget_pressure">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>60</y>
+         <width>1411</width>
+         <height>410</height>
+        </rect>
+       </property>
+       <property name="rowCount">
+        <number>0</number>
+       </property>
+       <property name="columnCount">
+        <number>3</number>
+       </property>
+       <column/>
+       <column/>
+       <column/>
+      </widget>
+      <widget class="QPushButton" name="pushButton_load_stratigraphic_intervals">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>500</y>
+         <width>460</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Загрузить интервалы стратиграфии</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="pushButton_delete_row_pressure">
+       <property name="geometry">
+        <rect>
+         <x>495</x>
+         <y>500</y>
+         <width>460</width>
+         <height>40</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Удалить итервал</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="pushButton_add_row_pressure">
+       <property name="geometry">
+        <rect>
+         <x>970</x>
+         <y>500</y>
+         <width>460</width>
+         <height>40</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Добавить интервал</string>
+       </property>
+      </widget>
      </widget>
     </widget>
     <widget class="QWidget" name="page_4">
@@ -538,7 +629,7 @@
        </column>
        <column>
         <property name="text">
-         <string>Глубина спуска (вертикаль)</string>
+         <string>Длина колонны (м)</string>
         </property>
        </column>
        <column>

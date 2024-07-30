@@ -781,6 +781,7 @@ class MainWindow(QMainWindow):
         self.tbl_stratigraphy: QTableWidget = self.findChild(QTableWidget, 'tableWidget_stratigraphy')
         self.tbl_casing_strings: QTableWidget = self.findChild(QTableWidget, 'tableWidget_casing_strings')
         self.tbl_drilling_fluids: QTableWidget = self.findChild(QTableWidget, 'tableWidget_drilling_fluids')
+        self.tbl_pressure: QTableWidget = self.findChild(QTableWidget, 'tableWidget_pressure')
 
         combo_1 = QComboBox()
         combo_1.addItems(["Направление", "Кондуктор", "Промежуточная", "Промежуточная 1", "Промежуточная 2",
@@ -814,7 +815,9 @@ class MainWindow(QMainWindow):
         self.btn_load_stratigraphy: QPushButton = self.findChild(QPushButton, 'pushButton_load_stratigraphy')
         self.btn_form_KNBK: QPushButton = self.findChild(QPushButton, 'pushButton_form_KNBK')
         self.btn_form_fluids: QPushButton = self.findChild(QPushButton, 'pushButton_form_fluids')
-
+        self.btn_load_stratigraphic_intervals: QPushButton = self.findChild(QPushButton, 'pushButton_load_stratigraphic_intervals')
+        self.btn_add_row_pressure: QPushButton = self.findChild(QPushButton, 'pushButton_add_row_pressure')
+        self.btn_delete_row_pressure: QPushButton = self.findChild(QPushButton, 'pushButton_delete_row_pressure')
         self.lineEdit1: QLineEdit = self.findChild(QLineEdit, 'lineEdit_1')
         self.lineEdit2: QLineEdit = self.findChild(QLineEdit, 'lineEdit_2')
         self.lineEdit3: QLineEdit = self.findChild(QLineEdit, 'lineEdit_3')
@@ -851,6 +854,9 @@ class MainWindow(QMainWindow):
         self.btn_form_KNBK.clicked.connect(self.form_KNBK)
         self.btn_form_KNBK.clicked.connect(self.process_first_element)
         self.btn_load_stratigraphy.clicked.connect(self.load_stratigraphy)
+        self.btn_load_stratigraphic_intervals.clicked.connect(self.load_stratigraphic_intervals)
+        self.btn_add_row_pressure.clicked.connect(self.add_row_pressure)
+        self.btn_delete_row_pressure.clicked.connect(self.delete_row_pressure)
 
         self.tbl_profile.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.tbl_stratigraphy.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -882,6 +888,8 @@ class MainWindow(QMainWindow):
 
         self.addAction(self.undo_action)
         self.addAction(self.redo_action)
+
+        self.tbl_casing_strings.itemChanged.connect(self.on_item_changed)
 
     def create_context_menu(self, pos, table):
         context_menu = QMenu(self)
@@ -1008,6 +1016,14 @@ class MainWindow(QMainWindow):
             item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tbl_drilling_fluids.setItem(row_count2_4, column, item)
 
+    def add_row_pressure(self):
+        row_count2_5 = self.tbl_pressure.rowCount()
+        self.tbl_pressure.setRowCount(row_count2_5 + 1)
+        for column in range(self.tbl_pressure.columnCount()):
+            item = QTableWidgetItem("")
+            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.tbl_pressure.setItem(row_count2_5, column, item)
+
     def open_file(self):
         try:
             xl, _ = QFileDialog.getOpenFileName(self, 'Open file', 'D:/Программа бурения/', 'Excel Files (*.xlsx)')
@@ -1102,11 +1118,80 @@ class MainWindow(QMainWindow):
         if row_count2_4 > 0:
             self.tbl_drilling_fluids.setRowCount(row_count2_4 - 1)
 
+    def delete_row_pressure(self):
+        row_count2_5 = self.tbl_pressure.rowCount()
+        if row_count2_5 > 0:
+            self.tbl_pressure.setRowCount(row_count2_5 - 1)
+
+    def on_item_changed(self, item):
+        row = item.row()
+        column = item.column()
+        if column in [1, 2]:
+            self.update_drilling_fluids(row, column)
+
+    def update_drilling_fluids(self, row, column):
+        item = self.tbl_casing_strings.item(row, column)
+        if item:
+            text = item.text().strip().lower()
+            if column == 1:
+                if "до забоя" in text:
+                    profile_item = self.tbl_profile.item(self.tbl_profile.rowCount() - 1, 0)  # Последний элемент из 1-го столбца
+                    if profile_item:
+                        new_text = f"до забоя ({profile_item.text()})"
+                        new_item = QTableWidgetItem(new_text)
+                        self.tbl_casing_strings.blockSignals(True)
+                        self.tbl_casing_strings.setItem(row, column, new_item)
+                        self.tbl_casing_strings.blockSignals(False)
+                        drilling_fluids_item = QTableWidgetItem(profile_item.text())
+                        self.tbl_drilling_fluids.setItem(row, column, drilling_fluids_item)
+                    else:
+                        new_item = QTableWidgetItem("до забоя ()")
+                        self.tbl_casing_strings.blockSignals(True)
+                        self.tbl_casing_strings.setItem(row, column, new_item)
+                        self.tbl_casing_strings.blockSignals(False)
+                        self.tbl_drilling_fluids.setItem(row, column, QTableWidgetItem(""))
+                else:
+                    new_item = QTableWidgetItem(item.text())
+                    self.tbl_casing_strings.blockSignals(True)
+                    self.tbl_casing_strings.setItem(row, column, new_item)
+                    self.tbl_casing_strings.blockSignals(False)
+                    self.tbl_drilling_fluids.setItem(row, column, QTableWidgetItem(item.text()))
+            elif column == 2:
+                if "до устья" in text:
+                    new_item = QTableWidgetItem("до устья")
+                    self.tbl_casing_strings.blockSignals(True)
+                    self.tbl_casing_strings.setItem(row, column, new_item)
+                    self.tbl_casing_strings.blockSignals(False)
+                    self.tbl_drilling_fluids.setItem(row, column, QTableWidgetItem("0"))
+                else:
+                    new_item = QTableWidgetItem(item.text())
+                    self.tbl_casing_strings.blockSignals(True)
+                    self.tbl_casing_strings.setItem(row, column, new_item)
+                    self.tbl_casing_strings.blockSignals(False)
+                    self.tbl_drilling_fluids.setItem(row, column, QTableWidgetItem(item.text()))
+
     def form_fluids(self):
-        pass
+        row_count_casing_strings = self.tbl_casing_strings.rowCount()
+        row_count_drilling_fluids = self.tbl_drilling_fluids.rowCount()
+
+        if row_count_casing_strings != row_count_drilling_fluids:
+            self.tbl_drilling_fluids.setRowCount(row_count_casing_strings)
+
+        for row in range(row_count_casing_strings):
+            for column in range(1, 3):  # Предполагаем, что обрабатываются колонки 1 и 2
+                self.update_drilling_fluids(row, column)
 
     def load_stratigraphy(self):
         pass
+
+    def load_stratigraphic_intervals(self):
+        row_count = self.tbl_stratigraphy.rowCount()
+        self.tbl_pressure.setRowCount(row_count)
+        for row in range(row_count):
+            for column in range(1,4):
+                item = self.tbl_stratigraphy.item(row, column)
+                if item:
+                    self.tbl_pressure.setItem(row, column-1, QTableWidgetItem(item.text()))
 
     def form_KNBK(self):
 
