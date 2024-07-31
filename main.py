@@ -294,39 +294,16 @@ class CsvTableDialog(QDialog):
         except Exception as e:
             print(f"Error in cell_was_double_clicked_2: {e}")
 
-class LabelManager:
-    def __init__(self, table_widget, parent_widget):
-        self.table_widget = table_widget
-        self.parent_widget = parent_widget
-        self.label = None
-
-    def add_label(self, text):
-        if self.table_widget is None:
-            print("Error: Table is not initialized")
-            return
-
-        if self.parent_widget is None:
-            print("Error: Parent widget is not initialized")
-            return
-
-        if self.label is None:
-            self.label = QLabel(text, self.parent_widget)
-            self.label.setGeometry(660, 10, 200, 50)
-            font = QFont('MS Shell Dlg 2', 14)
-            self.label.setFont(font)
-            self.label.show()
-        else:
-            self.label.setText(text)
-
-
 class KNBK_Table(QWidget):
     def __init__(self, index, parent=None):
         super(KNBK_Table, self).__init__(parent)
         uic.loadUi('table.ui', self)
         self.setup_ui()
-        self.label_manager = LabelManager(self.tbl_KNBK, self)
 
     def setup_ui(self):
+
+        self.label = None
+
         self.undo_stack = QUndoStack(self)
         self.undo_view = QUndoView(self.undo_stack)
         self.tbl_KNBK: QTableWidget = self.findChild(QTableWidget, 'table_KNBK')
@@ -337,6 +314,7 @@ class KNBK_Table(QWidget):
         self.btn_row_up: QPushButton = self.findChild(QPushButton, 'pushButton_row_up')
         self.btn_row_down: QPushButton = self.findChild(QPushButton, 'pushButton_row_down')
         self.btn_add_page: QPushButton = self.findChild(QPushButton, 'pushButton_add_page')
+        self.btn_delete_page: QPushButton = self.findChild(QPushButton, 'pushButton_delete_page')
 
         self.open_file_act: QAction = self.findChild(QAction, 'actionOpen')
 
@@ -348,15 +326,16 @@ class KNBK_Table(QWidget):
         item_0_0_KNBK.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         self.tbl_KNBK.setItem(0, 0, item_0_0_KNBK)
 
-        self.label_manager = LabelManager(self.tbl_KNBK, self.parentWidget())
-        self.tbl_KNBK.itemChanged.connect(self.update_label)  # Подключение сигнала itemChanged
+        self.tbl_KNBK.itemChanged.connect(self.update_label)
+
 
         self.btn_add_row_KNBK.clicked.connect(self.add_row_KNBK)
         self.btn_delete_row_KNBK.clicked.connect(self.delete_row_KNBK)
         self.btn_load_table.clicked.connect(self.load_table)
         self.btn_row_up.clicked.connect(self.row_up)
         self.btn_row_down.clicked.connect(self.row_down)
-        self.btn_add_page.clicked.connect(self.parentWidget().add_page)
+        self.btn_add_page.clicked.connect(self.parentWidget().add_page_2)
+        self.btn_delete_page.clicked.connect(self.parentWidget().delete_page)
 
     def add_row_KNBK(self):
         row_count2_1 = self.tbl_KNBK.rowCount()
@@ -472,7 +451,7 @@ class KNBK_Table(QWidget):
                     dialog.data_selected.connect(lambda data: self.update_table_data(data, row, column))
                     dialog.rejected.connect(lambda: self.csv_dialog_rejected(row, column))
                     dialog.exec()
-                    self.label_manager.add_label(f"КНБК - {self.tbl_KNBK.item(0, 4).text()} мм")
+                    self.add_label(f"КНБК - {self.tbl_KNBK.item(0, 4).text()} мм")
 
     def open_fixed_path_csv_dialog(self, row, column):
         if column == 1 and row == 0:
@@ -484,7 +463,6 @@ class KNBK_Table(QWidget):
             dialog.data_selected.connect(lambda data: self.update_table_data(data, row, column))
             dialog.rejected.connect(lambda: self.csv_dialog_rejected_2(row, column))
             dialog.exec()
-            self.label_manager.add_label(f"КНБК - {self.tbl_KNBK.item(0, 4).text()} мм")
 
     def csv_dialog_rejected(self, row, column):
         item = self.tbl_KNBK.item(row, column)
@@ -691,7 +669,7 @@ class KNBK_Table(QWidget):
             item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tbl_KNBK.setItem(row, column, item)
         self.restore_initial_state()
-        self.label_manager.add_label(f"КНБК - {self.tbl_KNBK.item(0, 4).text()} мм")
+        self.add_label(f"КНБК - {self.tbl_KNBK.item(0, 4).text()} мм")
 
     def update_table_data_list_2(self, data, key):
         try:
@@ -719,7 +697,7 @@ class KNBK_Table(QWidget):
             self.undo_stack.push(UpdateTableCommand(self.tbl_KNBK, old_data, data))
 
             self.update_table_widget(self.tbl_KNBK, data)
-            self.label_manager.add_label(f"КНБК - {self.tbl_KNBK.item(0, 4).text()} мм")
+            self.add_label(f"КНБК - {self.tbl_KNBK.item(0, 4).text()} мм")
 
         except Exception as e:
             print(f"Error in update_table_data_list_2: {e}")
@@ -743,7 +721,7 @@ class KNBK_Table(QWidget):
                 tableWidget.setItem(row_index, col_index, item)
 
         self.restore_initial_state()
-        self.label_manager.add_label(f"КНБК - {self.tbl_KNBK.item(0, 4).text()} мм")
+        self.add_label(f"КНБК - {self.tbl_KNBK.item(0, 4).text()} мм")
 
     def restore_initial_state(self):
         item_0_0_KNBK = QTableWidgetItem("Долото")
@@ -752,7 +730,17 @@ class KNBK_Table(QWidget):
 
     def update_label(self, item):
         if item.row() == 0 and item.column() == 4:
-            self.label_manager.add_label(f"КНБК - {item.text()} мм")
+            self.add_label(f"КНБК - {item.text()} мм")
+
+    def add_label(self, text):
+        if self.label is None:
+            self.label = QLabel(text, self)
+            self.label.setGeometry(660, 10, 200, 50)
+            font = QFont('MS Shell Dlg 2', 14)
+            self.label.setFont(font)
+            self.label.show()
+        else:
+            self.label.setText(text)
 
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
@@ -782,6 +770,8 @@ class MainWindow(QMainWindow):
         self.tbl_casing_strings: QTableWidget = self.findChild(QTableWidget, 'tableWidget_casing_strings')
         self.tbl_drilling_fluids: QTableWidget = self.findChild(QTableWidget, 'tableWidget_drilling_fluids')
         self.tbl_pressure: QTableWidget = self.findChild(QTableWidget, 'tableWidget_pressure')
+
+        #self.tbl_casing_strings.itemChanged.connect(self.update_label)
 
         combo_1 = QComboBox()
         combo_1.addItems(["Направление", "Кондуктор", "Промежуточная", "Промежуточная 1", "Промежуточная 2",
@@ -889,7 +879,7 @@ class MainWindow(QMainWindow):
         self.addAction(self.undo_action)
         self.addAction(self.redo_action)
 
-        self.tbl_casing_strings.itemChanged.connect(self.on_item_changed)
+
 
     def create_context_menu(self, pos, table):
         context_menu = QMenu(self)
@@ -1038,16 +1028,38 @@ class MainWindow(QMainWindow):
 
                 k = pd.read_excel(xl, header=0 if has_headers_flag else None)
                 num_rows, num_cols = k.shape
+
+                # Ensure the file has at least 3 columns to perform calculations
+                if num_cols < 3:
+                    raise ValueError("The file must have at least 3 columns for calculations.")
+
+                # Initialize the first value of vertical depth to 0
+                vertical_depth = [0.0]
+
+                # Iteratively calculate the vertical depth
+                for i in range(1, num_rows):
+                    delta_L = k.iloc[i, 0] - k.iloc[i - 1, 0]
+                    current_zenith_angle = np.radians(k.iloc[i, 1])
+
+                    delta_z = delta_L * np.cos(current_zenith_angle)
+                    vertical_depth.append(vertical_depth[-1] + delta_z)
+
+                k['Глубина по верт(м)'] = vertical_depth
+
                 self.tbl_profile.setRowCount(num_rows)
-                self.tbl_profile.setColumnCount(num_cols)
+                self.tbl_profile.setColumnCount(num_cols + 1)
 
                 predefined_headers = ["Глубина по стволу (м)", "Зенитный угол (град)", "Азимут (град)",
                                       "Азимут маг(град)", "Азимут дир(град)", "Глубина по верт(м)"]
 
                 if has_headers_flag:
-                    self.tbl_profile.setHorizontalHeaderLabels(k.columns.astype(str).tolist())
+                    headers = k.columns.astype(str).tolist()
+                    print("Headers from file:", headers)  # Debug statement
+                    self.tbl_profile.setHorizontalHeaderLabels(headers)
                 else:
-                    self.tbl_profile.setHorizontalHeaderLabels(predefined_headers[:num_cols])
+                    headers = predefined_headers[:num_cols] + ["Глубина по верт(м)"]
+                    print("Using predefined headers:", headers)
+                    self.tbl_profile.setHorizontalHeaderLabels(headers)
 
                 for index, row in k.iterrows():
                     for col_index, value in enumerate(row):
@@ -1131,44 +1143,59 @@ class MainWindow(QMainWindow):
 
     def update_drilling_fluids(self, row, column):
         item = self.tbl_casing_strings.item(row, column)
-        if item:
+        if item is not None:
             text = item.text().strip().lower()
             if column == 1:
                 if "до забоя" in text:
-                    profile_item = self.tbl_profile.item(self.tbl_profile.rowCount() - 1, 0)  # Последний элемент из 1-го столбца
+                    profile_item = self.tbl_profile.item(self.tbl_profile.rowCount() - 1,
+                                                         0)  # Последний элемент из 1-го столбца
                     if profile_item:
                         new_text = f"до забоя ({profile_item.text()})"
                         new_item = QTableWidgetItem(new_text)
+                        new_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                         self.tbl_casing_strings.blockSignals(True)
                         self.tbl_casing_strings.setItem(row, column, new_item)
                         self.tbl_casing_strings.blockSignals(False)
                         drilling_fluids_item = QTableWidgetItem(profile_item.text())
+                        drilling_fluids_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                         self.tbl_drilling_fluids.setItem(row, column, drilling_fluids_item)
                     else:
                         new_item = QTableWidgetItem("до забоя ()")
+                        new_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                         self.tbl_casing_strings.blockSignals(True)
                         self.tbl_casing_strings.setItem(row, column, new_item)
                         self.tbl_casing_strings.blockSignals(False)
-                        self.tbl_drilling_fluids.setItem(row, column, QTableWidgetItem(""))
+                        drilling_fluids_item = QTableWidgetItem("")
+                        drilling_fluids_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                        self.tbl_drilling_fluids.setItem(row, column, drilling_fluids_item)
                 else:
                     new_item = QTableWidgetItem(item.text())
+                    new_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     self.tbl_casing_strings.blockSignals(True)
                     self.tbl_casing_strings.setItem(row, column, new_item)
                     self.tbl_casing_strings.blockSignals(False)
-                    self.tbl_drilling_fluids.setItem(row, column, QTableWidgetItem(item.text()))
+                    drilling_fluids_item = QTableWidgetItem(item.text())
+                    drilling_fluids_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    self.tbl_drilling_fluids.setItem(row, column, drilling_fluids_item)
             elif column == 2:
                 if "до устья" in text:
                     new_item = QTableWidgetItem("до устья")
+                    new_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     self.tbl_casing_strings.blockSignals(True)
                     self.tbl_casing_strings.setItem(row, column, new_item)
                     self.tbl_casing_strings.blockSignals(False)
-                    self.tbl_drilling_fluids.setItem(row, column, QTableWidgetItem("0"))
+                    drilling_fluids_item = QTableWidgetItem("0")
+                    drilling_fluids_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    self.tbl_drilling_fluids.setItem(row, column, drilling_fluids_item)
                 else:
                     new_item = QTableWidgetItem(item.text())
+                    new_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     self.tbl_casing_strings.blockSignals(True)
                     self.tbl_casing_strings.setItem(row, column, new_item)
                     self.tbl_casing_strings.blockSignals(False)
-                    self.tbl_drilling_fluids.setItem(row, column, QTableWidgetItem(item.text()))
+                    drilling_fluids_item = QTableWidgetItem(item.text())
+                    drilling_fluids_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    self.tbl_drilling_fluids.setItem(row, column, drilling_fluids_item)
 
     def form_fluids(self):
         row_count_casing_strings = self.tbl_casing_strings.rowCount()
@@ -1178,8 +1205,11 @@ class MainWindow(QMainWindow):
             self.tbl_drilling_fluids.setRowCount(row_count_casing_strings)
 
         for row in range(row_count_casing_strings):
-            for column in range(1, 3):  # Предполагаем, что обрабатываются колонки 1 и 2
-                self.update_drilling_fluids(row, column)
+            for column in range(1, 3):
+                try:
+                    self.update_drilling_fluids(row, column)
+                except Exception as e:
+                    print(f"Error updating drilling fluids at row {row}, column {column}: {e}")
 
     def load_stratigraphy(self):
         pass
@@ -1222,14 +1252,7 @@ class MainWindow(QMainWindow):
         if item_0:
             text_0 = f"КНБК - {item_0.text()} мм"
             initial_page = self.stackedWidget.widget(4)  # Предполагаем, что страница уже создана на позиции 4
-            if initial_page:
-                print("Initial page found")
-                label_0 = QLabel(text_0, initial_page)
-                label_0.setGeometry(660, 10, 200, 50)
-                font = QFont('MS Shell Dlg 2', 14)
-                label_0.setFont(font)
-                label_0.show()
-
+            initial_page.add_label(text_0)
 
     def add_page(self, text, add_label=False):
         if self.stackedWidget is None:
@@ -1240,16 +1263,54 @@ class MainWindow(QMainWindow):
         print(f"Current number of pages: {num_pages}, Inserting at index: {insert_index}")  # Отладочный вывод
 
         new_page = KNBK_Table(index=insert_index + 1, parent=self)
-
-        if add_label:
-            label = QLabel(text, new_page)
-            label.setGeometry(660, 10, 200, 50)
-            font = QFont('MS Shell Dlg 2', 14)
-            label.setFont(font)
+        new_page.add_label(text)
         self.stackedWidget.insertWidget(insert_index, new_page)
         self.stackedWidget.setCurrentWidget(new_page)
         print(f"Page added with text: {text} at position: {insert_index}")
 
+    def add_page_2(self):
+        if self.stackedWidget is None:
+            return
+        num_pages = self.stackedWidget.count()  # Получаем текущее количество страниц
+        insert_index = num_pages - 1  # Вставляем новую страницу на предпоследнюю позицию
+        print(f"Current number of pages: {num_pages}, Inserting at index: {insert_index}")  # Отладочный вывод
+        new_page = KNBK_Table(index=insert_index + 1, parent=self)
+        self.stackedWidget.insertWidget(insert_index, new_page)
+        self.stackedWidget.setCurrentWidget(new_page)
+
+    def delete_page(self):
+        if self.stackedWidget is None:
+            return
+
+        current_index = self.stackedWidget.currentIndex()  # Получаем индекс текущей страницы
+        num_pages = self.stackedWidget.count()  # Получаем текущее количество страниц
+
+        if num_pages > 6:  # Убедимся, что есть больше одной страницы
+            widget_to_remove = self.stackedWidget.widget(current_index)
+            self.stackedWidget.removeWidget(widget_to_remove)  # Удаляем текущую страницу из стека
+
+            # Удаляем виджет полностью из памяти
+            widget_to_remove.setParent(None)
+            widget_to_remove.deleteLater()
+
+            # Переключаемся на новую текущую страницу
+            new_index = min(current_index, self.stackedWidget.count() - 1)
+            self.stackedWidget.setCurrentIndex(new_index)
+
+            # Обновляем видимость навигационных кнопок
+            self.on_current_index_changed(new_index)
+
+            print(
+                f"Page at index {current_index} deleted. Current number of pages: {self.stackedWidget.count()}")
+        else:
+            print(
+                "Cannot delete the only remaining page.")
+
+    def on_current_index_changed(self, index):
+        total_pages = self.stackedWidget.count()
+
+        self.btn_go_to_previous_page.setVisible(index > 0)
+        self.btn_go_to_next_page.setVisible(index < total_pages - 1)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
