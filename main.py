@@ -37,7 +37,7 @@ class UpdateTableCommand(QUndoCommand):
                 if value is None:
                     value = ""
                 item = QTableWidgetItem(value)
-                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)  # Add text alignment
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.tableWidget.setItem(row_index, col_index, item)
         self.add_doloto_item()
 
@@ -132,14 +132,14 @@ class PasteCommand(QUndoCommand):
 class CsvTableDialog(QDialog):
     data_selected = pyqtSignal(list, str)
 
-    def __init__(self, file_name, load_table=False, initial_sort_column=5, initial_sort_value_KNBK=None, sort_value_casing_srings=None, parent=None):
+    def __init__(self, file_name, load_table=False, initial_sort_value_KNBK=None, sort_value_casing_srings=None, parent=None):
         super().__init__(parent)
         self.file_name = file_name
         self.load_table = load_table
-        self.sort_order = Qt.SortOrder.AscendingOrder
-        self.sort_column = initial_sort_column
         self.initial_sort_value_KNBK = initial_sort_value_KNBK
         self.sort_value_casing_srings = sort_value_casing_srings
+        self.sort_order = Qt.SortOrder.AscendingOrder
+        self.sort_column = -1  # Default to no column
         self.initUI()
 
     def initUI(self):
@@ -157,11 +157,17 @@ class CsvTableDialog(QDialog):
         self.tableWidget.horizontalHeader().setSortIndicatorShown(True)
         self.tableWidget.horizontalHeader().sectionClicked.connect(self.on_header_clicked)
 
-        # Добавьте проверку на None перед печатью
-        if self.sort_value_casing_srings is not None:
-            print("sort_value_casing_srings:", self.sort_value_casing_srings)
-        else:
-            print("sort_value_casing_srings is None")
+        # Initial sort if values are provided
+        if self.load_table == False:
+            if self.sort_value_casing_srings is not None:
+                print("Sorting by sort_value_casing_srings")
+                self.sort_column = 3
+                self.sort_by_column_and_value(self.sort_column, self.sort_value_casing_srings)
+            elif self.initial_sort_value_KNBK is not None:
+                print(f"Sorting by initial_sort_value_KNBK: {self.initial_sort_value_KNBK}")
+                self.sort_column = 5
+                self.sort_by_column_and_value_custom(self.sort_column, self.initial_sort_value_KNBK)
+
 
     def load_csv(self):
         try:
@@ -187,41 +193,70 @@ class CsvTableDialog(QDialog):
                         self.tableWidget.cellDoubleClicked.connect(self.cell_was_double_clicked)
                     else:
                         self.tableWidget.cellDoubleClicked.connect(self.cell_was_double_clicked_2)
+                        self.sort_by_column_and_value(0, self.sort_value_casing_srings)
                         print("Connected cellDoubleClicked signal to cell_was_double_clicked_2")
-                    '''
-                    if self.sort_column is not None:
-                        if self.load_table:
-                            self.sort_by_column_0()
-                        else:
-                            self.sort_by_column_3()
-                    '''
                 else:
                     print("No data found in the file.")
         except Exception as e:
             print(f"Error loading CSV: {e}")
 
-    def sort_by_column_0(self):
-        if self.load_table:
-            data = []
-            for row in range(self.tableWidget.rowCount()):
-                row_data = []
-                for column in range(self.tableWidget.columnCount()):
-                    item = self.tableWidget.item(row, column)
-                    row_data.append(item.text() if item else "")
-                data.append(row_data)
+    def sort_by_column_and_value(self, column, value):
+        data = []
+        for row in range(self.tableWidget.rowCount()):
+            row_data = []
+            for col in range(self.tableWidget.columnCount()):
+                item = self.tableWidget.item(row, col)
+                row_data.append(item.text() if item else "")
+            data.append(row_data)
 
-            matching_rows = [row for row in data if row[0] in self.sort_value_casing_srings]
-            non_matching_rows = [row for row in data if row[0] not in self.sort_value_casing_srings]
+        matching_rows = [row for row in data if row[column] == value]
+        non_matching_rows = [row for row in data if row[column] != value]
 
-            matching_rows.sort(key=self.custom_sort_key_load_table)
-            non_matching_rows.sort(key=self.custom_sort_key_load_table)
+        sorted_data = matching_rows + non_matching_rows
 
-            sorted_data = matching_rows + non_matching_rows
-            self.update_table_with_sorted_data(sorted_data)
+        self.update_table_with_sorted_data(sorted_data)
+
+    def sort_by_column_and_value_custom(self, column, value):
+        try:
+            value_numeric = float(value.split('З-')[1])
+            print(value_numeric)
+        except (IndexError, ValueError):
+            value_numeric = float('inf')
+
+        data = []
+        for row in range(self.tableWidget.rowCount()):
+            row_data = []
+            for col in range(self.tableWidget.columnCount()):
+                item = self.tableWidget.item(row, col)
+                row_data.append(item.text() if item else "")
+            data.append(row_data)
+
+        def extract_numeric(text):
+            if text.startswith('З-'):
+                try:
+                    return float(text.split('З-')[1])
+                except (IndexError, ValueError):
+                    return float('inf')
+            return float('inf')
+
+        matching_rows = [row for row in data if extract_numeric(row[column]) == value_numeric]
+        non_matching_rows = [row for row in data if extract_numeric(row[column]) != value_numeric]
+
+        sorted_data = matching_rows + non_matching_rows
+
+        self.update_table_with_sorted_data(sorted_data)
+
+    def on_header_clicked(self, logical_index):
+        if self.sort_column == logical_index:
+            # Toggle sort order if the same column is clicked
+            self.sort_order = Qt.SortOrder.DescendingOrder if self.sort_order == Qt.SortOrder.AscendingOrder else Qt.SortOrder.AscendingOrder
         else:
-            self.sort_by_column_3()
+            # Default to ascending order if a new column is clicked
+            self.sort_order = Qt.SortOrder.AscendingOrder
+        self.sort_column = logical_index
+        self.sort_table()
 
-    def sort_by_column_3(self):
+    def sort_table(self):
         data = []
         for row in range(self.tableWidget.rowCount()):
             row_data = []
@@ -230,14 +265,9 @@ class CsvTableDialog(QDialog):
                 row_data.append(item.text() if item else "")
             data.append(row_data)
 
-        matching_rows = [row for row in data if row[3] in self.sort_value_casing_srings]
-        non_matching_rows = [row for row in data if row[3] not in self.sort_value_casing_srings]
+        data.sort(key=lambda row: self.custom_sort_key(row[self.sort_column]), reverse=self.sort_order == Qt.SortOrder.DescendingOrder)
 
-        matching_rows.sort(key=self.custom_sort_key)
-        non_matching_rows.sort(key=self.custom_sort_key)
-
-        sorted_data = matching_rows + non_matching_rows
-        self.update_table_with_sorted_data(sorted_data)
+        self.update_table_with_sorted_data(data)
 
     def update_table_with_sorted_data(self, sorted_data):
         self.tableWidget.setRowCount(0)
@@ -245,50 +275,20 @@ class CsvTableDialog(QDialog):
             row = self.tableWidget.rowCount()
             self.tableWidget.insertRow(row)
             for column, item in enumerate(row_data):
-                self.tableWidget.setItem(row, column, QTableWidgetItem(item))
+                table_item = QTableWidgetItem(item)
+                table_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.tableWidget.setItem(row, column, table_item)
 
-    def custom_sort_key(self, row_data):
-        text = row_data[self.sort_column]
-        if self.sort_column == 0:
-            return text
-        elif self.sort_column in [1, 2, 3, 8, 9]:
-            try:
-                return float(text)
-            except ValueError:
-                return float('-inf')
-        elif self.sort_column in [4, 6]:
-            return text
-        elif self.sort_column in [5, 7]:
+    def custom_sort_key(self, text):
+        try:
+            return float(text)
+        except ValueError:
             if text.startswith('З-'):
-                return int(text.split('-')[1])
-        return text
-
-    def custom_sort_key_load_table(self, row_data):
-        text = row_data[self.sort_column]
-        if self.sort_column == 0:
-            try:
-                return float(text)
-            except ValueError:
-                return float('-inf')
-
-    def on_header_clicked(self, logical_index):
-        self.sort_column = logical_index
-        self.sort_table(self.sort_order)
-        self.sort_order = Qt.SortOrder.DescendingOrder if self.sort_order == Qt.SortOrder.AscendingOrder \
-            else Qt.SortOrder.AscendingOrder
-
-    def sort_table(self, order, initial_sort=False):
-        data = []
-        for row in range(self.tableWidget.rowCount()):
-            row_data = []
-            for column in range(self.tableWidget.columnCount()):
-                item = self.tableWidget.item(row, column)
-                row_data.append(item.text() if item else "")
-            data.append(row_data)
-
-        data.sort(key=self.custom_sort_key, reverse=(order == Qt.SortOrder.DescendingOrder))
-
-        self.update_table_with_sorted_data(data)
+                try:
+                    return int(text.split('З-')[1])
+                except ValueError:
+                    return text.lower()
+            return text.lower()
 
     def cell_was_double_clicked(self, row, column):
         try:
@@ -310,9 +310,7 @@ class CsvTableDialog(QDialog):
             item = self.tableWidget.item(row, column)
             if item:
                 data = item.text()
-                print(f"Double clicked data: {data} in row {row}, column {column}")
                 parts = data.split(';')
-                print(f"Parts after split: {parts}")
 
                 row_data = []
                 keys = []
@@ -320,32 +318,25 @@ class CsvTableDialog(QDialog):
                     part = part.strip()
                     if not part:
                         continue
-                    print(f"Processing part: {part}")
                     if '_' in part:
                         key, name = part.split('_', 1)  # Разделяем только по первому подчеркиванию
                         key = key.strip()
                         name = name.strip()
                         keys.append(key)
                         csv_path = f'{path1}{key}.csv'
-                        print(f"Opening file: {csv_path}")
                         try:
                             with open(csv_path, "r", encoding='utf-8') as csvfile:
                                 csv_reader = csv.reader(csvfile)
                                 for csv_row in csv_reader:
-                                    print(f"Checking row in {csv_path}: {csv_row}")
                                     if name == csv_row[0].strip():
-                                        print(f"Found match: {csv_row}")
                                         row_data.append([key] + csv_row)
                                         break
-                                    else:
-                                        print(f"No match for {name} in {csv_row[0].strip()}")
                         except FileNotFoundError:
                             print(f"File not found: {csv_path}")
                         except Exception as e:
                             print(f"Error reading {csv_path}: {e}")
                     else:
                         print(f"No '_' found in part: {part}")
-                print(f"Emitting data: {row_data} with keys: {keys}")
                 self.data_selected.emit(row_data, ", ".join(keys))
                 self.accept()
             else:
@@ -357,7 +348,7 @@ class KNBK_Table(QWidget):
     def __init__(self, index, sort_key=None, parent=None):
         super(KNBK_Table, self).__init__(parent)
         uic.loadUi('table.ui', self)
-        self.initial_sort_value_KNBK = None
+
         self.sort_key = sort_key
         self.setup_ui()
 
@@ -421,9 +412,8 @@ class KNBK_Table(QWidget):
             self.tbl_KNBK.setRowCount(row_count2_1 - 1)
 
     def load_table(self):
-        dialog = CsvTableDialog(path1 + 'КНБК.csv', load_table=True,
-                                initial_sort_value_KNBK=self.initial_sort_value_KNBK,
-                                sort_value_casing_srings=self.sort_key, parent=self)
+        dialog = CsvTableDialog(path1 + 'КНБК.csv', load_table = True, initial_sort_value_KNBK = None,
+                                sort_value_casing_srings = self.sort_key, parent = self)
         dialog.data_selected.connect(self.update_table_data_list_2)
         dialog.exec()
 
@@ -509,8 +499,8 @@ class KNBK_Table(QWidget):
                     print(f"Opening file dialog for file: {file_name}")
                     self.current_file_path = file_name
                     initial_sort_value_KNBK = self.get_initial_sort_value()
-                    dialog = CsvTableDialog(file_name, load_table=False, initial_sort_column=5,
-                                            initial_sort_value_KNBK=initial_sort_value_KNBK, parent=self)
+                    dialog = CsvTableDialog(file_name, load_table = False,sort_value_casing_srings = None,
+                                            initial_sort_value_KNBK = initial_sort_value_KNBK, parent = self)
                     dialog.data_selected.connect(lambda data: self.update_table_data(data, row, column))
                     dialog.rejected.connect(lambda: self.csv_dialog_rejected(row, column))
                     dialog.exec()
@@ -520,10 +510,8 @@ class KNBK_Table(QWidget):
         if column == 1 and row == 0:
             fixed_file_path = path1 + "Долото.csv"
             self.current_file_path = fixed_file_path
-            initial_sort_value_KNBK = self.get_initial_sort_value()
-            dialog = CsvTableDialog(fixed_file_path, load_table=False, initial_sort_column=5,
-                                    initial_sort_value_KNBK=initial_sort_value_KNBK,
-                                    sort_value_casing_srings=self.sort_key, parent=self)
+            dialog = CsvTableDialog(fixed_file_path, load_table = False, initial_sort_value_KNBK = None,
+                                    sort_value_casing_srings = self.sort_key, parent = self)
             dialog.data_selected.connect(lambda data: self.update_table_data(data, row, column))
             dialog.rejected.connect(lambda: self.csv_dialog_rejected_2(row, column))
             dialog.exec()
@@ -733,7 +721,7 @@ class KNBK_Table(QWidget):
             item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tbl_KNBK.setItem(row, column, item)
         self.restore_initial_state()
-        self.add_label(f"КНБК - {self.tbl_KNBK.item(0, 4).text()} мм")
+        #self.add_label(f"КНБК - {self.tbl_KNBK.item(0, 4).text()} мм")
 
     def update_table_data_list_2(self, data, key):
         try:
@@ -845,7 +833,8 @@ class MainWindow(QMainWindow):
             combo_1.setItemData(i, Qt.AlignmentFlag.AlignCenter, Qt.ItemDataRole.TextAlignmentRole)
         self.tbl_casing_strings.setCellWidget(0, 0, combo_1)
 
-        allowed_tables = [self.tbl_profile, self.tbl_stratigraphy, self.tbl_casing_strings, self.tbl_drilling_fluids]
+        allowed_tables = [self.tbl_profile, self.tbl_stratigraphy, self.tbl_pressure, self.tbl_casing_strings,
+                          self.tbl_drilling_fluids]
 
         for table in allowed_tables:
             table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -861,15 +850,19 @@ class MainWindow(QMainWindow):
         self.btn_go_to_previous_page: QPushButton = self.findChild(QPushButton, 'pushButton_previous_page')
         self.btn_clear_table: QPushButton = self.findChild(QPushButton, 'pushButton_clear_table')
         self.btn_add_row_stratigraphy: QPushButton = self.findChild(QPushButton, 'pushButton_add_row_stratigraphy')
-        self.btn_delete_row_stratigraphy: QPushButton = self.findChild(QPushButton, 'pushButton_delete_row_stratigraphy')
+        self.btn_delete_row_stratigraphy: QPushButton = self.findChild(QPushButton,
+                                                                       'pushButton_delete_row_stratigraphy')
         self.btn_add_row_casing_strings: QPushButton = self.findChild(QPushButton, 'pushButton_add_row_casing_strings')
-        self.btn_delete_row_casing_strings: QPushButton = self.findChild(QPushButton, 'pushButton_delete_row_casing_strings')
+        self.btn_delete_row_casing_strings: QPushButton = self.findChild(QPushButton,
+                                                                         'pushButton_delete_row_casing_strings')
         self.btn_add_row_drilling_fluids: QPushButton = self.findChild(QPushButton, 'pushButton_add_row_drilling_fluids')
-        self.btn_delete_row_drilling_fluids: QPushButton = self.findChild(QPushButton, 'pushButton_delete_row_drilling_fluids')
+        self.btn_delete_row_drilling_fluids: QPushButton = self.findChild(QPushButton,
+                                                                          'pushButton_delete_row_drilling_fluids')
         self.btn_load_stratigraphy: QPushButton = self.findChild(QPushButton, 'pushButton_load_stratigraphy')
         self.btn_form_KNBK: QPushButton = self.findChild(QPushButton, 'pushButton_form_KNBK')
         self.btn_form_fluids: QPushButton = self.findChild(QPushButton, 'pushButton_form_fluids')
-        self.btn_load_stratigraphic_intervals: QPushButton = self.findChild(QPushButton, 'pushButton_load_stratigraphic_intervals')
+        self.btn_load_stratigraphic_intervals: QPushButton = self.findChild(QPushButton,
+                                                                            'pushButton_load_stratigraphic_intervals')
         self.btn_add_row_pressure: QPushButton = self.findChild(QPushButton, 'pushButton_add_row_pressure')
         self.btn_delete_row_pressure: QPushButton = self.findChild(QPushButton, 'pushButton_delete_row_pressure')
         self.lineEdit1: QLineEdit = self.findChild(QLineEdit, 'lineEdit_1')
@@ -943,7 +936,91 @@ class MainWindow(QMainWindow):
         self.addAction(self.undo_action)
         self.addAction(self.redo_action)
 
+        self.merge_columns_1(0, 1, 3)
+        self.merge_columns_2(0, 4, 7)
+        self.merge_columns_3(0, 8, 12)
+        self.set_column_width(0, 20)
+        cells_data = [
+            (1, 1, "Индекс стратиграфического подразделения"),
+            (1, 2, "От (верт.),м"),
+            (1, 3, "До (верт.),м"),
+            (1, 4, "Пласт. в начале интервала"),
+            (1, 5, "Пласт. в конце интервала"),
+            (1, 6, "Гидроразр. в начале интервала"),
+            (1, 7, "Гидроразр. в конце интервала"),
+            (1, 8, "Пласт. в начале интервала"),
+            (1, 9, "Пласт. в конце интервала"),
+            (1, 10, "Гидроразр. в начале интервала"),
+            (1, 11, "Гидроразр. в конце интервала"),
+        ]
+        self.insert_text_in_cells(cells_data)
+        self.tbl_pressure.resizeRowsToContents()
 
+    def set_column_width(self, column, width):
+        self.tbl_pressure.setColumnWidth(column, width)
+
+    def merge_columns_1(self, row, start_col, end_col):
+        text = "Интервал"
+        for col in range(start_col, end_col + 1):
+            item = self.tbl_pressure.takeItem(row, col)
+            if item:
+                text += item.text() + " "
+
+        # Установите объединенный текст в ячейку начального столбца
+        merged_item = QTableWidgetItem(text.strip())
+        merged_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)  # Установить выравнивание по центру
+        self.tbl_pressure.setItem(row, start_col, merged_item)
+
+        # Объединение ячеек
+        self.tbl_pressure.setSpan(row, start_col, 1, end_col - start_col + 1)
+
+        # Удаление остальных объединенных столбцов
+        for col in range(start_col + 1, end_col + 1):
+            self.tbl_pressure.setItem(row, col, QTableWidgetItem(""))
+
+    def merge_columns_2(self, row, start_col, end_col):
+        text = "Давление, кгс/см^2"
+        for col in range(start_col, end_col + 1):
+            item = self.tbl_pressure.takeItem(row, col)
+            if item:
+                text += item.text() + " "
+
+        # Установите объединенный текст в ячейку начального столбца
+        merged_item = QTableWidgetItem(text.strip())
+        merged_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)  # Установить выравнивание по центру
+        self.tbl_pressure.setItem(row, start_col, merged_item)
+
+        # Объединение ячеек
+        self.tbl_pressure.setSpan(row, start_col, 1, end_col - start_col + 1)
+
+        # Удаление остальных объединенных столбцов
+        for col in range(start_col + 1, end_col + 1):
+            self.tbl_pressure.setItem(row, col, QTableWidgetItem(""))
+
+    def merge_columns_3(self, row, start_col, end_col):
+        text = "Градиент давления, кгс/см^2/м"
+        for col in range(start_col, end_col + 1):
+            item = self.tbl_pressure.takeItem(row, col)
+            if item:
+                text += item.text() + " "
+
+        # Установите объединенный текст в ячейку начального столбца
+        merged_item = QTableWidgetItem(text.strip())
+        merged_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)  # Установить выравнивание по центру
+        self.tbl_pressure.setItem(row, start_col, merged_item)
+
+        # Объединение ячеек
+        self.tbl_pressure.setSpan(row, start_col, 1, end_col - start_col + 1)
+
+        # Удаление остальных объединенных столбцов
+        for col in range(start_col + 1, end_col + 1):
+            self.tbl_pressure.setItem(row, col, QTableWidgetItem(""))
+
+    def insert_text_in_cells(self, cells_data):
+        for row, col, text in cells_data:
+            item = QTableWidgetItem(text)
+            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)  # Установить выравнивание по центру
+            self.tbl_pressure.setItem(row, col, item)
 
     def create_context_menu(self, pos, table):
         context_menu = QMenu(self)
@@ -1086,6 +1163,10 @@ class MainWindow(QMainWindow):
             item = QTableWidgetItem("")
             item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tbl_pressure.setItem(row_count2_5, column, item)
+        k = QTableWidgetItem(str(row_count2_5 - 1))
+        k.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.tbl_pressure.setItem(row_count2_5, 0, k)
+
 
     def open_file(self):
         try:
@@ -1206,7 +1287,7 @@ class MainWindow(QMainWindow):
 
     def delete_row_pressure(self):
         row_count2_5 = self.tbl_pressure.rowCount()
-        if row_count2_5 > 0:
+        if row_count2_5 > 2:
             self.tbl_pressure.setRowCount(row_count2_5 - 1)
 
     def on_item_changed(self, item):
@@ -1289,12 +1370,19 @@ class MainWindow(QMainWindow):
 
     def load_stratigraphic_intervals(self):
         row_count = self.tbl_stratigraphy.rowCount()
-        self.tbl_pressure.setRowCount(row_count)
+        self.tbl_pressure.setRowCount(row_count + 2)
         for row in range(row_count):
-            for column in range(1,4):
+            # Нумерация строк, начиная с третьей строки
+            num_item = QTableWidgetItem(str(row + 1))
+            num_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.tbl_pressure.setItem(row + 2, 0, num_item)
+
+            for column in range(1, 4):
                 item = self.tbl_stratigraphy.item(row, column)
                 if item:
-                    self.tbl_pressure.setItem(row, column-1, QTableWidgetItem(item.text()))
+                    new_item = QTableWidgetItem(item.text())
+                    new_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    self.tbl_pressure.setItem(row + 2, column, new_item)
 
     def form_KNBK(self):
         if self.tbl_casing_strings is None or self.stackedWidget is None:
@@ -1324,10 +1412,10 @@ class MainWindow(QMainWindow):
         item_0 = self.tbl_casing_strings.item(0, 4)
         if item_0:
             text_0 = f"КНБК - {item_0.text()} мм"
-            sort_key_0 = item_0.text()  # Новый ключ сортировки для первой страницы
-            initial_page = self.stackedWidget.widget(4)  # Предполагаем, что страница уже создана на позиции 4
+            sort_key_0 = item_0.text()
+            initial_page = self.stackedWidget.widget(4)
             initial_page.add_label(text_0)
-            initial_page.sort_key = sort_key_0  # Устанавливаем ключ сортировки для первой страницы
+            initial_page.sort_key = sort_key_0
 
     def add_page(self, text, sort_key=None):
         if self.stackedWidget is None:
@@ -1345,9 +1433,9 @@ class MainWindow(QMainWindow):
     def add_page_2(self):
         if self.stackedWidget is None:
             return
-        num_pages = self.stackedWidget.count()  # Получаем текущее количество страниц
-        insert_index = num_pages - 1  # Вставляем новую страницу на предпоследнюю позицию
-        print(f"Current number of pages: {num_pages}, Inserting at index: {insert_index}")  # Отладочный вывод
+        num_pages = self.stackedWidget.count()
+        insert_index = num_pages - 1
+        print(f"Current number of pages: {num_pages}, Inserting at index: {insert_index}")
         new_page = KNBK_Table(index=insert_index + 1, parent=self)
         self.stackedWidget.insertWidget(insert_index, new_page)
         self.stackedWidget.setCurrentWidget(new_page)
@@ -1356,12 +1444,12 @@ class MainWindow(QMainWindow):
         if self.stackedWidget is None:
             return
 
-        current_index = self.stackedWidget.currentIndex()  # Получаем индекс текущей страницы
-        num_pages = self.stackedWidget.count()  # Получаем текущее количество страниц
+        current_index = self.stackedWidget.currentIndex()
+        num_pages = self.stackedWidget.count()
 
-        if num_pages > 6:  # Убедимся, что есть больше одной страницы
+        if num_pages > 6:
             widget_to_remove = self.stackedWidget.widget(current_index)
-            self.stackedWidget.removeWidget(widget_to_remove)  # Удаляем текущую страницу из стека
+            self.stackedWidget.removeWidget(widget_to_remove)
 
             # Удаляем виджет полностью из памяти
             widget_to_remove.setParent(None)

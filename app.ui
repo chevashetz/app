@@ -514,11 +514,31 @@
         </rect>
        </property>
        <property name="rowCount">
-        <number>0</number>
+        <number>2</number>
        </property>
        <property name="columnCount">
-        <number>3</number>
+        <number>12</number>
        </property>
+       <attribute name="horizontalHeaderVisible">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="horizontalHeaderDefaultSectionSize">
+        <number>125</number>
+       </attribute>
+       <attribute name="verticalHeaderVisible">
+        <bool>false</bool>
+       </attribute>
+       <row/>
+       <row/>
+       <column/>
+       <column/>
+       <column/>
+       <column/>
+       <column/>
+       <column/>
+       <column/>
+       <column/>
+       <column/>
        <column/>
        <column/>
        <column/>
