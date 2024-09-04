@@ -575,7 +575,6 @@ class KNBK_Table(QWidget):
             if file_name:
                 image_path = file_name[1]
             else:
-
                 return
         else:
             print("Incorrect mode or missing static path")
@@ -632,13 +631,14 @@ class KNBK_Table(QWidget):
     def delete_row_KNBK(self):
         row_count2_1 = self.tbl_KNBK.currentRow()
         if row_count2_1 > 0:
-            label_to_remove = self.labels.pop(row_count2_1)
-            if label_to_remove:
-                if self.scroll_area.isVisible():
-                    self.image_container_layout.removeWidget(label_to_remove)
-                else:
-                    self.current_y += label_to_remove.height()
-                label_to_remove.deleteLater()
+            if self.labels and 0 <= row_count2_1 < len(self.labels):
+                label_to_remove = self.labels.pop(row_count2_1)
+                if label_to_remove:
+                    if self.scroll_area.isVisible():
+                        self.image_container_layout.removeWidget(label_to_remove)
+                    else:
+                        self.current_y += label_to_remove.height()
+                    label_to_remove.deleteLater()
 
             self.tbl_KNBK.removeRow(row_count2_1)
 
@@ -709,8 +709,8 @@ class KNBK_Table(QWidget):
                 label1.move(label1.x(), y2 - h1 +h2)
                 label2.move(label2.x(), y2-h1)
             else:  # Move down
-                label1.move(label1.x(), y2+h2-h1)
-                label2.move(label2.x(), y1 )
+                label1.move(label1.x(), y2)
+                label2.move(label2.x(), y1-h2+h1)
 
     def update_labels_after_swap(self, row1, row2):
         self.labels[row1], self.labels[row2] = self.labels[row2], self.labels[row1]
