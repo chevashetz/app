@@ -1,0 +1,970 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1855</width>
+    <height>786</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QStackedWidget" name="stackedWidget">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>1651</width>
+      <height>711</height>
+     </rect>
+    </property>
+    <property name="currentIndex">
+     <number>0</number>
+    </property>
+    <widget class="QWidget" name="page_1">
+     <widget class="QWidget" name="widget_1" native="true">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>1511</width>
+        <height>681</height>
+       </rect>
+      </property>
+      <widget class="QTableWidget" name="tableWidget_profile">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>60</y>
+         <width>920</width>
+         <height>570</height>
+        </rect>
+       </property>
+       <property name="rowCount">
+        <number>200</number>
+       </property>
+       <property name="columnCount">
+        <number>6</number>
+       </property>
+       <attribute name="horizontalHeaderVisible">
+        <bool>true</bool>
+       </attribute>
+       <attribute name="horizontalHeaderCascadingSectionResizes">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="verticalHeaderCascadingSectionResizes">
+        <bool>false</bool>
+       </attribute>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <row/>
+       <column>
+        <property name="text">
+         <string>Глубина по стволу(м)</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Зенитный угол(град)</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Азимут </string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Азимут маг(град)</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Азимут дир(град)</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Глубина по вертикали(м)</string>
+        </property>
+       </column>
+      </widget>
+      <widget class="QPushButton" name="pushButton_clear_table">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>640</y>
+         <width>920</width>
+         <height>40</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Очистить таблицу</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_2">
+       <property name="geometry">
+        <rect>
+         <x>630</x>
+         <y>10</y>
+         <width>101</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>14</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Профиль </string>
+       </property>
+      </widget>
+      <widget class="QGraphicsView" name="graphicsView_profile">
+       <property name="geometry">
+        <rect>
+         <x>953</x>
+         <y>60</y>
+         <width>480</width>
+         <height>620</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="page_2">
+     <widget class="QWidget" name="widget_2" native="true">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>1431</width>
+        <height>681</height>
+       </rect>
+      </property>
+      <widget class="QTableWidget" name="tableWidget_stratigraphy">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>60</y>
+         <width>1410</width>
+         <height>380</height>
+        </rect>
+       </property>
+       <property name="rowCount">
+        <number>1</number>
+       </property>
+       <property name="columnCount">
+        <number>6</number>
+       </property>
+       <attribute name="horizontalHeaderCascadingSectionResizes">
+        <bool>false</bool>
+       </attribute>
+       <row/>
+       <column>
+        <property name="text">
+         <string>Название</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Индексация</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Вверх(м)</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Низ(м)</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Коэффициент кавернозности</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Плотность породы (г/см^3) </string>
+        </property>
+       </column>
+      </widget>
+      <widget class="QPushButton" name="pushButton_add_row_stratigraphy">
+       <property name="geometry">
+        <rect>
+         <x>970</x>
+         <y>450</y>
+         <width>460</width>
+         <height>40</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Добавить пласт</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="pushButton_delete_row_stratigraphy">
+       <property name="geometry">
+        <rect>
+         <x>495</x>
+         <y>450</y>
+         <width>460</width>
+         <height>40</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Удалить пласт</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label">
+       <property name="geometry">
+        <rect>
+         <x>660</x>
+         <y>10</y>
+         <width>161</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>14</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Стратиграфия</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="pushButton_load_stratigraphy">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>450</y>
+         <width>460</width>
+         <height>40</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Загрузить стратиграфию</string>
+       </property>
+      </widget>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="page_3">
+     <widget class="QWidget" name="widget_3" native="true">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>1431</width>
+        <height>681</height>
+       </rect>
+      </property>
+      <widget class="QLabel" name="label_5">
+       <property name="geometry">
+        <rect>
+         <x>660</x>
+         <y>10</y>
+         <width>141</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>14</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Давления</string>
+       </property>
+      </widget>
+      <widget class="QTableWidget" name="tableWidget_pressure">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>60</y>
+         <width>1410</width>
+         <height>377</height>
+        </rect>
+       </property>
+       <property name="rowCount">
+        <number>2</number>
+       </property>
+       <property name="columnCount">
+        <number>12</number>
+       </property>
+       <attribute name="horizontalHeaderVisible">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="horizontalHeaderDefaultSectionSize">
+        <number>125</number>
+       </attribute>
+       <attribute name="horizontalHeaderMinimumSectionSize">
+        <number>10</number>
+       </attribute>
+       <attribute name="verticalHeaderVisible">
+        <bool>false</bool>
+       </attribute>
+       <row/>
+       <row/>
+       <column/>
+       <column/>
+       <column/>
+       <column/>
+       <column/>
+       <column/>
+       <column/>
+       <column/>
+       <column/>
+       <column/>
+       <column/>
+       <column/>
+      </widget>
+      <widget class="QPushButton" name="pushButton_load_stratigraphic_intervals">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>640</y>
+         <width>460</width>
+         <height>40</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Загрузить интервалы стратиграфии</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="pushButton_delete_row_pressure">
+       <property name="geometry">
+        <rect>
+         <x>495</x>
+         <y>640</y>
+         <width>460</width>
+         <height>40</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Удалить итервал</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="pushButton_add_row_pressure">
+       <property name="geometry">
+        <rect>
+         <x>970</x>
+         <y>640</y>
+         <width>460</width>
+         <height>40</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Добавить интервал</string>
+       </property>
+      </widget>
+      <widget class="QGraphicsView" name="graphicsView_gradient_pressure">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>450</y>
+         <width>360</width>
+         <height>180</height>
+        </rect>
+       </property>
+      </widget>
+      <widget class="QGraphicsView" name="graphicsView_pressure">
+       <property name="geometry">
+        <rect>
+         <x>390</x>
+         <y>450</y>
+         <width>1040</width>
+         <height>180</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="page_4">
+     <widget class="QWidget" name="widget_4" native="true">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>1441</width>
+        <height>681</height>
+       </rect>
+      </property>
+      <widget class="QTableWidget" name="tableWidget_casing_strings">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>60</y>
+         <width>1040</width>
+         <height>570</height>
+        </rect>
+       </property>
+       <property name="rowCount">
+        <number>1</number>
+       </property>
+       <attribute name="horizontalHeaderCascadingSectionResizes">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="horizontalHeaderHighlightSections">
+        <bool>true</bool>
+       </attribute>
+       <attribute name="horizontalHeaderStretchLastSection">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="verticalHeaderVisible">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="verticalHeaderStretchLastSection">
+        <bool>false</bool>
+       </attribute>
+       <row/>
+       <column>
+        <property name="text">
+         <string>Тип обсадной колонны</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Глубина спуска (ствол)</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Длина колонны (м)</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Наружный диаметр колонны(мм)</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Диаметр долота(мм)</string>
+        </property>
+       </column>
+      </widget>
+      <widget class="QPushButton" name="pushButton_add_row_casing_strings">
+       <property name="geometry">
+        <rect>
+         <x>970</x>
+         <y>640</y>
+         <width>460</width>
+         <height>40</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Добавить обсадную колонну</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="pushButton_delete_row_casing_strings">
+       <property name="geometry">
+        <rect>
+         <x>495</x>
+         <y>640</y>
+         <width>460</width>
+         <height>40</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Удалить обсадную колонну</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_3">
+       <property name="geometry">
+        <rect>
+         <x>610</x>
+         <y>10</y>
+         <width>211</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>14</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Обсадные колонны</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="pushButton_form_KNBK">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>640</y>
+         <width>460</width>
+         <height>40</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Сформировать КНБК по колоннам </string>
+       </property>
+      </widget>
+      <widget class="QGraphicsView" name="graphicsView_casing_strings">
+       <property name="geometry">
+        <rect>
+         <x>1070</x>
+         <y>60</y>
+         <width>360</width>
+         <height>570</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="page_5">
+     <widget class="QWidget" name="widget_5" native="true">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>1431</width>
+        <height>721</height>
+       </rect>
+      </property>
+      <widget class="QTableWidget" name="tableWidget_drilling_fluids">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>60</y>
+         <width>1410</width>
+         <height>380</height>
+        </rect>
+       </property>
+       <property name="rowCount">
+        <number>1</number>
+       </property>
+       <attribute name="horizontalHeaderCascadingSectionResizes">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="horizontalHeaderStretchLastSection">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="verticalHeaderCascadingSectionResizes">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="verticalHeaderShowSortIndicator" stdset="0">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="verticalHeaderStretchLastSection">
+        <bool>false</bool>
+       </attribute>
+       <row>
+        <property name="text">
+         <string>1</string>
+        </property>
+       </row>
+       <column>
+        <property name="text">
+         <string>Наименнование </string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Глубина от (ствол)</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Глубина до (ствол)</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Плотность г/см^3</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Пластическая вязкость </string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>ДНС</string>
+        </property>
+       </column>
+      </widget>
+      <widget class="QPushButton" name="pushButton_delete_row_drilling_fluids">
+       <property name="geometry">
+        <rect>
+         <x>495</x>
+         <y>450</y>
+         <width>460</width>
+         <height>40</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Удалить раствор</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="pushButton_add_row_drilling_fluids">
+       <property name="geometry">
+        <rect>
+         <x>970</x>
+         <y>450</y>
+         <width>460</width>
+         <height>40</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Добавить раствор</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_4">
+       <property name="geometry">
+        <rect>
+         <x>640</x>
+         <y>10</y>
+         <width>211</width>
+         <height>31</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>14</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Буровые растворы</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="pushButton_form_fluids">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>450</y>
+         <width>460</width>
+         <height>40</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Сформировать по колоннам</string>
+       </property>
+      </widget>
+     </widget>
+    </widget>
+   </widget>
+   <widget class="QPushButton" name="pushButton_next_page">
+    <property name="geometry">
+     <rect>
+      <x>1210</x>
+      <y>690</y>
+      <width>220</width>
+      <height>40</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Следующая страница</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_previous_page">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>690</y>
+      <width>220</width>
+      <height>40</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Предыдущая страница</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionopen">
+   <property name="text">
+    <string>open</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
