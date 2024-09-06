@@ -2,12 +2,13 @@ import sys
 import sqlite3
 import pandas as pd
 from PyQt6.QtGui import (QAction, QUndoStack, QUndoCommand, QKeySequence, QTextDocument, QFont, QPixmap, QPainter, QPen,
-                         QBrush, QColor)
+                         QBrush, QColor, QPainterPath)
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QStackedWidget, QHeaderView,
                              QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDialog, QInputDialog, QVBoxLayout,
                              QMenu, QGraphicsScene, QGraphicsView, QUndoView, QWidget, QHBoxLayout, QLabel, QMessageBox,
-                             QToolTip, QGraphicsPixmapItem, QScrollArea, QGraphicsTextItem, QGraphicsRectItem)
-from PyQt6.QtCore import Qt, pyqtSignal, QPoint, QRectF, QLineF
+                             QToolTip, QGraphicsPixmapItem, QScrollArea, QGraphicsTextItem, QGraphicsRectItem,
+                             QStyledItemDelegate,QGraphicsPathItem, QGraphicsLineItem)
+from PyQt6.QtCore import Qt, pyqtSignal, QPoint, QRectF, QLineF, QSize, QPointF
 from PyQt6 import uic
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 import csv
@@ -195,6 +196,8 @@ class ComboHeader(QHeaderView):
         self.combobox = QComboBox(self)
         self.combobox.addItems(["Азимут (град)", "Азимут маг(град)", "Азимут дир(град)"])
         self.combobox.setStyleSheet("QComboBox { text-align: center; }")
+        for i in range(self.combobox.count()):
+            self.combobox.setItemData(i, Qt.AlignmentFlag.AlignCenter, Qt.ItemDataRole.TextAlignmentRole)
         self.setSectionsClickable(True)
 
     def resizeEvent(self, event):
@@ -486,6 +489,8 @@ class KNBK_Table(QWidget):
         self.undo_stack = QUndoStack(self)
         self.undo_view = QUndoView(self.undo_stack)
         self.tbl_KNBK: QTableWidget = self.findChild(QTableWidget, 'table_KNBK')
+        self.tbl_KNBK.itemChanged.connect(self.update_label)
+        self.tbl_KNBK.itemChanged.connect(self.center_text_in_item)
 
         self.btn_add_row_KNBK: QPushButton = self.findChild(QPushButton, 'pushButton_add_row')
         self.btn_delete_row_KNBK: QPushButton = self.findChild(QPushButton, 'pushButton_delete_row')
@@ -499,12 +504,13 @@ class KNBK_Table(QWidget):
 
         self.tbl_KNBK.cellDoubleClicked.connect(self.open_csv_table_dialog)
         self.tbl_KNBK.cellDoubleClicked.connect(self.open_fixed_path_csv_dialog)
+        self.tbl_KNBK.cellClicked.connect(self.add_QCombobox)
 
         item_0_0_KNBK = QTableWidgetItem("Долото")
         item_0_0_KNBK.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         self.tbl_KNBK.setItem(0, 0, item_0_0_KNBK)
 
-        self.tbl_KNBK.itemChanged.connect(self.update_label)
+
 
         self.btn_add_row_KNBK.clicked.connect(self.add_row_KNBK)
         self.btn_delete_row_KNBK.clicked.connect(self.delete_row_KNBK)
@@ -537,10 +543,10 @@ class KNBK_Table(QWidget):
             if column == 0:
                 combo = QComboBox()
                 combo.addItems(
-                    ["","ВЗД", "РУС", "Бурильные трубы", "Переводник", "Предохранительный переводник", "УБТ",
-                     "Телеметрия", "Ясс", "Калибратор", "Обратный клапан"])
+                    ["<Не выбрано>","ВЗД", "РУС", "Бурильные трубы", "Переводник", "УБТ","Телеметрия", "Ясс",
+                     "Калибратор", "Обратный клапан", "Центратор прямой", "Центратор лопастной",
+                     "Предохранительный переводник"])
                 combo.setStyleSheet("QComboBox { text-align: center; }")
-
                 for i in range(combo.count()):
                     combo.setItemData(i, Qt.AlignmentFlag.AlignCenter, Qt.ItemDataRole.TextAlignmentRole)
 
@@ -1050,6 +1056,51 @@ class KNBK_Table(QWidget):
         else:
             self.label.setText(text)
 
+    def center_text_in_item(self, item):
+        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+
+    def add_QCombobox(self,row, column):
+        try:
+            if column == 0 and row != 0:
+                self.remove_widgets_from_row(self.tbl_KNBK, row)
+                if self.labels and 0 <= row < len(self.labels):
+                    label_to_remove = self.labels.pop(row)
+                    if label_to_remove:
+                        if self.scroll_area.isVisible():
+                            self.image_container_layout.removeWidget(label_to_remove)
+                        else:
+                            self.current_y += label_to_remove.height()
+                        label_to_remove.deleteLater()
+
+                if not self.scroll_area.isVisible():
+                    self.current_y = self.max_height
+                    for label in self.labels:
+                        self.current_y -= label.height()
+                        label.move(1445, self.current_y)
+
+                # Проверяем, нужно ли переместить изображения обратно на страницу
+                total_height = sum(label.height() for label in self.labels)
+                if total_height <= self.max_height and self.scroll_area.isVisible():
+                    self.move_images_back_to_page()
+
+                combo = QComboBox()
+                combo.addItems(
+                    ["<Не выбрано>", "ВЗД", "РУС", "Бурильные трубы", "Переводник", "Предохранительный переводник",
+                     "УБТ", "Телеметрия", "Ясс", "Калибратор", "Обратный клапан", "Центратор прямой",
+                     "Центратор лопастной"])
+                combo.setStyleSheet("QComboBox { text-align: center; }")
+
+                for i in range(combo.count()):
+                    combo.setItemData(i, Qt.AlignmentFlag.AlignCenter, Qt.ItemDataRole.TextAlignmentRole)
+
+                combo.currentIndexChanged.connect(
+                    lambda index, combo=combo, row=row: self.handle_combo_change(row, combo))
+
+                self.tbl_KNBK.setCellWidget(row, column, combo)
+        except Exception as e:
+            print(f"Произошла ошибка: {e}")
+
+
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
@@ -1082,8 +1133,14 @@ class MainWindow(QMainWindow):
         self.tbl_casing_strings: QTableWidget = self.findChild(QTableWidget, 'tableWidget_casing_strings')
         self.tbl_drilling_fluids: QTableWidget = self.findChild(QTableWidget, 'tableWidget_drilling_fluids')
         self.tbl_pressure: QTableWidget = self.findChild(QTableWidget, 'tableWidget_pressure')
+
+        self.tbl_profile.itemChanged.connect(self.center_text_in_item)
+        self.tbl_pressure.itemChanged.connect(self.center_text_in_item)
+        self.tbl_casing_strings.itemChanged.connect(self.center_text_in_item)
+
         self.tbl_pressure.itemChanged.connect(self.on_item_changed_tbl_pressure)
         self.tbl_casing_strings.itemChanged.connect(self.on_item_changed_tbl_casing_strings)
+        self.tbl_profile.itemChanged.connect(self.on_item_changed_tbl_profile)
 
         combo_1 = QComboBox()
         combo_1.addItems(["Направление", "Кондуктор", "Промежуточная", "Промежуточная 1", "Промежуточная 2",
@@ -1338,6 +1395,9 @@ class MainWindow(QMainWindow):
         if current_index > 0:
             self.stackedWidget.setCurrentIndex(current_index - 1)
 
+    def center_text_in_item(self, item):
+        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+
     def paste_from_clipboard(self, tableWidget):
         allowed_tables = [self.tbl_profile, self.tbl_stratigraphy, self.tbl_casing_strings, self.tbl_drilling_fluids]
 
@@ -1451,6 +1511,28 @@ class MainWindow(QMainWindow):
 
         except Exception as e:
             logging.error(f"Error opening file: {e}")
+
+    def on_item_changed_tbl_profile(self,item):
+        row = item.row()
+        column = item.column()
+        if row == 0:
+            if column in [0,1,2,5] and self.is_row_complete(row, [0,1,2,5], self.tbl_profile):
+                return
+            if column in [0, 1, 2] and self.is_row_complete(row, [0, 1, 2], self.tbl_profile):
+                L2 = self.extract_number(self.tbl_profile.item(row, 0).text())
+                current_zenith_angle = self.extract_number(self.tbl_profile.item(row, 1).text())
+                delta_z = round(L2 * np.cos(current_zenith_angle))
+                self.tbl_profile.setItem(row, 5, QTableWidgetItem(str(delta_z)))
+
+        if row > 0:
+            if column in [0,1,2,5] and self.is_row_complete(row, [0,1,2,5], self.tbl_profile):
+                return
+            if column in [0,1,2] and self.is_row_complete(row, [0,1,2], self.tbl_profile):
+                L2 = self.extract_number(self.tbl_profile.item(row, 0).text())
+                L1 = self.extract_number(self.tbl_profile.item(row-1, 0).text())
+                current_zenith_angle = self.extract_number(self.tbl_profile.item(row, 1).text())
+                delta_z = round((L2-L1) * np.cos(current_zenith_angle))
+                self.tbl_profile.setItem(row, 5, QTableWidgetItem(str(delta_z)))
 
     def process_excel_data(self, data):
         try:
@@ -1594,7 +1676,6 @@ class MainWindow(QMainWindow):
         row = item.row()
         column = item.column()
         if row > 1:
-
             if column == 8:
                 gradient_pressure = self.tbl_pressure.item(row, 9)
                 if gradient_pressure is not None:
@@ -1630,8 +1711,12 @@ class MainWindow(QMainWindow):
                 pressure_start  = self.extract_number(self.tbl_pressure.item(row,4).text())
                 gradient = round((pressure_end - pressure_start)/(x_2-x_1),2)
                 self.tbl_pressure.blockSignals(True)
-                self.tbl_pressure.item(row,8).setText(str(gradient))
-                self.tbl_pressure.item(row, 9).setText(str(gradient))
+                item_gradient_1 = QTableWidgetItem(str(gradient))
+                item_gradient_1.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                item_gradient_2 = QTableWidgetItem(str(gradient))
+                item_gradient_2.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.tbl_pressure.setItem(row,8, item_gradient_1)
+                self.tbl_pressure.setItem(row,9, item_gradient_2)
                 self.tbl_pressure.blockSignals(False)
 
             if column in [2,3,6,7] and self.is_row_complete(row, [2,3,6,7], self.tbl_pressure):
@@ -1641,8 +1726,12 @@ class MainWindow(QMainWindow):
                 pressure_start = self.extract_number(self.tbl_pressure.item(row,6).text())
                 gradient = round((pressure_end-pressure_start)/(x_2-x_1),2)
                 self.tbl_pressure.blockSignals(True)
-                self.tbl_pressure.item(row,10).setText(str(gradient))
-                self.tbl_pressure.item(row, 11).setText(str(gradient))
+                item_gradient_1 = QTableWidgetItem(str(gradient))
+                item_gradient_1.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                item_gradient_2 = QTableWidgetItem(str(gradient))
+                item_gradient_2.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.tbl_pressure.setItem(row,10, item_gradient_1)
+                self.tbl_pressure.setItem(row,11, item_gradient_2)
                 self.tbl_pressure.blockSignals(False)
 
 
@@ -1654,7 +1743,9 @@ class MainWindow(QMainWindow):
                 pressure_start = self.extract_number(self.tbl_pressure.item(row,4).text())
                 pressure_end = round(gradient*(x_2-x_1)+ pressure_start,2)
                 self.tbl_pressure.blockSignals(True)
-                self.tbl_pressure.item(row, 5).setText(str(pressure_end))
+                item_pressure_end = QTableWidgetItem(str(pressure_end))
+                item_pressure_end.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.tbl_pressure.setItem(row, 5, item_pressure_end)
                 self.tbl_pressure.blockSignals(False)
 
             if column in [2,3,10,11] and self.is_row_complete(row, [2,3,10,11], self.tbl_pressure):
@@ -1664,7 +1755,9 @@ class MainWindow(QMainWindow):
                 pressure_start = self.extract_number(self.tbl_pressure.item(row,6).text())
                 pressure_end = round(gradient*(x_2-x_1)+pressure_start ,2)
                 self.tbl_pressure.blockSignals(True)
-                self.tbl_pressure.item(row, 7).setText(str(pressure_end))
+                item_pressure_end = QTableWidgetItem(str(pressure_end))
+                item_pressure_end.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.tbl_pressure.setItem(row, 7,item_pressure_end)
                 self.tbl_pressure.blockSignals(False)
 
             if self.is_row_complete(row, [2, 3, 10, 11], self.tbl_pressure):
@@ -1741,7 +1834,7 @@ class MainWindow(QMainWindow):
         column = item.column()
         if column in [1,2]:
             self.update_drilling_fluids(row, column)
-        if self.is_row_complete(row, [1, 2, 3], self.tbl_casing_strings):
+        if self.is_row_complete(row, [1, 2, 3, 4], self.tbl_casing_strings):
             self.draw_wellbore_diagram()
 
     def update_drilling_fluids(self, row, column):
@@ -1799,33 +1892,63 @@ class MainWindow(QMainWindow):
         scene = self.graphicsView_casing_strings.scene()
         scene.clear()
 
-        view_width = 310
-        view_height = 430
-
+        # Константы для размеров и смещений
+        view_width = 360
+        view_height = 570
         max_hole_width = 903
         scale_factor = view_width / max_hole_width
+        horizontal_offset = 30  # Смещение по горизонтали для соединительных линий
+        vertical_padding = 5  # Дополнительный отступ по вертикали
 
+        # Предопределенные инструменты рисования
         pen_casing = QPen(Qt.GlobalColor.black)
         brush_casing = QBrush(Qt.GlobalColor.lightGray)
+        pen_hole = QPen(Qt.GlobalColor.black, 2)
 
-        pen_hole = QPen(Qt.GlobalColor.black)
-        brush_hole = QBrush(Qt.BrushStyle.NoBrush)
-
-        default_rect_width = 20
         x_offset = view_width / 2
-
-        total_shaded_length = 0
-        last_shaded_bottom = 0
+        last_end = 0
+        last_diameter_hole = 0
 
         for row in range(self.tbl_casing_strings.rowCount()):
-            #combo_box = self.tbl_casing_strings.cellWidget(row, 0)
-            #casing_type = combo_box.currentText().strip() if isinstance(combo_box, QComboBox) else "Unknown"
-            end = self.extract_number(self.tbl_casing_strings.item(row,1).text())
+            end = self.extract_number(self.tbl_casing_strings.item(row, 1).text())
             length = self.extract_number(self.tbl_casing_strings.item(row, 2).text())
-            diameter_casing = float(self.tbl_casing_strings.item(row, 3).text())
-            scene.addRect(QRectF(x_offset - diameter_casing / 2, end - length, diameter_casing, length), pen_casing, brush_casing)
+            diameter_casing = self.extract_number(self.tbl_casing_strings.item(row, 3).text())
+            diameter_hole = self.extract_number(self.tbl_casing_strings.item(row, 4).text())
 
-        scene.setSceneRect(0, 0, view_width, max(last_shaded_bottom, view_height))
+            def draw_vertical_lines(x1, x2, y_start, y_end):
+                scene.addLine(QLineF(x1, y_start, x1, y_end), pen_hole)
+                scene.addLine(QLineF(x2, y_start, x2, y_end), pen_hole)
+
+            def draw_horizontal_lines(x1, x2, y):
+                scene.addLine(QLineF(x1, y, x2, y), pen_hole)
+
+            # Для первой строки: рисуем горизонтальные и вертикальные линии
+            if row == 0:
+                draw_horizontal_lines(x_offset - diameter_hole / 2 - horizontal_offset,
+                                      x_offset - diameter_hole / 2, end - length)
+                draw_vertical_lines(x_offset - diameter_hole / 2, x_offset + diameter_hole / 2, end - length,
+                                    end + vertical_padding)
+                draw_horizontal_lines(x_offset + diameter_hole / 2,
+                                      x_offset + diameter_hole / 2 + horizontal_offset, end - length)
+
+            else:
+                # Соединение с предыдущим элементом
+                draw_horizontal_lines(x_offset - last_diameter_hole / 2, x_offset - diameter_hole / 2,
+                                      last_end + vertical_padding)
+                draw_horizontal_lines(x_offset + last_diameter_hole / 2, x_offset + diameter_hole / 2,
+                                      last_end + vertical_padding)
+                draw_vertical_lines(x_offset - diameter_hole / 2, x_offset + diameter_hole / 2,
+                                    last_end + vertical_padding, end + vertical_padding)
+
+            # Рисуем casing для текущего элемента
+            scene.addRect(QRectF(x_offset - diameter_casing / 2, end - length, diameter_casing, length), pen_casing,
+                          brush_casing)
+
+            # Обновляем координаты для следующей итерации
+            last_end = end
+            last_diameter_hole = diameter_hole
+
+        scene.setSceneRect(0, 0, view_width, view_height)
         self.graphicsView_casing_strings.setScene(scene)
         self.graphicsView_casing_strings.fitInView(scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         self.graphicsView_casing_strings.update()
@@ -2050,6 +2173,8 @@ class MainWindow(QMainWindow):
                 break
 
         self.db_manager.close_database()
+
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
