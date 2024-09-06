@@ -1888,19 +1888,60 @@ class MainWindow(QMainWindow):
         except ValueError as ve:
             print(f"Ошибка преобразования данных в строке {row}: {ve}")
 
-    def draw_diagonal_lines(self, scene, x_offset, diameter_hole, horizontal_offset, end, length, vertical_padding, spacing=5):
+    def draw_diagonal_lines(self, scene, x_offset, diameter_hole, horizontal_offset, end, length, vertical_padding,
+                            spacing=5, direction='left', variation=1):
         pen = QPen(Qt.GlobalColor.black, 2)
-        for i in range(-int(horizontal_offset), int(end + vertical_padding+horizontal_offset), spacing):
-            line_start_x = x_offset - diameter_hole / 2 - horizontal_offset
-            line_start_y = -horizontal_offset+i
-            line_end_x = x_offset - diameter_hole / 2
-            line_end_y = end-length+i
-            if  line_start_y < end-length:
-                line_start_x = x_offset - diameter_hole / 2- horizontal_offset - line_start_y
+
+        for i in range(int(end - length), int(end + vertical_padding + horizontal_offset), spacing):
+            # Настройка начальных координат
+            if direction == 'left':
+                if variation == 1:
+                    line_start_x = x_offset - diameter_hole / 2 - horizontal_offset
+                    line_start_y = -horizontal_offset + i
+                    line_end_x = x_offset - diameter_hole / 2
+                else:
+                    line_start_x = x_offset - diameter_hole / 2
+                    line_start_y = -horizontal_offset + i
+                    line_end_x = x_offset - diameter_hole / 2 - horizontal_offset
+            else:
+                if variation == 1:
+                    line_start_x = x_offset + diameter_hole / 2 + horizontal_offset
+                    line_start_y = -horizontal_offset + i
+                    line_end_x = x_offset + diameter_hole / 2
+                else:
+                    line_start_x = x_offset + diameter_hole / 2
+                    line_start_y = -horizontal_offset + i
+                    line_end_x = x_offset + diameter_hole / 2 + horizontal_offset
+
+            line_end_y = end - length + i
+
+            # Корректировка начальных и конечных координат
+            if line_start_y < end - length:
+                if direction == 'left':
+                    if variation == 1:
+                        line_start_x = x_offset - diameter_hole / 2 - horizontal_offset - line_start_y
+                    else:
+                        line_start_x = x_offset - diameter_hole / 2 + line_start_y
+                else:
+                    if variation == 1:
+                        line_start_x = x_offset + diameter_hole / 2 + horizontal_offset + line_start_y
+                    else:
+                        line_start_x = x_offset + diameter_hole / 2 - line_start_y
                 line_start_y = end - length
-            if line_end_y > length+vertical_padding:
-                line_end_x = x_offset - diameter_hole / 2 - line_end_y + length+vertical_padding
-                line_end_y = length+vertical_padding
+
+            if line_end_y > length + vertical_padding:
+                if direction == 'left':
+                    if variation == 1:
+                        line_end_x = x_offset - diameter_hole / 2 - line_end_y + length + vertical_padding
+                    else:
+                        line_end_x = x_offset - diameter_hole / 2 - horizontal_offset + line_end_y - length - vertical_padding
+                else:
+                    if variation == 1:
+                        line_end_x = x_offset + diameter_hole / 2 + line_end_y - length - vertical_padding
+                    else:
+                        line_end_x = x_offset + diameter_hole / 2 + horizontal_offset - line_end_y + length + vertical_padding
+                line_end_y = length + vertical_padding
+
             scene.addLine(QLineF(line_start_x, line_start_y, line_end_x, line_end_y), pen)
 
     def draw_wellbore_diagram(self):
@@ -1946,7 +1987,14 @@ class MainWindow(QMainWindow):
                 draw_horizontal_lines(x_offset + diameter_hole / 2,
                                       x_offset + diameter_hole / 2 + horizontal_offset, end - length)
                 self.draw_diagonal_lines(scene, x_offset, diameter_hole, horizontal_offset, end, length,
-                                         vertical_padding, spacing=10)
+                                         vertical_padding, spacing=15)
+                self.draw_diagonal_lines(scene, x_offset, diameter_hole, horizontal_offset, end, length,
+                                         vertical_padding, spacing=15, direction='left', variation=2)
+                self.draw_diagonal_lines(scene, x_offset, diameter_hole, horizontal_offset, end, length,
+                                         vertical_padding, spacing=15, direction='right', variation=1)
+                self.draw_diagonal_lines(scene, x_offset, diameter_hole, horizontal_offset, end, length,
+                                         vertical_padding, spacing=15,direction='right', variation=2)
+
             else:
                 # Соединение с предыдущим элементом
                 draw_horizontal_lines(x_offset - last_diameter_hole / 2, x_offset - diameter_hole / 2,
