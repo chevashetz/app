@@ -28,6 +28,66 @@ path2 = "db_files/"
 path3 = "images/"
 path4 = "msh_files/"
 
+class ShadingDrawer:
+    def __init__(self, lengths, ends, diameter_offsets,diameter_hole, scene=None):
+        self.horizontal_offset = 30
+        self.x_offset = 180
+        self.diameter_hole = diameter_hole
+        self.offsets = diameter_offsets
+        self.lengths =lengths
+        self.scene = scene
+        self.ends = [ends[0]] + [ends[i] - ends[i-1] for i in range(1, len(ends))]
+        self.rectangles = [[end, max(self.horizontal_offset, offset)] for end, offset in zip(self.ends, diameter_offsets)]
+        self.rectangles[0][0] +=5
+
+  # Horizontal offsets
+
+    def build_curve(self, path, index, x, y):
+
+        # Текущие размеры и отступы блока
+        height, width = self.rectangles[index]
+        offset = self.offsets[index]
+
+        x += offset
+
+        # Начальная точка в верхнем левом углу блока
+        if index == 0:
+            path.moveTo(x, y)
+        # Слева направо
+        path.lineTo(x, y)
+        # Сверху-вниз линия
+        path.lineTo(x, y + height)
+
+        if index < len(self.rectangles) - 1:
+            self.build_curve(path, index + 1, x, y + height)
+        else:
+            path.lineTo(x + width, y + height)
+
+        # Линия вверх
+        path.lineTo(x + width, y + height)
+        path.lineTo(x + width, y)
+        # Влево
+        path.lineTo(x + width - offset, y)
+
+        if index == 0:
+            # Верхняя линия
+            path.lineTo(x, y)
+
+    def draw_curve(self):
+        path = QPainterPath()
+        self.build_curve(path, 0, self.x_offset-self.horizontal_offset, self.ends[0]-self.lengths[0])  # Начальная точка
+        path.closeSubpath()
+
+        # Добавление пути на сцену
+        path_item = QGraphicsPathItem(path)
+        # Установка прозрачного пера
+        transparent_pen = QPen(QColor(0, 0, 0, 0))  # Черный цвет с альфа-прозрачностью 50
+        path_item.setPen(transparent_pen)
+        # Установка штриховки для заливки
+        hatch_brush = QBrush(Qt.BrushStyle.DiagCrossPattern)
+        path_item.setBrush(hatch_brush)
+        self.scene.addItem(path_item)
+
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=4.5, height=1.5, dpi=100):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
@@ -1515,24 +1575,57 @@ class MainWindow(QMainWindow):
     def on_item_changed_tbl_profile(self,item):
         row = item.row()
         column = item.column()
-        if row == 0:
-            if column in [0,1,2,5] and self.is_row_complete(row, [0,1,2,5], self.tbl_profile):
-                return
-            if column in [0, 1, 2] and self.is_row_complete(row, [0, 1, 2], self.tbl_profile):
-                L2 = self.extract_number(self.tbl_profile.item(row, 0).text())
-                current_zenith_angle = self.extract_number(self.tbl_profile.item(row, 1).text())
-                delta_z = round(L2 * np.cos(current_zenith_angle))
-                self.tbl_profile.setItem(row, 5, QTableWidgetItem(str(delta_z)))
+        if column in [0, 1, 2] and self.is_row_complete(row, [0, 1, 2], self.tbl_profile):
+            if not hasattr(self, 'selected_data'):
+                self.selected_data = []
 
-        if row > 0:
-            if column in [0,1,2,5] and self.is_row_complete(row, [0,1,2,5], self.tbl_profile):
-                return
-            if column in [0,1,2] and self.is_row_complete(row, [0,1,2], self.tbl_profile):
-                L2 = self.extract_number(self.tbl_profile.item(row, 0).text())
-                L1 = self.extract_number(self.tbl_profile.item(row-1, 0).text())
-                current_zenith_angle = self.extract_number(self.tbl_profile.item(row, 1).text())
-                delta_z = round((L2-L1) * np.cos(current_zenith_angle))
-                self.tbl_profile.setItem(row, 5, QTableWidgetItem(str(delta_z)))
+            # Извлечение данных из таблицы
+            data = []
+            for r in range(self.tbl_profile.rowCount()):
+                if self.is_row_complete(r, [0, 1, 2], self.tbl_profile):
+                    L = self.extract_number(self.tbl_profile.item(r, 0).text())
+                    zenith_angle = np.radians(self.extract_number(self.tbl_profile.item(r, 1).text()))
+                    azimuth_angle = np.radians(self.extract_number(self.tbl_profile.item(r, 2).text()))
+                    data.append([L, zenith_angle, azimuth_angle])
+
+            data = np.array(data)
+
+            # Начальные углы и координаты
+            current_zenith_angle = data[0, 1]
+            current_azimuth_angle = data[0, 2]
+            current_coordinates = np.array([0, 0, 0], dtype=np.float64)
+
+            # Записываем начальные координаты
+            self.selected_data = [current_coordinates.copy()]
+
+            # Выполняем расчет для каждой строки, начиная с первой
+            for i in range(1, len(data)):
+                delta_L = data[i, 0] - data[i - 1, 0]
+                delta_zenith_angle = data[i, 1] - data[i - 1, 1]
+                delta_azimuth_angle = data[i, 2] - data[i - 1, 2]
+
+                next_zenith_angle = current_zenith_angle + delta_zenith_angle
+                next_azimuth_angle = current_azimuth_angle + delta_azimuth_angle
+
+                # Вычисляем изменения координат
+                delta_x = delta_L * np.sin(next_zenith_angle) * np.cos(next_azimuth_angle)
+                delta_y = delta_L * np.sin(next_zenith_angle) * np.sin(next_azimuth_angle)
+                delta_z = delta_L * np.cos(next_zenith_angle)
+
+                current_coordinates += np.array([delta_x, delta_y, delta_z])
+                self.selected_data.append(current_coordinates.copy())
+
+                # Обновляем углы для следующей итерации
+                current_zenith_angle = next_zenith_angle
+                current_azimuth_angle = next_azimuth_angle
+
+            # Преобразуем список координат в массив для обновления графика
+            selected_data = np.array(self.selected_data)
+            self.plot_graph(selected_data)
+
+            # Обновляем таблицу для delta_z для текущей строки
+            delta_z = current_coordinates[2]
+            self.tbl_profile.setItem(row, 5, QTableWidgetItem(str(round(delta_z, 2))))
 
     def process_excel_data(self, data):
         try:
@@ -1888,62 +1981,6 @@ class MainWindow(QMainWindow):
         except ValueError as ve:
             print(f"Ошибка преобразования данных в строке {row}: {ve}")
 
-    def draw_diagonal_lines(self, scene, x_offset, diameter_hole, horizontal_offset, end, length, vertical_padding,
-                            spacing=5, direction='left', variation=1):
-        pen = QPen(Qt.GlobalColor.black, 2)
-
-        for i in range(int(end - length), int(end + vertical_padding + horizontal_offset), spacing):
-            # Настройка начальных координат
-            if direction == 'left':
-                if variation == 1:
-                    line_start_x = x_offset - diameter_hole / 2 - horizontal_offset
-                    line_start_y = -horizontal_offset + i
-                    line_end_x = x_offset - diameter_hole / 2
-                else:
-                    line_start_x = x_offset - diameter_hole / 2
-                    line_start_y = -horizontal_offset + i
-                    line_end_x = x_offset - diameter_hole / 2 - horizontal_offset
-            else:
-                if variation == 1:
-                    line_start_x = x_offset + diameter_hole / 2 + horizontal_offset
-                    line_start_y = -horizontal_offset + i
-                    line_end_x = x_offset + diameter_hole / 2
-                else:
-                    line_start_x = x_offset + diameter_hole / 2
-                    line_start_y = -horizontal_offset + i
-                    line_end_x = x_offset + diameter_hole / 2 + horizontal_offset
-
-            line_end_y = end - length + i
-
-            # Корректировка начальных и конечных координат
-            if line_start_y < end - length:
-                if direction == 'left':
-                    if variation == 1:
-                        line_start_x = x_offset - diameter_hole / 2 - horizontal_offset - line_start_y
-                    else:
-                        line_start_x = x_offset - diameter_hole / 2 + line_start_y
-                else:
-                    if variation == 1:
-                        line_start_x = x_offset + diameter_hole / 2 + horizontal_offset + line_start_y
-                    else:
-                        line_start_x = x_offset + diameter_hole / 2 - line_start_y
-                line_start_y = end - length
-
-            if line_end_y > length + vertical_padding:
-                if direction == 'left':
-                    if variation == 1:
-                        line_end_x = x_offset - diameter_hole / 2 - line_end_y + length + vertical_padding
-                    else:
-                        line_end_x = x_offset - diameter_hole / 2 - horizontal_offset + line_end_y - length - vertical_padding
-                else:
-                    if variation == 1:
-                        line_end_x = x_offset + diameter_hole / 2 + line_end_y - length - vertical_padding
-                    else:
-                        line_end_x = x_offset + diameter_hole / 2 + horizontal_offset - line_end_y + length + vertical_padding
-                line_end_y = length + vertical_padding
-
-            scene.addLine(QLineF(line_start_x, line_start_y, line_end_x, line_end_y), pen)
-
     def draw_wellbore_diagram(self):
         scene = self.graphicsView_casing_strings.scene()
         scene.clear()
@@ -1956,7 +1993,6 @@ class MainWindow(QMainWindow):
         horizontal_offset = 30  # Смещение по горизонтали для соединительных линий
         vertical_padding = 5  # Дополнительный отступ по вертикали
 
-        # Предопределенные инструменты рисования
         pen_casing = QPen(Qt.GlobalColor.black)
         brush_casing = QBrush(Qt.GlobalColor.lightGray)
         pen_hole = QPen(Qt.GlobalColor.black, 2)
@@ -1964,13 +2000,20 @@ class MainWindow(QMainWindow):
         x_offset = view_width / 2
         last_end = 0
         last_diameter_hole = 0
-
+        lengths =[]
+        diameter_offsets = []
+        ends = []
+        first_diameter_hole = 0
         for row in range(self.tbl_casing_strings.rowCount()):
             end = self.extract_number(self.tbl_casing_strings.item(row, 1).text())
             length = self.extract_number(self.tbl_casing_strings.item(row, 2).text())
             diameter_casing = self.extract_number(self.tbl_casing_strings.item(row, 3).text())
             diameter_hole = self.extract_number(self.tbl_casing_strings.item(row, 4).text())
-
+            lengths.append(length)
+            diameter_offsets.append((last_diameter_hole-diameter_hole)/2)
+            ends.append(end)
+            if row == 0:
+                first_diameter_hole=diameter_hole
             def draw_vertical_lines(x1, x2, y_start, y_end):
                 scene.addLine(QLineF(x1, y_start, x1, y_end), pen_hole)
                 scene.addLine(QLineF(x2, y_start, x2, y_end), pen_hole)
@@ -1986,14 +2029,6 @@ class MainWindow(QMainWindow):
                                     end + vertical_padding)
                 draw_horizontal_lines(x_offset + diameter_hole / 2,
                                       x_offset + diameter_hole / 2 + horizontal_offset, end - length)
-                self.draw_diagonal_lines(scene, x_offset, diameter_hole, horizontal_offset, end, length,
-                                         vertical_padding, spacing=15)
-                self.draw_diagonal_lines(scene, x_offset, diameter_hole, horizontal_offset, end, length,
-                                         vertical_padding, spacing=15, direction='left', variation=2)
-                self.draw_diagonal_lines(scene, x_offset, diameter_hole, horizontal_offset, end, length,
-                                         vertical_padding, spacing=15, direction='right', variation=1)
-                self.draw_diagonal_lines(scene, x_offset, diameter_hole, horizontal_offset, end, length,
-                                         vertical_padding, spacing=15,direction='right', variation=2)
 
             else:
                 # Соединение с предыдущим элементом
@@ -2013,6 +2048,8 @@ class MainWindow(QMainWindow):
             last_diameter_hole = diameter_hole
 
         scene.setSceneRect(0, 0, view_width, view_height)
+
+        ShadingDrawer(lengths,ends,diameter_offsets,first_diameter_hole,scene).draw_curve()
         self.graphicsView_casing_strings.setScene(scene)
         self.graphicsView_casing_strings.fitInView(scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         self.graphicsView_casing_strings.update()
