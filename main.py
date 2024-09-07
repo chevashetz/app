@@ -1,26 +1,22 @@
+import csv
+import logging
+import os
+import re
 import sys
-import sqlite3
+
+import numpy as np
 import pandas as pd
+from PyQt6 import uic
+from PyQt6.QtCore import Qt, pyqtSignal, QRectF, QLineF
 from PyQt6.QtGui import (QAction, QUndoStack, QUndoCommand, QKeySequence, QTextDocument, QFont, QPixmap, QPainter, QPen,
                          QBrush, QColor, QPainterPath)
+from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QStackedWidget, QHeaderView,
                              QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDialog, QInputDialog, QVBoxLayout,
                              QMenu, QGraphicsScene, QGraphicsView, QUndoView, QWidget, QHBoxLayout, QLabel, QMessageBox,
-                             QToolTip, QGraphicsPixmapItem, QScrollArea, QGraphicsTextItem, QGraphicsRectItem,
-                             QStyledItemDelegate,QGraphicsPathItem, QGraphicsLineItem)
-from PyQt6.QtCore import Qt, pyqtSignal, QPoint, QRectF, QLineF, QSize, QPointF
-from PyQt6 import uic
-from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
-import csv
-import numpy as np
-import logging
-from matplotlib.figure import Figure
+                             QScrollArea, QGraphicsPathItem)
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from mpl_toolkits.mplot3d import Axes3D
-from bs4 import BeautifulSoup
-import os
-import re
-import numbers
+from matplotlib.figure import Figure
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 path1 = "сsv_files/"
@@ -28,19 +24,28 @@ path2 = "db_files/"
 path3 = "images/"
 path4 = "msh_files/"
 
-class ShadingDrawer:
-    def __init__(self, lengths, ends, diameter_offsets,diameter_hole, scene=None):
-        self.horizontal_offset = 30
-        self.x_offset = 180
-        self.diameter_hole = diameter_hole
-        self.offsets = diameter_offsets
-        self.lengths =lengths
-        self.scene = scene
-        self.ends = [ends[0]] + [ends[i] - ends[i-1] for i in range(1, len(ends))]
-        self.rectangles = [[end, max(self.horizontal_offset, offset)] for end, offset in zip(self.ends, diameter_offsets)]
-        self.rectangles[0][0] +=5
 
-  # Horizontal offsets
+class ShadingDrawer:
+    def __init__(self, lengths, ends, diameter_offsets, diameter_hole, x_offset, scene=None, reverse=False):
+        self.horizontal_offset = 30
+        self.reverse = reverse
+        self.x_offset = x_offset
+        self.diameter_hole = diameter_hole
+        self.lengths = lengths
+        self.scene = scene
+        self.ends = [ends[0]] + [ends[i] - ends[i - 1] for i in range(1, len(ends))]
+        self.rectangles = [[end, max(self.horizontal_offset, offset)] for end, offset in
+                           zip(self.ends, diameter_offsets)]
+
+        self.offsets = [min(self.horizontal_offset, offset) for offset in diameter_offsets]
+        self.rectangles[0][0] += 5
+
+        if reverse:
+            for i in range(0, len(self.offsets)):
+                self.offsets[i] *= -1
+                self.rectangles[i][1] *= -1
+
+    # Horizontal offsets
 
     def build_curve(self, path, index, x, y):
 
@@ -75,7 +80,8 @@ class ShadingDrawer:
 
     def draw_curve(self):
         path = QPainterPath()
-        self.build_curve(path, 0, self.x_offset-self.horizontal_offset, self.ends[0]-self.lengths[0])  # Начальная точка
+        self.build_curve(path, 0, self.x_offset - self.horizontal_offset if not self.reverse else self.x_offset + self.horizontal_offset,
+                         self.ends[0] - self.lengths[0])  # Начальная точка
         path.closeSubpath()
 
         # Добавление пути на сцену
@@ -88,6 +94,7 @@ class ShadingDrawer:
         path_item.setBrush(hatch_brush)
         self.scene.addItem(path_item)
 
+
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=4.5, height=1.5, dpi=100):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
@@ -95,6 +102,7 @@ class MplCanvas(FigureCanvas):
         super().__init__(self.fig)
         self.setParent(parent)
         self.setFixedSize(int(width * dpi), int(height * dpi))
+
 
 class DatabaseManager:
     def __init__(self, db_path=None):
@@ -184,6 +192,7 @@ class DatabaseManager:
             return model
         return None
 
+
 class PasteCommand(QUndoCommand):
     def __init__(self, tableWidget, text_data, start_row, start_col, description, parent=None):
         super().__init__(description, parent)
@@ -210,9 +219,10 @@ class PasteCommand(QUndoCommand):
         self.old_data = []
 
         total_cells_needed = sum(len(row) for row in rows)
-        current_cells_available = ((self.tableWidget.rowCount() - self.start_row)* self.tableWidget.columnCount()
+        current_cells_available = ((self.tableWidget.rowCount() - self.start_row) * self.tableWidget.columnCount()
                                    - self.start_col)
-        self.new_rows_needed = max(0, (total_cells_needed - current_cells_available + self.tableWidget.columnCount() - 1)
+        self.new_rows_needed = max(0,
+                                   (total_cells_needed - current_cells_available + self.tableWidget.columnCount() - 1)
                                    // self.tableWidget.columnCount())
 
         for _ in range(self.new_rows_needed):
@@ -249,6 +259,7 @@ class PasteCommand(QUndoCommand):
             self.old_data.append((current_row, old_row_data))
             current_row += 1
 
+
 class ComboHeader(QHeaderView):
     def __init__(self, parent=None):
         super(ComboHeader, self).__init__(Qt.Orientation.Horizontal, parent)
@@ -267,6 +278,7 @@ class ComboHeader(QHeaderView):
             x = self.sectionViewportPosition(index)
             w = self.sectionSize(index)
             self.combobox.setGeometry(x, 0, w, self.height())
+
 
 class UpdateTableCommand(QUndoCommand):
     def __init__(self, knbk_table_instance, old_data, new_data, description="загрузку КНБК"):
@@ -301,10 +313,12 @@ class UpdateTableCommand(QUndoCommand):
         self.knbk_table_instance.restore_initial_state()
         self.knbk_table_instance.add_label(f"КНБК - {self.knbk_table_instance.tbl_KNBK.item(0, 4).text()} мм")
 
+
 class CsvTableDialog(QDialog):
     data_selected = pyqtSignal(list, str)
 
-    def __init__(self, file_name, load_table=False, initial_sort_value_KNBK=None, sort_value_casing_srings=None, parent=None):
+    def __init__(self, file_name, load_table=False, initial_sort_value_KNBK=None, sort_value_casing_srings=None,
+                 parent=None):
         super().__init__(parent)
         self.file_name = file_name
         self.load_table = load_table
@@ -434,7 +448,8 @@ class CsvTableDialog(QDialog):
                 row_data.append(item.text() if item else "")
             data.append(row_data)
 
-        data.sort(key=lambda row: self.custom_sort_key(row[self.sort_column]), reverse=self.sort_order == Qt.SortOrder.DescendingOrder)
+        data.sort(key=lambda row: self.custom_sort_key(row[self.sort_column]),
+                  reverse=self.sort_order == Qt.SortOrder.DescendingOrder)
 
         self.update_table_with_sorted_data(data)
 
@@ -513,6 +528,7 @@ class CsvTableDialog(QDialog):
         except Exception as e:
             print(f"Error in cell_was_double_clicked_2: {e}")
 
+
 class KNBK_Table(QWidget):
     def __init__(self, index, sort_key=None, parent=None):
         super(KNBK_Table, self).__init__(parent)
@@ -570,8 +586,6 @@ class KNBK_Table(QWidget):
         item_0_0_KNBK.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         self.tbl_KNBK.setItem(0, 0, item_0_0_KNBK)
 
-
-
         self.btn_add_row_KNBK.clicked.connect(self.add_row_KNBK)
         self.btn_delete_row_KNBK.clicked.connect(self.delete_row_KNBK)
         self.btn_load_table.clicked.connect(self.load_table)
@@ -603,7 +617,7 @@ class KNBK_Table(QWidget):
             if column == 0:
                 combo = QComboBox()
                 combo.addItems(
-                    ["<Не выбрано>","ВЗД", "РУС", "Бурильные трубы", "Переводник", "УБТ","Телеметрия", "Ясс",
+                    ["<Не выбрано>", "ВЗД", "РУС", "Бурильные трубы", "Переводник", "УБТ", "Телеметрия", "Ясс",
                      "Калибратор", "Обратный клапан", "Центратор прямой", "Центратор лопастной",
                      "Предохранительный переводник"])
                 combo.setStyleSheet("QComboBox { text-align: center; }")
@@ -720,8 +734,8 @@ class KNBK_Table(QWidget):
                 self.move_images_back_to_page()
 
     def load_table(self):
-        dialog = CsvTableDialog(path1 + 'КНБК.csv', load_table = True, initial_sort_value_KNBK = None,
-                                sort_value_casing_srings = self.sort_key, parent = self)
+        dialog = CsvTableDialog(path1 + 'КНБК.csv', load_table=True, initial_sort_value_KNBK=None,
+                                sort_value_casing_srings=self.sort_key, parent=self)
         dialog.data_selected.connect(self.update_table_data_list_2)
         dialog.exec()
 
@@ -734,7 +748,7 @@ class KNBK_Table(QWidget):
 
     def row_down(self):
         current_row = self.tbl_KNBK.currentRow()
-        if (current_row < self.tbl_KNBK.rowCount() - 1) and current_row > 0 :
+        if (current_row < self.tbl_KNBK.rowCount() - 1) and current_row > 0:
             self.swap_rows(current_row, current_row + 1)
             self.tbl_KNBK.setCurrentCell(current_row + 1, 0)
             self.update_labels_after_swap(current_row, current_row + 1)
@@ -772,11 +786,11 @@ class KNBK_Table(QWidget):
             h2 = label2.height()
 
             if row2 < row1:  # Move up
-                label1.move(label1.x(), y2 - h1 +h2)
-                label2.move(label2.x(), y2-h1)
+                label1.move(label1.x(), y2 - h1 + h2)
+                label2.move(label2.x(), y2 - h1)
             else:  # Move down
                 label1.move(label1.x(), y2)
-                label2.move(label2.x(), y1-h2+h1)
+                label2.move(label2.x(), y1 - h2 + h1)
 
     def update_labels_after_swap(self, row1, row2):
         self.labels[row1], self.labels[row2] = self.labels[row2], self.labels[row1]
@@ -1073,8 +1087,8 @@ class KNBK_Table(QWidget):
 
         self.add_image(mode="static", static_path=path3 + 'Долото.png')
 
-        #self.restore_initial_state()
-        for row_index, row_data in enumerate (data):
+        # self.restore_initial_state()
+        for row_index, row_data in enumerate(data):
             for col_index, value in enumerate(row_data):
                 if value is None:
                     value = ""
@@ -1119,7 +1133,7 @@ class KNBK_Table(QWidget):
     def center_text_in_item(self, item):
         item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 
-    def add_QCombobox(self,row, column):
+    def add_QCombobox(self, row, column):
         try:
             if column == 0 and row != 0:
                 self.remove_widgets_from_row(self.tbl_KNBK, row)
@@ -1186,7 +1200,7 @@ class MainWindow(QMainWindow):
             return
 
         self.stackedWidget.setCurrentIndex(0)
-        self.stackedWidget.insertWidget(4,KNBK_Table(index = 4, parent = self))
+        self.stackedWidget.insertWidget(4, KNBK_Table(index=4, parent=self))
 
         self.tbl_profile: QTableWidget = self.findChild(QTableWidget, 'tableWidget_profile')
         self.tbl_stratigraphy: QTableWidget = self.findChild(QTableWidget, 'tableWidget_stratigraphy')
@@ -1232,7 +1246,8 @@ class MainWindow(QMainWindow):
         self.btn_add_row_casing_strings: QPushButton = self.findChild(QPushButton, 'pushButton_add_row_casing_strings')
         self.btn_delete_row_casing_strings: QPushButton = self.findChild(QPushButton,
                                                                          'pushButton_delete_row_casing_strings')
-        self.btn_add_row_drilling_fluids: QPushButton = self.findChild(QPushButton, 'pushButton_add_row_drilling_fluids')
+        self.btn_add_row_drilling_fluids: QPushButton = self.findChild(QPushButton,
+                                                                       'pushButton_add_row_drilling_fluids')
         self.btn_delete_row_drilling_fluids: QPushButton = self.findChild(QPushButton,
                                                                           'pushButton_delete_row_drilling_fluids')
         self.btn_load_stratigraphy: QPushButton = self.findChild(QPushButton, 'pushButton_load_stratigraphy')
@@ -1252,7 +1267,6 @@ class MainWindow(QMainWindow):
 
         self.graphicsView_pressure = self.findChild(QGraphicsView, 'graphicsView_pressure')
         self.graphicsView_gradient_pressure = self.findChild(QGraphicsView, 'graphicsView_gradient_pressure')
-
 
         self.graphicsView_casing_strings = self.findChild(QGraphicsView, 'graphicsView_casing_strings')
         self.graphicsView_casing_strings.setScene(QGraphicsScene())
@@ -1572,7 +1586,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             logging.error(f"Error opening file: {e}")
 
-    def on_item_changed_tbl_profile(self,item):
+    def on_item_changed_tbl_profile(self, item):
         row = item.row()
         column = item.column()
         if column in [0, 1, 2] and self.is_row_complete(row, [0, 1, 2], self.tbl_profile):
@@ -1765,7 +1779,7 @@ class MainWindow(QMainWindow):
         graphics_view.setRenderHint(QPainter.RenderHint.Antialiasing)
         graphics_view.fitInView(scene.itemsBoundingRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
-    def on_item_changed_tbl_pressure(self,item):
+    def on_item_changed_tbl_pressure(self, item):
         row = item.row()
         column = item.column()
         if row > 1:
@@ -1797,60 +1811,58 @@ class MainWindow(QMainWindow):
                     gradient_frac.setText(item.text())
                     self.tbl_pressure.blockSignals(False)
 
-            if column in [2,3,4,5] and self.is_row_complete(row, [2,3,4,5], self.tbl_pressure):
-                x_1= self.extract_number(self.tbl_pressure.item(row, 2).text())
-                x_2= self.extract_number(self.tbl_pressure.item(row,3).text())
-                pressure_end = self.extract_number(self.tbl_pressure.item(row,5).text())
-                pressure_start  = self.extract_number(self.tbl_pressure.item(row,4).text())
-                gradient = round((pressure_end - pressure_start)/(x_2-x_1),2)
-                self.tbl_pressure.blockSignals(True)
-                item_gradient_1 = QTableWidgetItem(str(gradient))
-                item_gradient_1.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                item_gradient_2 = QTableWidgetItem(str(gradient))
-                item_gradient_2.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.tbl_pressure.setItem(row,8, item_gradient_1)
-                self.tbl_pressure.setItem(row,9, item_gradient_2)
-                self.tbl_pressure.blockSignals(False)
-
-            if column in [2,3,6,7] and self.is_row_complete(row, [2,3,6,7], self.tbl_pressure):
-                x_1= self.extract_number(self.tbl_pressure.item(row, 2).text())
-                x_2= self.extract_number(self.tbl_pressure.item(row,3).text())
-                pressure_end = self.extract_number(self.tbl_pressure.item(row,7).text())
-                pressure_start = self.extract_number(self.tbl_pressure.item(row,6).text())
-                gradient = round((pressure_end-pressure_start)/(x_2-x_1),2)
-                self.tbl_pressure.blockSignals(True)
-                item_gradient_1 = QTableWidgetItem(str(gradient))
-                item_gradient_1.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                item_gradient_2 = QTableWidgetItem(str(gradient))
-                item_gradient_2.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.tbl_pressure.setItem(row,10, item_gradient_1)
-                self.tbl_pressure.setItem(row,11, item_gradient_2)
-                self.tbl_pressure.blockSignals(False)
-
-
-            if column in [2,3,8,9] and self.is_row_complete(row, [2,3,8,9], self.tbl_pressure):
-
+            if column in [2, 3, 4, 5] and self.is_row_complete(row, [2, 3, 4, 5], self.tbl_pressure):
                 x_1 = self.extract_number(self.tbl_pressure.item(row, 2).text())
-                x_2 = self.extract_number(self.tbl_pressure.item(row,3).text())
-                gradient = self.extract_number(self.tbl_pressure.item(row,8).text())
-                pressure_start = self.extract_number(self.tbl_pressure.item(row,4).text())
-                pressure_end = round(gradient*(x_2-x_1)+ pressure_start,2)
+                x_2 = self.extract_number(self.tbl_pressure.item(row, 3).text())
+                pressure_end = self.extract_number(self.tbl_pressure.item(row, 5).text())
+                pressure_start = self.extract_number(self.tbl_pressure.item(row, 4).text())
+                gradient = round((pressure_end - pressure_start) / (x_2 - x_1), 2)
+                self.tbl_pressure.blockSignals(True)
+                item_gradient_1 = QTableWidgetItem(str(gradient))
+                item_gradient_1.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                item_gradient_2 = QTableWidgetItem(str(gradient))
+                item_gradient_2.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.tbl_pressure.setItem(row, 8, item_gradient_1)
+                self.tbl_pressure.setItem(row, 9, item_gradient_2)
+                self.tbl_pressure.blockSignals(False)
+
+            if column in [2, 3, 6, 7] and self.is_row_complete(row, [2, 3, 6, 7], self.tbl_pressure):
+                x_1 = self.extract_number(self.tbl_pressure.item(row, 2).text())
+                x_2 = self.extract_number(self.tbl_pressure.item(row, 3).text())
+                pressure_end = self.extract_number(self.tbl_pressure.item(row, 7).text())
+                pressure_start = self.extract_number(self.tbl_pressure.item(row, 6).text())
+                gradient = round((pressure_end - pressure_start) / (x_2 - x_1), 2)
+                self.tbl_pressure.blockSignals(True)
+                item_gradient_1 = QTableWidgetItem(str(gradient))
+                item_gradient_1.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                item_gradient_2 = QTableWidgetItem(str(gradient))
+                item_gradient_2.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.tbl_pressure.setItem(row, 10, item_gradient_1)
+                self.tbl_pressure.setItem(row, 11, item_gradient_2)
+                self.tbl_pressure.blockSignals(False)
+
+            if column in [2, 3, 8, 9] and self.is_row_complete(row, [2, 3, 8, 9], self.tbl_pressure):
+                x_1 = self.extract_number(self.tbl_pressure.item(row, 2).text())
+                x_2 = self.extract_number(self.tbl_pressure.item(row, 3).text())
+                gradient = self.extract_number(self.tbl_pressure.item(row, 8).text())
+                pressure_start = self.extract_number(self.tbl_pressure.item(row, 4).text())
+                pressure_end = round(gradient * (x_2 - x_1) + pressure_start, 2)
                 self.tbl_pressure.blockSignals(True)
                 item_pressure_end = QTableWidgetItem(str(pressure_end))
                 item_pressure_end.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.tbl_pressure.setItem(row, 5, item_pressure_end)
                 self.tbl_pressure.blockSignals(False)
 
-            if column in [2,3,10,11] and self.is_row_complete(row, [2,3,10,11], self.tbl_pressure):
+            if column in [2, 3, 10, 11] and self.is_row_complete(row, [2, 3, 10, 11], self.tbl_pressure):
                 x_1 = self.extract_number(self.tbl_pressure.item(row, 2).text())
-                x_2 = self.extract_number(self.tbl_pressure.item(row,3).text())
-                gradient = self.extract_number(self.tbl_pressure.item(row,10).text())
-                pressure_start = self.extract_number(self.tbl_pressure.item(row,6).text())
-                pressure_end = round(gradient*(x_2-x_1)+pressure_start ,2)
+                x_2 = self.extract_number(self.tbl_pressure.item(row, 3).text())
+                gradient = self.extract_number(self.tbl_pressure.item(row, 10).text())
+                pressure_start = self.extract_number(self.tbl_pressure.item(row, 6).text())
+                pressure_end = round(gradient * (x_2 - x_1) + pressure_start, 2)
                 self.tbl_pressure.blockSignals(True)
                 item_pressure_end = QTableWidgetItem(str(pressure_end))
                 item_pressure_end.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.tbl_pressure.setItem(row, 7,item_pressure_end)
+                self.tbl_pressure.setItem(row, 7, item_pressure_end)
                 self.tbl_pressure.blockSignals(False)
 
             if self.is_row_complete(row, [2, 3, 10, 11], self.tbl_pressure):
@@ -1864,7 +1876,7 @@ class MainWindow(QMainWindow):
                 self.update_graph(row, [8, 9], self.canvas_gradient, self.lines_on_gradient_pressure_chart,
                                   line_id=1)
 
-            if self.is_row_complete(row, [2, 3, 4, 5],self.tbl_pressure):
+            if self.is_row_complete(row, [2, 3, 4, 5], self.tbl_pressure):
                 self.update_graph(row, [4, 5], self.canvas_pressure, self.lines_on_pressure_chart, line_id=1)
 
     def is_row_complete(self, row, required_columns, table):
@@ -1884,13 +1896,13 @@ class MainWindow(QMainWindow):
                 line = chart.pop(row)
                 line.remove()
 
-            if line_id==1:
+            if line_id == 1:
                 line, = canvas.axes.plot(
-                [start, end], [start_depth, end_depth], color='green', linewidth=2)
+                    [start, end], [start_depth, end_depth], color='green', linewidth=2)
 
             else:
                 line, = canvas.axes.plot(
-                [start, end], [start_depth, end_depth], color='red', linewidth=2)
+                    [start, end], [start_depth, end_depth], color='red', linewidth=2)
 
             chart[row] = line
             canvas.draw()
@@ -1925,7 +1937,7 @@ class MainWindow(QMainWindow):
     def on_item_changed_tbl_casing_strings(self, item):
         row = item.row()
         column = item.column()
-        if column in [1,2]:
+        if column in [1, 2]:
             self.update_drilling_fluids(row, column)
         if self.is_row_complete(row, [1, 2, 3, 4], self.tbl_casing_strings):
             self.draw_wellbore_diagram()
@@ -1940,7 +1952,7 @@ class MainWindow(QMainWindow):
                         profile_item = self.tbl_profile.item(self.tbl_profile.rowCount() - 1, 0)
                         new_text = f"до забоя ({profile_item.text()})" if profile_item else "0"
                         new_item = QTableWidgetItem(new_text)
-                    elif text.replace('.','',1).isdigit():
+                    elif text.replace('.', '', 1).isdigit():
                         new_item = QTableWidgetItem(item.text())
                     else:
                         new_item = QTableWidgetItem('0')
@@ -1954,12 +1966,14 @@ class MainWindow(QMainWindow):
                     if "до устья" in text:
                         profile_item = self.tbl_profile.item(0, 0)
                         if profile_item:
-                            new_text =  str(self.extract_number(self.tbl_casing_strings.item(row, 1).text())-float(profile_item.text()))
+                            new_text = str(self.extract_number(self.tbl_casing_strings.item(row, 1).text()) - float(
+                                profile_item.text()))
                         elif self.tbl_casing_strings.item(row, 1).text():
-                            new_text = str(self.extract_number(self.tbl_casing_strings.item(row, 1).text())-0)
-                        else: new_text = "0"
+                            new_text = str(self.extract_number(self.tbl_casing_strings.item(row, 1).text()) - 0)
+                        else:
+                            new_text = "0"
                         new_item = QTableWidgetItem(new_text)
-                    elif text.replace('.','',1).isdigit():
+                    elif text.replace('.', '', 1).isdigit():
                         new_item = QTableWidgetItem(item.text())
                     else:
                         new_item = QTableWidgetItem('0')
@@ -1971,8 +1985,8 @@ class MainWindow(QMainWindow):
 
         print(f"Updated row: {row}, column: {column}, text: {text}")
 
-    def extract_number(self,text):
-        text = text.replace(",",".")
+    def extract_number(self, text):
+        text = text.replace(",", ".")
         match = re.search(r'\d+\.\d+', text)
         if match:
             return float(match.group(0))
@@ -2000,7 +2014,7 @@ class MainWindow(QMainWindow):
         x_offset = view_width / 2
         last_end = 0
         last_diameter_hole = 0
-        lengths =[]
+        lengths = []
         diameter_offsets = []
         ends = []
         first_diameter_hole = 0
@@ -2013,7 +2027,8 @@ class MainWindow(QMainWindow):
             diameter_offsets.append((last_diameter_hole-diameter_hole)/2)
             ends.append(end)
             if row == 0:
-                first_diameter_hole=diameter_hole
+                first_diameter_hole = diameter_hole
+
             def draw_vertical_lines(x1, x2, y_start, y_end):
                 scene.addLine(QLineF(x1, y_start, x1, y_end), pen_hole)
                 scene.addLine(QLineF(x2, y_start, x2, y_end), pen_hole)
@@ -2049,7 +2064,8 @@ class MainWindow(QMainWindow):
 
         scene.setSceneRect(0, 0, view_width, view_height)
 
-        ShadingDrawer(lengths,ends,diameter_offsets,first_diameter_hole,scene).draw_curve()
+        ShadingDrawer(lengths, ends, diameter_offsets, first_diameter_hole, x_offset, scene).draw_curve()
+        ShadingDrawer(lengths, ends, diameter_offsets, first_diameter_hole, x_offset, scene, reverse=True).draw_curve()
         self.graphicsView_casing_strings.setScene(scene)
         self.graphicsView_casing_strings.fitInView(scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         self.graphicsView_casing_strings.update()
@@ -2268,13 +2284,12 @@ class MainWindow(QMainWindow):
                             data = model.data(model.index(row, col))
                             item = QTableWidgetItem(str(data))
                             item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                            self.tbl_stratigraphy.setItem(row, col - 1,item)
+                            self.tbl_stratigraphy.setItem(row, col - 1, item)
                     break
             else:
                 break
 
         self.db_manager.close_database()
-
 
 
 if __name__ == "__main__":
