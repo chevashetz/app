@@ -45,7 +45,6 @@ class ShadingDrawer:
                 self.offsets[i] *= -1
                 self.rectangles[i][1] *= -1
 
-    # Horizontal offsets
 
     def build_curve(self, path, index, x, y):
 
@@ -1925,9 +1924,8 @@ class MainWindow(QMainWindow):
 
     def delete_row_casing_strings(self):
         row_count2_3 = self.tbl_casing_strings.rowCount()
-        if row_count2_3 > 0:
-            self.tbl_casing_strings.setRowCount(row_count2_3 - 1)
-            self.draw_wellbore_diagram()
+        self.tbl_casing_strings.setRowCount(row_count2_3 - 1)
+        self.draw_wellbore_diagram()
 
     def delete_row_drilling_fluids(self):
         row_count2_4 = self.tbl_drilling_fluids.rowCount()
@@ -2009,8 +2007,8 @@ class MainWindow(QMainWindow):
         view_height = 570
         max_hole_width = 903
         scale_factor = view_width / max_hole_width
-        horizontal_offset = 30  # Смещение по горизонтали для соединительных линий
-        vertical_padding = 5  # Дополнительный отступ по вертикали
+        horizontal_offset = 30
+        vertical_padding = 5
 
         pen_casing = QPen(Qt.GlobalColor.black)
         brush_casing = QBrush(Qt.GlobalColor.lightGray)
@@ -2068,9 +2066,9 @@ class MainWindow(QMainWindow):
             last_diameter_hole = diameter_hole
 
         scene.setSceneRect(0, 0, view_width, view_height)
-
-        ShadingDrawer(lengths, ends, diameter_offsets, first_diameter_hole, x_offset, scene).draw_curve()
-        ShadingDrawer(lengths, ends, diameter_offsets, first_diameter_hole, x_offset, scene, reverse=True).draw_curve()
+        if self.tbl_casing_strings.rowCount() != 0:
+            ShadingDrawer(lengths, ends, diameter_offsets, first_diameter_hole, x_offset, scene).draw_curve()
+            ShadingDrawer(lengths, ends, diameter_offsets, first_diameter_hole, x_offset, scene, reverse=True).draw_curve()
         self.graphicsView_casing_strings.setScene(scene)
         self.graphicsView_casing_strings.fitInView(scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         self.graphicsView_casing_strings.update()

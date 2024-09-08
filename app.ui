@@ -644,6 +644,9 @@
        <property name="rowCount">
         <number>1</number>
        </property>
+       <property name="columnCount">
+        <number>6</number>
+       </property>
        <attribute name="horizontalHeaderCascadingSectionResizes">
         <bool>false</bool>
        </attribute>
@@ -667,11 +670,6 @@
        </column>
        <column>
         <property name="text">
-         <string>Глубина спуска (ствол)</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
          <string>Длина колонны (м)</string>
         </property>
        </column>
@@ -682,7 +680,17 @@
        </column>
        <column>
         <property name="text">
+         <string>Диаметр колонны(мм)</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
          <string>Диаметр долота(мм)</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Толщина стенки(мм)</string>
         </property>
        </column>
       </widget>
