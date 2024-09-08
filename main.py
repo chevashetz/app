@@ -1615,17 +1615,21 @@ class MainWindow(QMainWindow):
                 current_coordinates += np.array([delta_x, delta_y, delta_z])
                 self.selected_data.append(current_coordinates.copy())
 
-                # Обновляем углы для следующей итерации
+                # Update angles for the next iteration
                 current_zenith_angle = next_zenith_angle
                 current_azimuth_angle = next_azimuth_angle
 
-            # Преобразуем список координат в массив для обновления графика
+            # Convert the list of coordinates to an array and update the graph
             selected_data = np.array(self.selected_data)
             self.plot_graph(selected_data)
 
-            # Обновляем таблицу для delta_z для текущей строки
-            delta_z = current_coordinates[2]
-            self.tbl_profile.setItem(row, 5, QTableWidgetItem(str(round(delta_z, 2))))
+            # Update delta_z for the current row if the row is complete
+            if self.is_row_complete(row, [0, 1, 2], self.tbl_profile):
+                delta_z = current_coordinates[2]
+                self.tbl_profile.setItem(row, 5, QTableWidgetItem(str(round(delta_z, 2))))
+            else:
+                # If the row is not complete, clear delta_z value
+                self.tbl_profile.setItem(row, 5, QTableWidgetItem(""))
 
     def process_excel_data(self, data):
         try:
@@ -1911,6 +1915,7 @@ class MainWindow(QMainWindow):
         row_count2_3 = self.tbl_casing_strings.rowCount()
         if row_count2_3 > 0:
             self.tbl_casing_strings.setRowCount(row_count2_3 - 1)
+            self.draw_wellbore_diagram()
 
     def delete_row_drilling_fluids(self):
         row_count2_4 = self.tbl_drilling_fluids.rowCount()
