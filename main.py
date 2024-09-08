@@ -7,14 +7,14 @@ import sys
 import numpy as np
 import pandas as pd
 from PyQt6 import uic
-from PyQt6.QtCore import Qt, pyqtSignal, QRectF, QLineF
+from PyQt6.QtCore import Qt, pyqtSignal, QRectF, QLineF, QStringListModel
 from PyQt6.QtGui import (QAction, QUndoStack, QUndoCommand, QKeySequence, QTextDocument, QFont, QPixmap, QPainter, QPen,
                          QBrush, QColor, QPainterPath)
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QStackedWidget, QHeaderView,
                              QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDialog, QInputDialog, QVBoxLayout,
                              QMenu, QGraphicsScene, QGraphicsView, QUndoView, QWidget, QHBoxLayout, QLabel, QMessageBox,
-                             QScrollArea, QGraphicsPathItem)
+                             QScrollArea, QGraphicsPathItem, QListView, QStyledItemDelegate)
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
@@ -24,6 +24,11 @@ path2 = "db_files/"
 path3 = "images/"
 path4 = "msh_files/"
 
+class CenteredItemDelegate(QStyledItemDelegate):
+    def initStyleOption(self, option, index):
+        super().initStyleOption(option, index)
+        # Устанавливаем выравнивание по центру
+        option.displayAlignment = Qt.AlignmentFlag.AlignCenter
 
 class ShadingDrawer:
     def __init__(self, lengths, ends, diameter_offsets, diameter_hole, x_offset, scene=None, reverse=False):
@@ -579,7 +584,7 @@ class KNBK_Table(QWidget):
 
         self.tbl_KNBK.cellDoubleClicked.connect(self.open_csv_table_dialog)
         self.tbl_KNBK.cellDoubleClicked.connect(self.open_fixed_path_csv_dialog)
-        self.tbl_KNBK.cellClicked.connect(self.add_QCombobox)
+        self.tbl_KNBK.cellClicked.connect(self.add_QCombobox_cell_clicked)
 
         item_0_0_KNBK = QTableWidgetItem("Долото")
         item_0_0_KNBK.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -611,28 +616,40 @@ class KNBK_Table(QWidget):
     def add_row_KNBK(self):
         row_count2_1 = self.tbl_KNBK.rowCount()
         self.tbl_KNBK.setRowCount(row_count2_1 + 1)
-
         for column in range(self.tbl_KNBK.columnCount()):
             if column == 0:
-                combo = QComboBox()
-                combo.addItems(
-                    ["<Не выбрано>", "ВЗД", "РУС", "Бурильные трубы", "Переводник", "УБТ", "Телеметрия", "Ясс",
-                     "Калибратор", "Обратный клапан", "Центратор прямой", "Центратор лопастной",
-                     "Предохранительный переводник"])
-                combo.setStyleSheet("QComboBox { text-align: center; }")
-                for i in range(combo.count()):
-                    combo.setItemData(i, Qt.AlignmentFlag.AlignCenter, Qt.ItemDataRole.TextAlignmentRole)
-
-                combo.currentIndexChanged.connect(
-                    lambda index, combo=combo, row=row_count2_1: self.handle_combo_change(row, combo))
-
-                self.tbl_KNBK.setCellWidget(row_count2_1, column, combo)
+                self.add_QCombobox(row_count=row_count2_1, column=column)
             else:
                 item = QTableWidgetItem("")
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.tbl_KNBK.setItem(row_count2_1, column, item)
-
         self.tbl_KNBK.resizeRowsToContents()
+
+    def add_QCombobox(self,row_count,column):
+        combo = QComboBox()
+        combo.setModel(QStringListModel([
+        "<Не выбрано>", "ВЗД", "РУС", "Бурильные трубы", "Переводник", "УБТ", "Телеметрия", "Ясс",
+        "Калибратор спиральный", "Обратный клапан", "Центратор прямой",
+        "Центратор спиральный","Предохранительный переводник"]))
+
+        listView = QListView()
+
+        listView.setWordWrap(True)
+
+        combo.setView(listView)
+
+        combo.setStyleSheet("QComboBox { text-align: center; }")
+
+        listView.setItemDelegate(CenteredItemDelegate(listView))
+        combo.setEditable(True)
+        line_edit: QLineEdit = combo.lineEdit()
+        line_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        line_edit.setReadOnly(False)
+
+        combo.currentIndexChanged.connect(
+            lambda index, combo=combo, row=row_count: self.handle_combo_change(row, combo))
+
+        self.tbl_KNBK.setCellWidget(row_count, column, combo)
 
     def handle_combo_change(self, row, combo):
         text = combo.currentText()
@@ -643,10 +660,10 @@ class KNBK_Table(QWidget):
         self.tbl_KNBK.resizeRowsToContents()
 
         self.file_key = text
-        self.add_image()
+        self.add_image(row=row)
         self.tbl_KNBK.viewport().update()
 
-    def add_image(self, mode="dynamic", static_path=None):
+    def add_image(self, mode="dynamic", static_path=None,row=None):
         if mode == "static" and static_path:
             image_path = static_path
         elif mode == "dynamic":
@@ -684,7 +701,10 @@ class KNBK_Table(QWidget):
 
         self.current_y -= image_height
         label.show()
-        self.labels.append(label)
+        if row is None:
+            self.labels.append(label)
+        else:
+            self.labels.insert(row,label)
 
     def move_images_to_scroll_area(self):
         if not self.scroll_area.isVisible():
@@ -692,7 +712,7 @@ class KNBK_Table(QWidget):
             for label in self.labels[::-1]:
                 label.setParent(self.image_container)
 
-                self.image_container_layout.addWidget(label)
+                #self.image_container_layout.addWidget(label)
             self.scroll_area.show()
 
     def move_images_back_to_page(self):
@@ -709,17 +729,19 @@ class KNBK_Table(QWidget):
 
     def delete_row_KNBK(self):
         row_count2_1 = self.tbl_KNBK.currentRow()
-        if row_count2_1 > 0:
-            if self.labels and 0 <= row_count2_1 < len(self.labels):
-                label_to_remove = self.labels.pop(row_count2_1)
+        self.delete_image_KNBK(row_count = row_count2_1)
+        self.tbl_KNBK.removeRow(row_count2_1)
+
+    def delete_image_KNBK(self, row_count):
+        if row_count > 0:
+            if self.labels and 0 <= row_count < len(self.labels):
+                label_to_remove = self.labels.pop(row_count)
                 if label_to_remove:
                     if self.scroll_area.isVisible():
                         self.image_container_layout.removeWidget(label_to_remove)
                     else:
                         self.current_y += label_to_remove.height()
                     label_to_remove.deleteLater()
-
-            self.tbl_KNBK.removeRow(row_count2_1)
 
             if not self.scroll_area.isVisible():
                 self.current_y = self.max_height
@@ -1132,44 +1154,10 @@ class KNBK_Table(QWidget):
     def center_text_in_item(self, item):
         item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 
-    def add_QCombobox(self, row, column):
+    def add_QCombobox_cell_clicked(self, row, column):
         try:
-            if column == 0 and row != 0:
-                self.remove_widgets_from_row(self.tbl_KNBK, row)
-                if self.labels and 0 <= row < len(self.labels):
-                    label_to_remove = self.labels.pop(row)
-                    if label_to_remove:
-                        if self.scroll_area.isVisible():
-                            self.image_container_layout.removeWidget(label_to_remove)
-                        else:
-                            self.current_y += label_to_remove.height()
-                        label_to_remove.deleteLater()
-
-                if not self.scroll_area.isVisible():
-                    self.current_y = self.max_height
-                    for label in self.labels:
-                        self.current_y -= label.height()
-                        label.move(1445, self.current_y)
-
-                # Проверяем, нужно ли переместить изображения обратно на страницу
-                total_height = sum(label.height() for label in self.labels)
-                if total_height <= self.max_height and self.scroll_area.isVisible():
-                    self.move_images_back_to_page()
-
-                combo = QComboBox()
-                combo.addItems(
-                    ["<Не выбрано>", "ВЗД", "РУС", "Бурильные трубы", "Переводник", "Предохранительный переводник",
-                     "УБТ", "Телеметрия", "Ясс", "Калибратор", "Обратный клапан", "Центратор прямой",
-                     "Центратор лопастной"])
-                combo.setStyleSheet("QComboBox { text-align: center; }")
-
-                for i in range(combo.count()):
-                    combo.setItemData(i, Qt.AlignmentFlag.AlignCenter, Qt.ItemDataRole.TextAlignmentRole)
-
-                combo.currentIndexChanged.connect(
-                    lambda index, combo=combo, row=row: self.handle_combo_change(row, combo))
-
-                self.tbl_KNBK.setCellWidget(row, column, combo)
+                self.delete_image_KNBK(row_count=row)
+                self.add_QCombobox(row_count=row,column=column)
         except Exception as e:
             print(f"Произошла ошибка: {e}")
 
