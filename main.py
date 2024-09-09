@@ -24,11 +24,13 @@ path2 = "db_files/"
 path3 = "images/"
 path4 = "msh_files/"
 
+
 class CenteredItemDelegate(QStyledItemDelegate):
     def initStyleOption(self, option, index):
         super().initStyleOption(option, index)
         # Устанавливаем выравнивание по центру
         option.displayAlignment = Qt.AlignmentFlag.AlignCenter
+
 
 class ShadingDrawer:
     def __init__(self, lengths, ends, diameter_offsets, diameter_hole, x_offset, scene=None, reverse=False):
@@ -49,7 +51,6 @@ class ShadingDrawer:
             for i in range(0, len(self.offsets)):
                 self.offsets[i] *= -1
                 self.rectangles[i][1] *= -1
-
 
     def build_curve(self, path, index, x, y):
 
@@ -84,7 +85,8 @@ class ShadingDrawer:
 
     def draw_curve(self):
         path = QPainterPath()
-        self.build_curve(path, 0, self.x_offset - self.horizontal_offset if not self.reverse else self.x_offset + self.horizontal_offset,
+        self.build_curve(path, 0,
+                         self.x_offset - self.horizontal_offset if not self.reverse else self.x_offset + self.horizontal_offset,
                          self.ends[0] - self.lengths[0])  # Начальная точка
         path.closeSubpath()
 
@@ -625,12 +627,12 @@ class KNBK_Table(QWidget):
                 self.tbl_KNBK.setItem(row_count2_1, column, item)
         self.tbl_KNBK.resizeRowsToContents()
 
-    def add_QCombobox(self,row_count,column):
+    def add_QCombobox(self, row_count, column):
         combo = QComboBox()
         combo.setModel(QStringListModel([
-        "<Не выбрано>", "ВЗД", "РУС", "Бурильные трубы", "Переводник", "УБТ", "Телеметрия", "Ясс",
-        "Калибратор спиральный", "Обратный клапан", "Центратор прямой",
-        "Центратор спиральный","Предохранительный переводник"]))
+            "<Не выбрано>", "ВЗД", "РУС", "Бурильные трубы", "Переводник", "УБТ", "Телеметрия", "Ясс",
+            "Калибратор спиральный", "Обратный клапан", "Центратор прямой",
+            "Центратор спиральный", "Предохранительный переводник"]))
 
         listView = QListView()
 
@@ -638,7 +640,13 @@ class KNBK_Table(QWidget):
 
         combo.setView(listView)
 
-        combo.setStyleSheet("QComboBox { text-align: center; }")
+        showPopup = combo.showPopup
+
+        def on_popup_show():
+            showPopup()
+            combo.view().reset()  # Сброс состояния представления для предотвращения наслаивания
+
+        combo.showPopup = on_popup_show
 
         listView.setItemDelegate(CenteredItemDelegate(listView))
         combo.setEditable(True)
@@ -663,7 +671,7 @@ class KNBK_Table(QWidget):
         self.add_image(row=row)
         self.tbl_KNBK.viewport().update()
 
-    def add_image(self, mode="dynamic", static_path=None,row=None):
+    def add_image(self, mode="dynamic", static_path=None, row=None):
         if mode == "static" and static_path:
             image_path = static_path
         elif mode == "dynamic":
@@ -681,10 +689,11 @@ class KNBK_Table(QWidget):
             return
 
         pixmap = QPixmap(image_path)
-        label = QLabel(self)
-        label.setPixmap(pixmap)
-        label.setFixedWidth(67)
-        label.setScaledContents(True)
+        new_label = QLabel(self)
+        new_label.setPixmap(pixmap)
+        new_label.setFixedWidth(67)
+        new_label.setScaledContents(True)
+        new_label.show()
 
         image_height = pixmap.height()
         total_height = self.current_y - image_height
@@ -693,18 +702,24 @@ class KNBK_Table(QWidget):
             # Если превышает лимит, перемещаем все изображения в ScrollArea
             self.move_images_to_scroll_area()
 
-            label.setParent(self.image_container)
-            self.image_container_layout.insertWidget(0, label)
+            new_label.setParent(self.image_container)
+            self.image_container_layout.insertWidget(0 if row is None else len(self.labels) - row, new_label)
             self.scroll_area.show()
         else:
-            label.move(1445, self.current_y - image_height)
+            if row is None:
+                new_label.move(1445, self.current_y - image_height)
+            else:
+                image_total_height = sum(label.height() for label in self.labels[:row])
+                new_label.move(1445, self.max_height - image_total_height - image_height)
+                for label in self.labels[row:]:
+                    label.move(1445, self.max_height - image_total_height - image_height - label.height())
 
         self.current_y -= image_height
-        label.show()
         if row is None:
-            self.labels.append(label)
+            self.labels.append(new_label)
         else:
-            self.labels.insert(row,label)
+            self.labels.insert(row, new_label)
+
 
     def move_images_to_scroll_area(self):
         if not self.scroll_area.isVisible():
@@ -712,7 +727,7 @@ class KNBK_Table(QWidget):
             for label in self.labels[::-1]:
                 label.setParent(self.image_container)
 
-                #self.image_container_layout.addWidget(label)
+                # self.image_container_layout.addWidget(label)
             self.scroll_area.show()
 
     def move_images_back_to_page(self):
@@ -729,12 +744,12 @@ class KNBK_Table(QWidget):
 
     def delete_row_KNBK(self):
         row_count2_1 = self.tbl_KNBK.currentRow()
-        self.delete_image_KNBK(row_count = row_count2_1)
+        self.delete_image_KNBK(row_count=row_count2_1)
         self.tbl_KNBK.removeRow(row_count2_1)
 
     def delete_image_KNBK(self, row_count):
         if row_count > 0:
-            if self.labels and 0 <= row_count < len(self.labels):
+            if 0 <= row_count < len(self.labels):
                 label_to_remove = self.labels.pop(row_count)
                 if label_to_remove:
                     if self.scroll_area.isVisible():
@@ -1156,8 +1171,8 @@ class KNBK_Table(QWidget):
 
     def add_QCombobox_cell_clicked(self, row, column):
         try:
-                self.delete_image_KNBK(row_count=row)
-                self.add_QCombobox(row_count=row,column=column)
+            self.delete_image_KNBK(row_count=row)
+            self.add_QCombobox(row_count=row, column=column)
         except Exception as e:
             print(f"Произошла ошибка: {e}")
 
@@ -2015,7 +2030,7 @@ class MainWindow(QMainWindow):
             diameter_casing = self.extract_number(self.tbl_casing_strings.item(row, 3).text())
             diameter_hole = self.extract_number(self.tbl_casing_strings.item(row, 4).text())
             lengths.append(length)
-            diameter_offsets.append((last_diameter_hole-diameter_hole)/2)
+            diameter_offsets.append((last_diameter_hole - diameter_hole) / 2)
             ends.append(end)
             if row == 0:
                 first_diameter_hole = diameter_hole
@@ -2056,7 +2071,8 @@ class MainWindow(QMainWindow):
         scene.setSceneRect(0, 0, view_width, view_height)
         if self.tbl_casing_strings.rowCount() != 0:
             ShadingDrawer(lengths, ends, diameter_offsets, first_diameter_hole, x_offset, scene).draw_curve()
-            ShadingDrawer(lengths, ends, diameter_offsets, first_diameter_hole, x_offset, scene, reverse=True).draw_curve()
+            ShadingDrawer(lengths, ends, diameter_offsets, first_diameter_hole, x_offset, scene,
+                          reverse=True).draw_curve()
         self.graphicsView_casing_strings.setScene(scene)
         self.graphicsView_casing_strings.fitInView(scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         self.graphicsView_casing_strings.update()
