@@ -24,7 +24,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>3</number>
     </property>
     <widget class="QWidget" name="page_1">
      <widget class="QWidget" name="widget_1" native="true">
@@ -52,7 +52,7 @@
         <number>6</number>
        </property>
        <attribute name="horizontalHeaderVisible">
-        <bool>true</bool>
+        <bool>false</bool>
        </attribute>
        <attribute name="horizontalHeaderCascadingSectionResizes">
         <bool>false</bool>
@@ -670,17 +670,17 @@
        </column>
        <column>
         <property name="text">
+         <string>Глубина спуска колонны(мм)</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
          <string>Длина колонны (м)</string>
         </property>
        </column>
        <column>
         <property name="text">
          <string>Наружный диаметр колонны(мм)</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Диаметр колонны(мм)</string>
         </property>
        </column>
        <column>

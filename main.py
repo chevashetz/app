@@ -80,12 +80,13 @@ class ShadingDrawer:
         path.lineTo(x + width - offset, y)
 
         self.scene.addLine(QLineF(x + width, y + height, x + width, y), self.pen_hole)
-        self.scene.addLine(QLineF(x + width, y, x + width - offset, y), self.pen_hole)
 
         if index == 0:
             # Верхняя линия
             path.lineTo(x, y)
-            self.scene.addLine(QLineF(x + width - offset, y, x, y), self.pen_hole)
+            self.scene.addLine(QLineF(x + width, y, x, y), self.pen_hole)
+        else:
+            self.scene.addLine(QLineF(x + width, y, x + width - offset, y), self.pen_hole)
 
     def draw_curve(self):
         path = QPainterPath()
@@ -2012,10 +2013,13 @@ class MainWindow(QMainWindow):
         # Константы для размеров и смещений
         view_width = 360
         view_height = 570
-        max_hole_width = 903
-        scale_factor = view_width / max_hole_width
+        max_hole_width = 940
+        scale_factor_x = view_width / max_hole_width
         horizontal_offset = 30
         vertical_padding = 5
+
+        total_height = 2
+        row_count = self.tbl_casing_strings.rowCount()
 
         pen_casing = QPen(Qt.GlobalColor.black)
         brush_casing = QBrush(Qt.GlobalColor.lightGray)
@@ -2028,11 +2032,25 @@ class MainWindow(QMainWindow):
         diameter_offsets = []
         ends = []
         first_diameter_hole = 0
-        for row in range(self.tbl_casing_strings.rowCount()):
-            end = self.extract_number(self.tbl_casing_strings.item(row, 1).text())
-            length = self.extract_number(self.tbl_casing_strings.item(row, 2).text())
-            diameter_casing = self.extract_number(self.tbl_casing_strings.item(row, 3).text())
-            diameter_hole = self.extract_number(self.tbl_casing_strings.item(row, 4).text())
+        for row in range(row_count):
+            end = self.extract_number(
+                self.tbl_casing_strings.item(row, 1).text())
+            if row > 0 and end > last_end:
+                total_height = self.extract_number(
+                    self.tbl_casing_strings.item(row_count - 1, 1).text()) + 2 * vertical_padding
+            else:
+                total_height = last_end
+            last_end = end
+
+        for row in range(row_count):
+            scale_factor_y = view_height / total_height if total_height > 0 else 1
+            end = self.extract_number(
+                self.tbl_casing_strings.item(row, 1).text()) * scale_factor_y
+            length = self.extract_number(
+                self.tbl_casing_strings.item(row, 2).text()) * scale_factor_y  # Масштабируем длину
+            diameter_casing = self.extract_number(self.tbl_casing_strings.item(row, 3).text()) * scale_factor_x
+            diameter_hole = self.extract_number(self.tbl_casing_strings.item(row, 4).text()) * scale_factor_x
+
             lengths.append(length)
             diameter_offsets.append((last_diameter_hole - diameter_hole) / 2)
             ends.append(end)
@@ -2045,8 +2063,7 @@ class MainWindow(QMainWindow):
             #
             # def draw_horizontal_lines(x1, x2, y):
             #     scene.addLine(QLineF(x1, y, x2, y), pen_hole)
-            #
-            # # Для первой строки: рисуем горизонтальные и вертикальные линии
+
             # if row == 0:
             #     draw_horizontal_lines(x_offset - diameter_hole / 2 - horizontal_offset,
             #                           x_offset - diameter_hole / 2, end - length)
@@ -2054,7 +2071,7 @@ class MainWindow(QMainWindow):
             #                         end + vertical_padding)
             #     draw_horizontal_lines(x_offset + diameter_hole / 2,
             #                           x_offset + diameter_hole / 2 + horizontal_offset, end - length)
-            #
+
             # else:
             #     # Соединение с предыдущим элементом
             #     draw_horizontal_lines(x_offset - last_diameter_hole / 2, x_offset - diameter_hole / 2,
