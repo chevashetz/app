@@ -40,7 +40,7 @@ class ShadingDrawer:
         self.diameter_hole = diameter_hole
         self.lengths = lengths
         self.scene = scene
-        self.ends = [ends[0]] + [ends[i] - ends[i - 1] for i in range(1, len(ends))]
+        self.ends = [ends[0]] + [max(ends[i] - ends[i - 1], 0) for i in range(1, len(ends))]
         self.rectangles = [[end, max(self.horizontal_offset, offset)] for end, offset in
                            zip(self.ends, diameter_offsets)]
 
@@ -51,6 +51,8 @@ class ShadingDrawer:
             for i in range(0, len(self.offsets)):
                 self.offsets[i] *= -1
                 self.rectangles[i][1] *= -1
+
+        self.pen_hole = QPen(Qt.GlobalColor.black, 2)
 
     def build_curve(self, path, index, x, y):
 
@@ -70,8 +72,6 @@ class ShadingDrawer:
 
         if index < len(self.rectangles) - 1:
             self.build_curve(path, index + 1, x, y + height)
-        else:
-            path.lineTo(x + width, y + height)
 
         # Линия вверх
         path.lineTo(x + width, y + height)
@@ -79,9 +79,13 @@ class ShadingDrawer:
         # Влево
         path.lineTo(x + width - offset, y)
 
+        self.scene.addLine(QLineF(x + width, y + height, x + width, y), self.pen_hole)
+        self.scene.addLine(QLineF(x + width, y, x + width - offset, y), self.pen_hole)
+
         if index == 0:
             # Верхняя линия
             path.lineTo(x, y)
+            self.scene.addLine(QLineF(x + width - offset, y, x, y), self.pen_hole)
 
     def draw_curve(self):
         path = QPainterPath()
@@ -2035,37 +2039,37 @@ class MainWindow(QMainWindow):
             if row == 0:
                 first_diameter_hole = diameter_hole
 
-            def draw_vertical_lines(x1, x2, y_start, y_end):
-                scene.addLine(QLineF(x1, y_start, x1, y_end), pen_hole)
-                scene.addLine(QLineF(x2, y_start, x2, y_end), pen_hole)
-
-            def draw_horizontal_lines(x1, x2, y):
-                scene.addLine(QLineF(x1, y, x2, y), pen_hole)
-
-            # Для первой строки: рисуем горизонтальные и вертикальные линии
-            if row == 0:
-                draw_horizontal_lines(x_offset - diameter_hole / 2 - horizontal_offset,
-                                      x_offset - diameter_hole / 2, end - length)
-                draw_vertical_lines(x_offset - diameter_hole / 2, x_offset + diameter_hole / 2, end - length,
-                                    end + vertical_padding)
-                draw_horizontal_lines(x_offset + diameter_hole / 2,
-                                      x_offset + diameter_hole / 2 + horizontal_offset, end - length)
-
-            else:
-                # Соединение с предыдущим элементом
-                draw_horizontal_lines(x_offset - last_diameter_hole / 2, x_offset - diameter_hole / 2,
-                                      last_end + vertical_padding)
-                draw_horizontal_lines(x_offset + last_diameter_hole / 2, x_offset + diameter_hole / 2,
-                                      last_end + vertical_padding)
-                draw_vertical_lines(x_offset - diameter_hole / 2, x_offset + diameter_hole / 2,
-                                    last_end + vertical_padding, end + vertical_padding)
-
+            # def draw_vertical_lines(x1, x2, y_start, y_end):
+            #     scene.addLine(QLineF(x1, y_start, x1, y_end), pen_hole)
+            #     scene.addLine(QLineF(x2, y_start, x2, y_end), pen_hole)
+            #
+            # def draw_horizontal_lines(x1, x2, y):
+            #     scene.addLine(QLineF(x1, y, x2, y), pen_hole)
+            #
+            # # Для первой строки: рисуем горизонтальные и вертикальные линии
+            # if row == 0:
+            #     draw_horizontal_lines(x_offset - diameter_hole / 2 - horizontal_offset,
+            #                           x_offset - diameter_hole / 2, end - length)
+            #     draw_vertical_lines(x_offset - diameter_hole / 2, x_offset + diameter_hole / 2, end - length,
+            #                         end + vertical_padding)
+            #     draw_horizontal_lines(x_offset + diameter_hole / 2,
+            #                           x_offset + diameter_hole / 2 + horizontal_offset, end - length)
+            #
+            # else:
+            #     # Соединение с предыдущим элементом
+            #     draw_horizontal_lines(x_offset - last_diameter_hole / 2, x_offset - diameter_hole / 2,
+            #                           last_end + vertical_padding)
+            #     draw_horizontal_lines(x_offset + last_diameter_hole / 2, x_offset + diameter_hole / 2,
+            #                           last_end + vertical_padding)
+            #     draw_vertical_lines(x_offset - diameter_hole / 2, x_offset + diameter_hole / 2,
+            #                         last_end + vertical_padding, end + vertical_padding)
+            #
             # Рисуем casing для текущего элемента
             scene.addRect(QRectF(x_offset - diameter_casing / 2, end - length, diameter_casing, length), pen_casing,
                           brush_casing)
 
             # Обновляем координаты для следующей итерации
-            last_end = end
+            # last_end = end
             last_diameter_hole = diameter_hole
 
         scene.setSceneRect(0, 0, view_width, view_height)
