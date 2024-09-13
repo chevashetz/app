@@ -1171,11 +1171,11 @@ class KNBK_Table(QWidget):
 
     def add_QCombobox_cell_clicked(self, row, column):
         try:
-            self.delete_image_KNBK(row_count=row)
-            self.add_QCombobox(row_count=row, column=column)
+            if row>0 and column==0:
+                self.delete_image_KNBK(row_count=row)
+                self.add_QCombobox(row_count=row, column=column)
         except Exception as e:
             print(f"Произошла ошибка: {e}")
-
 
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
