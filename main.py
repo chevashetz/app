@@ -2109,8 +2109,18 @@ class MainWindow(QMainWindow):
                             profile_value = text[
                                             start_index:end_index] if start_index > 0 and end_index > start_index else ""
                             drilling_fluids_item = QTableWidgetItem(profile_value)
-                        else:
+                        elif column == 1:
                             drilling_fluids_item = QTableWidgetItem(text)
+                        else:
+                            first_value = self.extract_number(self.tbl_casing_strings.item(row, 1).text())
+                            second_value = self.extract_number(self.tbl_casing_strings.item(row, 2).text())
+
+                            if first_value is not None and second_value is not None:
+                                difference = first_value - second_value
+                                drilling_fluids_item = QTableWidgetItem(str(difference))
+                            else:
+                                drilling_fluids_item = QTableWidgetItem("Ошибка")
+
                         drilling_fluids_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                         self.tbl_drilling_fluids.setItem(row, column, drilling_fluids_item)
                 except Exception as e:
