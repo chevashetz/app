@@ -2013,7 +2013,6 @@ class MainWindow(QMainWindow):
         scene = self.graphicsView_casing_strings.scene()
         scene.clear()
 
-        # Константы для размеров и смещений
         view_width = 360
         view_height = 570
         max_hole_width = 940
