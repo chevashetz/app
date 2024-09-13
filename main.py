@@ -203,7 +203,6 @@ class DatabaseManager:
             return model
         return None
 
-
 class PasteCommand(QUndoCommand):
     def __init__(self, tableWidget, text_data, start_row, start_col, description, parent=None):
         super().__init__(description, parent)
@@ -270,7 +269,6 @@ class PasteCommand(QUndoCommand):
             self.old_data.append((current_row, old_row_data))
             current_row += 1
 
-
 class ComboHeader(QHeaderView):
     def __init__(self, parent=None):
         super(ComboHeader, self).__init__(Qt.Orientation.Horizontal, parent)
@@ -289,7 +287,6 @@ class ComboHeader(QHeaderView):
             x = self.sectionViewportPosition(index)
             w = self.sectionSize(index)
             self.combobox.setGeometry(x, 0, w, self.height())
-
 
 class UpdateTableCommand(QUndoCommand):
     def __init__(self, knbk_table_instance, old_data, new_data, description="загрузку КНБК"):
@@ -323,7 +320,6 @@ class UpdateTableCommand(QUndoCommand):
         # Восстановление начального состояния
         self.knbk_table_instance.restore_initial_state()
         self.knbk_table_instance.add_label(f"КНБК - {self.knbk_table_instance.tbl_KNBK.item(0, 4).text()} мм")
-
 
 class CsvTableDialog(QDialog):
     data_selected = pyqtSignal(list, str)
@@ -538,7 +534,6 @@ class CsvTableDialog(QDialog):
                 print("Error: item is None")
         except Exception as e:
             print(f"Error in cell_was_double_clicked_2: {e}")
-
 
 class KNBK_Table(QWidget):
     def __init__(self, index, sort_key=None, parent=None):
@@ -1616,7 +1611,6 @@ class MainWindow(QMainWindow):
             current_azimuth_angle = data[0, 2]
             current_coordinates = np.array([0, 0, 0], dtype=np.float64)
 
-            # Записываем начальные координаты
             self.selected_data = [current_coordinates.copy()]
 
             # Выполняем расчет для каждой строки, начиная с первой
@@ -1628,7 +1622,6 @@ class MainWindow(QMainWindow):
                 next_zenith_angle = current_zenith_angle + delta_zenith_angle
                 next_azimuth_angle = current_azimuth_angle + delta_azimuth_angle
 
-                # Вычисляем изменения координат
                 delta_x = delta_L * np.sin(next_zenith_angle) * np.cos(next_azimuth_angle)
                 delta_y = delta_L * np.sin(next_zenith_angle) * np.sin(next_azimuth_angle)
                 delta_z = delta_L * np.cos(next_zenith_angle)
@@ -1636,7 +1629,6 @@ class MainWindow(QMainWindow):
                 current_coordinates += np.array([delta_x, delta_y, delta_z])
                 self.selected_data.append(current_coordinates.copy())
 
-                # Update angles for the next iteration
                 current_zenith_angle = next_zenith_angle
                 current_azimuth_angle = next_azimuth_angle
 
@@ -1644,12 +1636,10 @@ class MainWindow(QMainWindow):
             selected_data = np.array(self.selected_data)
             self.plot_graph(selected_data)
 
-            # Update delta_z for the current row if the row is complete
             if self.is_row_complete(row, [0, 1, 2], self.tbl_profile):
                 delta_z = current_coordinates[2]
                 self.tbl_profile.setItem(row, 5, QTableWidgetItem(str(round(delta_z, 2))))
             else:
-                # If the row is not complete, clear delta_z value
                 self.tbl_profile.setItem(row, 5, QTableWidgetItem(""))
 
     def process_excel_data(self, data):
@@ -1685,6 +1675,7 @@ class MainWindow(QMainWindow):
         return vertical_depth
 
     def populate_table(self, df):
+        self.tbl_profile.blockSignals(True)
         num_rows, num_cols = df.shape
         self.tbl_profile.setRowCount(num_rows)
         self.tbl_profile.setColumnCount(num_cols)
@@ -1709,9 +1700,10 @@ class MainWindow(QMainWindow):
 
         for index, row in df.iterrows():
             for col_index, value in enumerate(row):
-                item = QTableWidgetItem(str(value))
+                item = QTableWidgetItem(str(round(value,2)))
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.tbl_profile.setItem(index, col_index, item)
+        self.tbl_profile.blockSignals(False)
         self.tbl_profile.horizontalHeader().setVisible(True)
 
     def process_and_plot_data(self, data):
