@@ -2075,17 +2075,49 @@ class MainWindow(QMainWindow):
 
     def form_fluids(self):
         row_count_casing_strings = self.tbl_casing_strings.rowCount()
-        row_count_drilling_fluids = self.tbl_drilling_fluids.rowCount()
 
-        if row_count_casing_strings != row_count_drilling_fluids:
-            self.tbl_drilling_fluids.setRowCount(row_count_casing_strings)
+        grouped_rows = {}
 
         for row in range(row_count_casing_strings):
+            try:
+                fourth_column_item = self.tbl_casing_strings.item(row, 4)
+                if fourth_column_item:
+                    fourth_value = fourth_column_item.text().strip().lower()
+
+                    first_column_item = self.tbl_casing_strings.item(row, 1)
+                    first_value = self.extract_number(first_column_item.text()) if first_column_item else None
+
+                    if first_value is not None:
+                        if fourth_value not in grouped_rows:
+                            grouped_rows[fourth_value] = []
+
+                        grouped_rows[fourth_value].append((row, first_value))
+            except Exception as e:
+                print(f"Error processing row {row}: {e}")
+
+        group_count = len(grouped_rows)
+
+        self.tbl_drilling_fluids.setRowCount(group_count)
+
+        sorted_groups = sorted(grouped_rows.items(), key=lambda x: x[0],
+                               reverse=True)
+
+        next_max_first_value = None
+
+        drilling_fluids_row = 0
+
+        for group_key, rows in sorted_groups:
+
+            rows.sort(key=lambda x: x[1], reverse=True)
+
+            max_row, max_first_value = rows[0]
+
             for column in range(1, 3):
                 try:
-                    casing_item = self.tbl_casing_strings.item(row, column)
+                    casing_item = self.tbl_casing_strings.item(max_row, column)
                     if casing_item:
                         text = casing_item.text().strip().lower()
+
                         if column == 1 and "до забоя" in text:
                             start_index = text.find('(') + 1
                             end_index = text.find(')')
@@ -2095,19 +2127,23 @@ class MainWindow(QMainWindow):
                         elif column == 1:
                             drilling_fluids_item = QTableWidgetItem(text)
                         else:
-                            first_value = self.extract_number(self.tbl_casing_strings.item(row, 1).text())
-                            second_value = self.extract_number(self.tbl_casing_strings.item(row-1, 1).text())
-
-                            if first_value is not None and second_value is not None:
-                                difference = first_value - second_value
+                            if next_max_first_value is not None:
+                                difference = max_first_value - next_max_first_value
                                 drilling_fluids_item = QTableWidgetItem(str(difference))
                             else:
-                                drilling_fluids_item = QTableWidgetItem("Ошибка")
+                                lenght = self.tbl_casing_strings.item(0, 2)
+                                difference = max_first_value - lenght
+                                drilling_fluids_item = QTableWidgetItem(str(difference))
 
                         drilling_fluids_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                        self.tbl_drilling_fluids.setItem(row, column, drilling_fluids_item)
+                        self.tbl_drilling_fluids.setItem(drilling_fluids_row, column, drilling_fluids_item)
+
                 except Exception as e:
-                    print(f"Error updating drilling fluids at row {row}, column {column}: {e}")
+                    print(f"Error updating drilling fluids at row {drilling_fluids_row}, column {column}: {e}")
+
+            next_max_first_value = max_first_value
+
+            drilling_fluids_row += 1
 
     def load_stratigraphic_intervals(self):
         row_count = self.tbl_stratigraphy.rowCount()
