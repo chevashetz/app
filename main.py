@@ -1989,6 +1989,8 @@ class MainWindow(QMainWindow):
         print(f"Updated row: {row}, column: {column}, text: {text}")
 
     def extract_number(self, text):
+        if not text or text.strip() == "":
+            return 0
         text = text.replace(",", ".")
         match = re.search(r'\d+\.\d+', text)
         if match:
@@ -1996,7 +1998,8 @@ class MainWindow(QMainWindow):
         try:
             return float(text)
         except ValueError as ve:
-            print(f"Ошибка преобразования данных в строке {row}: {ve}")
+            print(f"Ошибка преобразования данных: {ve}")
+            return 0
 
     def draw_wellbore_diagram(self):
         scene = self.graphicsView_casing_strings.scene()
@@ -2049,36 +2052,9 @@ class MainWindow(QMainWindow):
             if row == 0:
                 first_diameter_hole = diameter_hole
 
-            # def draw_vertical_lines(x1, x2, y_start, y_end):
-            #     scene.addLine(QLineF(x1, y_start, x1, y_end), pen_hole)
-            #     scene.addLine(QLineF(x2, y_start, x2, y_end), pen_hole)
-            #
-            # def draw_horizontal_lines(x1, x2, y):
-            #     scene.addLine(QLineF(x1, y, x2, y), pen_hole)
-
-            # if row == 0:
-            #     draw_horizontal_lines(x_offset - diameter_hole / 2 - horizontal_offset,
-            #                           x_offset - diameter_hole / 2, end - length)
-            #     draw_vertical_lines(x_offset - diameter_hole / 2, x_offset + diameter_hole / 2, end - length,
-            #                         end + vertical_padding)
-            #     draw_horizontal_lines(x_offset + diameter_hole / 2,
-            #                           x_offset + diameter_hole / 2 + horizontal_offset, end - length)
-
-            # else:
-            #     # Соединение с предыдущим элементом
-            #     draw_horizontal_lines(x_offset - last_diameter_hole / 2, x_offset - diameter_hole / 2,
-            #                           last_end + vertical_padding)
-            #     draw_horizontal_lines(x_offset + last_diameter_hole / 2, x_offset + diameter_hole / 2,
-            #                           last_end + vertical_padding)
-            #     draw_vertical_lines(x_offset - diameter_hole / 2, x_offset + diameter_hole / 2,
-            #                         last_end + vertical_padding, end + vertical_padding)
-            #
-            # Рисуем casing для текущего элемента
             scene.addRect(QRectF(x_offset - diameter_casing / 2, end - length, diameter_casing, length), pen_casing,
                           brush_casing)
 
-            # Обновляем координаты для следующей итерации
-            # last_end = end
             last_diameter_hole = diameter_hole
 
         scene.setSceneRect(0, 0, view_width, view_height)
