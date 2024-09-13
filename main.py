@@ -7,6 +7,7 @@ import sys
 import numpy as np
 import pandas as pd
 from PyQt6 import uic
+#from PyQt6 import QtCore
 from PyQt6.QtCore import Qt, pyqtSignal, QRectF, QLineF, QStringListModel
 from PyQt6.QtGui import (QAction, QUndoStack, QUndoCommand, QKeySequence, QTextDocument, QFont, QPixmap, QPainter, QPen,
                          QBrush, QColor, QPainterPath)
@@ -841,7 +842,7 @@ class KNBK_Table(QWidget):
                                              path3 + "Предохранительный переводник.png"],
             "Обратный клапан": [path1 + "Обратный клапан.csv", path3 + "Обратный клапан.png"],
             "Ясс": [path1 + "Ясс.csv", path3 + "Ясс.png"],
-            "Калибратор": [path1 + "Калибратор.csv", path3 + "Калибратор.png"],
+            "Калибратор спиральный": [path1 + "Калибратор спиральный.csv", path3 + "Калибратор спиральный.png"],
             "УБТ": [path1 + "УБТ.csv", path3 + "УБТ.png"],
             "Телеметрия": [path1 + "Телеметрия.csv", path3 + "Телеметрия.png"]
         }
@@ -1308,7 +1309,14 @@ class MainWindow(QMainWindow):
 
         self.tbl_profile.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.tbl_stratigraphy.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.tbl_casing_strings.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
+        header = self.tbl_casing_strings.horizontalHeader()
+
+        for column in range(self.tbl_casing_strings.columnCount() - 1):
+            header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
+
+        header.setSectionResizeMode(self.tbl_casing_strings.columnCount() - 1, QHeaderView.ResizeMode.Stretch)
+
         self.tbl_drilling_fluids.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
         for col_stratigraphy in range(self.tbl_stratigraphy.columnCount()):
@@ -2126,15 +2134,34 @@ class MainWindow(QMainWindow):
         number_of_pages = self.tbl_casing_strings.rowCount()
         current_index = self.stackedWidget.currentIndex()
 
-        for i in range(1, number_of_pages):
+        unique_values = set()
+
+        existing_pages = set()
+        for i in range(self.stackedWidget.count()):
+            existing_pages.add(self.stackedWidget.widget(i).objectName())
+
+        for i in range(number_of_pages):
             item = self.tbl_casing_strings.item(i, 4)
-            sort_key = item.text()
             if item:
-                value = item.text()
+                value = self.extract_number(item.text())
             else:
                 value = "unknown"
-            text = f"КНБК - {value} мм"
-            self.add_page(text, sort_key)
+
+            if i == 0:
+                text = f"КНБК - {value} мм"
+                if text in existing_pages:
+                    continue
+                else:
+                    unique_values.add(value)
+
+            elif value not in unique_values and f"КНБК - {value} мм" not in existing_pages:
+                unique_values.add(value)
+                text = f"КНБК - {value} мм"
+                self.add_page(text, value)
+
+                new_page = self.stackedWidget.widget(self.stackedWidget.count() - 1)
+                new_page.setObjectName(text)
+
         next_index = min(current_index + 1, self.stackedWidget.count() - 1)
         self.stackedWidget.setCurrentIndex(next_index)
 
