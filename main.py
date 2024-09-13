@@ -2097,7 +2097,7 @@ class MainWindow(QMainWindow):
                             drilling_fluids_item = QTableWidgetItem(text)
                         else:
                             first_value = self.extract_number(self.tbl_casing_strings.item(row, 1).text())
-                            second_value = self.extract_number(self.tbl_casing_strings.item(row, 2).text())
+                            second_value = self.extract_number(self.tbl_casing_strings.item(row-1, 1).text())
 
                             if first_value is not None and second_value is not None:
                                 difference = first_value - second_value
