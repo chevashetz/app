@@ -717,14 +717,13 @@ class KNBK_Table(QWidget):
         else:
             self.labels.insert(row, new_label)
 
-
     def move_images_to_scroll_area(self):
         if not self.scroll_area.isVisible():
-            # Перебираем все лейблы в обычном порядке, добавляя сначала старые элементы
+
             for label in self.labels[::-1]:
                 label.setParent(self.image_container)
 
-                # self.image_container_layout.addWidget(label)
+                self.image_container_layout.addWidget(label)
             self.scroll_area.show()
 
     def move_images_back_to_page(self):
@@ -1113,14 +1112,13 @@ class KNBK_Table(QWidget):
             print(f"Error in update_table_data_list_2: {e}")
 
     def update_table_widget(self, data):
-        #self.clear_images()
+        self.clear_images()
 
         self.tbl_KNBK.clearContents()
         self.tbl_KNBK.setRowCount(len(data))
 
         self.add_image(mode="static", static_path=path3 + 'Долото.png')
 
-        # self.restore_initial_state()
         for row_index, row_data in enumerate(data):
             for col_index, value in enumerate(row_data):
                 if value is None:
@@ -1993,8 +1991,6 @@ class MainWindow(QMainWindow):
         print(f"Updated row: {row}, column: {column}, text: {text}")
 
     def extract_number(self, text):
-        if not text or text.strip() == "":
-            return 0
         text = text.replace(",", ".")
         match = re.search(r'\d+\.\d+', text)
         if match:
@@ -2031,6 +2027,9 @@ class MainWindow(QMainWindow):
         ends = []
         first_diameter_hole = 0
         for row in range(row_count):
+            item = self.tbl_casing_strings.item(row, 1)
+            if item is None or item.text()=="":
+                break
             end = self.extract_number(
                 self.tbl_casing_strings.item(row, 1).text())
             if row > 0 and end > last_end:
@@ -2041,6 +2040,8 @@ class MainWindow(QMainWindow):
             last_end = end
 
         for row in range(row_count):
+            if not self.is_row_complete(row, [1, 2, 3, 4], self.tbl_casing_strings) :
+                break
             scale_factor_y = view_height / total_height if total_height > 0 else 1
             end = self.extract_number(
                 self.tbl_casing_strings.item(row, 1).text()) * scale_factor_y
