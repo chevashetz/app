@@ -2095,53 +2095,39 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 print(f"Error processing row {row}: {e}")
 
-        group_count = len(grouped_rows)
+        sorted_groups = sorted(grouped_rows.items(), key=lambda x: x[1][0][0])
 
-        self.tbl_drilling_fluids.setRowCount(group_count)
-
-        sorted_groups = sorted(grouped_rows.items(), key=lambda x: x[0],
-                               reverse=True)
-
-        next_max_first_value = None
+        self.tbl_drilling_fluids.setRowCount(len(sorted_groups))
 
         drilling_fluids_row = 0
+        previous_depth_to = None
 
-        for group_key, rows in sorted_groups:
+        # Перебираем каждую группу
+        for group_index, (group_key, rows) in enumerate(sorted_groups):
+            rows.sort(key=lambda x: x[1],
+                      reverse=True)
 
-            rows.sort(key=lambda x: x[1], reverse=True)
+            max_first_value = max(x[1] for x in rows)
+            sum_second_values = sum(self.extract_number(self.tbl_casing_strings.item(row, 2).text()) for row, _ in rows)
 
-            max_row, max_first_value = rows[0]
+            if group_index == 0:
+                depth_from = max_first_value - sum_second_values
+                depth_to = max_first_value
 
-            for column in range(1, 3):
-                try:
-                    casing_item = self.tbl_casing_strings.item(max_row, column)
-                    if casing_item:
-                        text = casing_item.text().strip().lower()
+            else:
+                depth_from = previous_depth_to
 
-                        if column == 1 and "до забоя" in text:
-                            start_index = text.find('(') + 1
-                            end_index = text.find(')')
-                            profile_value = text[
-                                            start_index:end_index] if start_index > 0 and end_index > start_index else ""
-                            drilling_fluids_item = QTableWidgetItem(profile_value)
-                        elif column == 1:
-                            drilling_fluids_item = QTableWidgetItem(text)
-                        else:
-                            if next_max_first_value is not None:
-                                difference = max_first_value - next_max_first_value
-                                drilling_fluids_item = QTableWidgetItem(str(difference))
-                            else:
-                                lenght = self.tbl_casing_strings.item(0, 2)
-                                difference = max_first_value - lenght
-                                drilling_fluids_item = QTableWidgetItem(str(difference))
+                depth_to = max_first_value
 
-                        drilling_fluids_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                        self.tbl_drilling_fluids.setItem(drilling_fluids_row, column, drilling_fluids_item)
+            drilling_fluids_item_from = QTableWidgetItem(str(depth_from))
+            drilling_fluids_item_from.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.tbl_drilling_fluids.setItem(drilling_fluids_row, 1, drilling_fluids_item_from)
 
-                except Exception as e:
-                    print(f"Error updating drilling fluids at row {drilling_fluids_row}, column {column}: {e}")
+            drilling_fluids_item_to = QTableWidgetItem(str(depth_to))
+            drilling_fluids_item_to.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.tbl_drilling_fluids.setItem(drilling_fluids_row, 2, drilling_fluids_item_to)
 
-            next_max_first_value = max_first_value
+            previous_depth_to = depth_to
 
             drilling_fluids_row += 1
 
@@ -2270,12 +2256,12 @@ class MainWindow(QMainWindow):
     def save_to_db(self):
         stratigraphy_name, ok = QInputDialog.getText(self, "Имя", "Введите имя:")
 
-        if ok and stratigraphy_name.strip():  # Проверка на пустую строку
-            database = QSqlDatabase.addDatabase("QSQLITE")  # SQLite version 3
+        if ok and stratigraphy_name.strip():
+            database = QSqlDatabase.addDatabase("QSQLITE")
             database.setDatabaseName(path2 + "stratigraphy.db")
             if not database.open():
                 QMessageBox.critical(self, "Ошибка", "Не удалось открыть файл базы данных.")
-                return  # Выход из функции без завершения приложения
+                return
 
             query = QSqlQuery()
             query.exec(f"DROP TABLE {stratigraphy_name}")
