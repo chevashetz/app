@@ -29,9 +29,7 @@ path4 = "msh_files/"
 class CenteredItemDelegate(QStyledItemDelegate):
     def initStyleOption(self, option, index):
         super().initStyleOption(option, index)
-        # Устанавливаем выравнивание по центру
         option.displayAlignment = Qt.AlignmentFlag.AlignCenter
-
 
 class ShadingDrawer:
     def __init__(self, lengths, ends, diameter_offsets, diameter_hole, x_offset, scene=None, reverse=False):
@@ -106,7 +104,6 @@ class ShadingDrawer:
         path_item.setBrush(hatch_brush)
         self.scene.addItem(path_item)
 
-
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=4.5, height=1.5, dpi=100):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
@@ -114,7 +111,6 @@ class MplCanvas(FigureCanvas):
         super().__init__(self.fig)
         self.setParent(parent)
         self.setFixedSize(int(width * dpi), int(height * dpi))
-
 
 class DatabaseManager:
     def __init__(self, db_path=None):
