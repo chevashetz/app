@@ -696,7 +696,7 @@ class KNBK_Table(QWidget):
         total_height = self.current_y - image_height
 
         if total_height < 0:
-            # Если превышает лимит, перемещаем все изображения в ScrollArea
+
             self.move_images_to_scroll_area()
 
             new_label.setParent(self.image_container)
@@ -1113,7 +1113,7 @@ class KNBK_Table(QWidget):
             print(f"Error in update_table_data_list_2: {e}")
 
     def update_table_widget(self, data):
-        self.clear_images()
+        #self.clear_images()
 
         self.tbl_KNBK.clearContents()
         self.tbl_KNBK.setRowCount(len(data))
