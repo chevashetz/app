@@ -3,11 +3,13 @@ import logging
 import os
 import re
 import sys
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import xlsxwriter
 from PyQt6 import uic
-#from PyQt6 import QtCore
+# from PyQt6 import QtCore
 from PyQt6.QtCore import Qt, pyqtSignal, QRectF, QLineF, QStringListModel
 from PyQt6.QtGui import (QAction, QUndoStack, QUndoCommand, QKeySequence, QTextDocument, QFont, QPixmap, QPainter, QPen,
                          QBrush, QColor, QPainterPath)
@@ -30,6 +32,7 @@ class CenteredItemDelegate(QStyledItemDelegate):
     def initStyleOption(self, option, index):
         super().initStyleOption(option, index)
         option.displayAlignment = Qt.AlignmentFlag.AlignCenter
+
 
 class ShadingDrawer:
     def __init__(self, lengths, ends, diameter_offsets, diameter_hole, x_offset, scene=None, reverse=False):
@@ -104,6 +107,7 @@ class ShadingDrawer:
         path_item.setBrush(hatch_brush)
         self.scene.addItem(path_item)
 
+
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=4.5, height=1.5, dpi=100):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
@@ -111,6 +115,7 @@ class MplCanvas(FigureCanvas):
         super().__init__(self.fig)
         self.setParent(parent)
         self.setFixedSize(int(width * dpi), int(height * dpi))
+
 
 class DatabaseManager:
     def __init__(self, db_path=None):
@@ -200,6 +205,7 @@ class DatabaseManager:
             return model
         return None
 
+
 class PasteCommand(QUndoCommand):
     def __init__(self, tableWidget, text_data, start_row, start_col, description, parent=None):
         super().__init__(description, parent)
@@ -266,6 +272,7 @@ class PasteCommand(QUndoCommand):
             self.old_data.append((current_row, old_row_data))
             current_row += 1
 
+
 class ComboHeader(QHeaderView):
     def __init__(self, parent=None):
         super(ComboHeader, self).__init__(Qt.Orientation.Horizontal, parent)
@@ -284,6 +291,7 @@ class ComboHeader(QHeaderView):
             x = self.sectionViewportPosition(index)
             w = self.sectionSize(index)
             self.combobox.setGeometry(x, 0, w, self.height())
+
 
 class UpdateTableCommand(QUndoCommand):
     def __init__(self, knbk_table_instance, old_data, new_data, description="загрузку КНБК"):
@@ -317,6 +325,7 @@ class UpdateTableCommand(QUndoCommand):
         # Восстановление начального состояния
         self.knbk_table_instance.restore_initial_state()
         self.knbk_table_instance.add_label(f"КНБК - {self.knbk_table_instance.tbl_KNBK.item(0, 4).text()} мм")
+
 
 class CsvTableDialog(QDialog):
     data_selected = pyqtSignal(list, str)
@@ -531,6 +540,7 @@ class CsvTableDialog(QDialog):
                 print("Error: item is None")
         except Exception as e:
             print(f"Error in cell_was_double_clicked_2: {e}")
+
 
 class KNBK_Table(QWidget):
     def __init__(self, index, sort_key=None, parent=None):
@@ -1166,11 +1176,12 @@ class KNBK_Table(QWidget):
 
     def add_QCombobox_cell_clicked(self, row, column):
         try:
-            if row>0 and column==0:
+            if row > 0 and column == 0:
                 self.delete_image_KNBK(row_count=row)
                 self.add_QCombobox(row_count=row, column=column)
         except Exception as e:
             print(f"Произошла ошибка: {e}")
+
 
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
@@ -1268,20 +1279,19 @@ class MainWindow(QMainWindow):
         self.graphicsView_casing_strings = self.findChild(QGraphicsView, 'graphicsView_casing_strings')
         self.graphicsView_casing_strings.setScene(QGraphicsScene())
 
-        self.open_file_act: QAction = self.findChild(QAction, 'actionOpen')
+        menubar = self.menuBar()
+        file_menu = menubar.addMenu('Файл')
 
-        if not self.open_file_act:
-            self.open_file_act = QAction('Open', self)
-            menubar = self.menuBar()
-            fileMenu = menubar.addMenu('File')
-            self.open_file_act.setShortcut('Ctrl+O')
-            self.open_file_act.setStatusTip('Open new file')
-            self.open_file_act.triggered.connect(self.open_file)
-            fileMenu.addAction(self.open_file_act)
-        else:
-            self.open_file_act.setShortcut('Ctrl+O')
-            self.open_file_act.setStatusTip('Open new file')
-            self.open_file_act.triggered.connect(self.open_file)
+        self.open_file_act = QAction('Open', self)
+        self.open_file_act.setShortcut('Ctrl+O')
+        self.open_file_act.setStatusTip('Open new file')
+        self.open_file_act.triggered.connect(self.open_file)
+        file_menu.addAction(self.open_file_act)
+
+        self.print_action = QAction('Печать', self)
+        self.print_action.setShortcut('Ctrl+P')
+        self.print_action.triggered.connect(self.print_report)
+        file_menu.addAction(self.print_action)
 
         self.stackedWidget.currentChanged.connect(self.on_current_index_changed)
         self.btn_go_to_next_page.clicked.connect(self.go_to_next_page)
@@ -1369,6 +1379,43 @@ class MainWindow(QMainWindow):
         self.disable_editing_for_rows()
         self.graphicsView_casing_strings.setBackgroundBrush(Qt.GlobalColor.white)
         self.graphicsView_profile.setBackgroundBrush(Qt.GlobalColor.white)
+
+    def print_report(self):
+        file_path, _ = QFileDialog.getSaveFileName(self, "Сохранить отчет", "", "Excel Files (*.xlsx)")
+        if file_path:
+            workbook = xlsxwriter.Workbook(file_path)
+
+            self.export_page(workbook, self.tbl_profile, "Профиль", self.graphicsView_profile)
+            self.export_page(workbook, self.tbl_stratigraphy, "Стратиграфия")
+            self.export_page(workbook, self.tbl_pressure, "Давления", self.graphicsView_pressure,
+                             self.graphicsView_gradient_pressure)
+            self.export_page(workbook, self.tbl_casing_strings, "Обсадные колонны", self.graphicsView_casing_strings)
+            self.export_page(workbook, self.tbl_drilling_fluids, "Буровые растворы")
+            self.export_page(workbook, self.stackedWidget.widget(4).tbl_KNBK, "КНБК")
+
+            workbook.close()
+            QMessageBox.information(self, "Успех", "Отчет успешно сохранен.")
+
+    def export_page(self, workbook, table, sheet_name, *graphics_views):
+        worksheet = workbook.add_worksheet(sheet_name)
+
+        # Экспорт данных таблицы
+        for row in range(table.rowCount()):
+            for col in range(table.columnCount()):
+                item = table.item(row, col)
+                if item:
+                    worksheet.write(row, col, item.text())
+
+        Path("resources").mkdir(parents=True, exist_ok=True)
+        # Экспорт графиков
+        for i, view in enumerate(graphics_views):
+            filename = f"resources/{sheet_name}_{i}.png"
+            self.get_image_from_graphics_view(view, filename)
+            worksheet.insert_image(0, table.columnCount() + 2 + i * 10, filename)
+
+    def get_image_from_graphics_view(self, graphics_view, filename: str):
+        pixmap = graphics_view.grab()
+        pixmap.save(filename, "PNG")
 
     def disable_editing_for_rows(self):
         for row in [0, 1]:
@@ -1702,7 +1749,7 @@ class MainWindow(QMainWindow):
 
         for index, row in df.iterrows():
             for col_index, value in enumerate(row):
-                item = QTableWidgetItem(str(round(value,2)))
+                item = QTableWidgetItem(str(round(value, 2)))
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.tbl_profile.setItem(index, col_index, item)
         self.tbl_profile.blockSignals(False)
@@ -2026,21 +2073,22 @@ class MainWindow(QMainWindow):
         diameter_offsets = []
         ends = []
         first_diameter_hole = 0
+        row = 0
         for row in range(row_count):
             item = self.tbl_casing_strings.item(row, 1)
-            if item is None or item.text()=="":
+            if item is None or item.text() == "":
                 break
             end = self.extract_number(
                 self.tbl_casing_strings.item(row, 1).text())
             if row > 0 and end > last_end:
                 total_height = self.extract_number(
-                    self.tbl_casing_strings.item(row_count - 1, 1).text()) + 2 * vertical_padding
+                    self.tbl_casing_strings.item(row - 1, 1).text()) + 2 * vertical_padding
             else:
                 total_height = last_end
             last_end = end
 
         for row in range(row_count):
-            if not self.is_row_complete(row, [1, 2, 3, 4], self.tbl_casing_strings) :
+            if not self.is_row_complete(row, [1, 2, 3, 4], self.tbl_casing_strings):
                 break
             scale_factor_y = view_height / total_height if total_height > 0 else 1
             end = self.extract_number(
@@ -2062,7 +2110,7 @@ class MainWindow(QMainWindow):
             last_diameter_hole = diameter_hole
 
         scene.setSceneRect(0, 0, view_width, view_height)
-        if self.tbl_casing_strings.rowCount() != 0:
+        if row != 0:
             ShadingDrawer(lengths, ends, diameter_offsets, first_diameter_hole, x_offset, scene).draw_curve()
             ShadingDrawer(lengths, ends, diameter_offsets, first_diameter_hole, x_offset, scene,
                           reverse=True).draw_curve()
