@@ -1399,19 +1399,54 @@ class MainWindow(QMainWindow):
     def export_page(self, workbook, table, sheet_name, *graphics_views):
         worksheet = workbook.add_worksheet(sheet_name)
 
-        # Экспорт данных таблицы
+        center_format = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
+
+        # Экспорт горизонтальных заголовков
+        for col in range(table.columnCount()):
+            header_item = table.horizontalHeaderItem(col)
+            if header_item:
+                worksheet.write(0, col + 1, header_item.text(), center_format)
+
+        # Экспорт вертикальных заголовков
         for row in range(table.rowCount()):
-            for col in range(table.columnCount()):
-                item = table.item(row, col)
-                if item:
-                    worksheet.write(row, col, item.text())
+            header_item = table.verticalHeaderItem(row)
+            if header_item:
+                worksheet.write(row + 1, 0, header_item.text(), center_format)
+
+        # Экспорт данных таблицы
+        merged_cells = []
+
+        for row in range(table.rowCount()):
+            col = 0
+            while col < table.columnCount():
+                cell_widget = table.cellWidget(row, col)
+                if isinstance(cell_widget, QComboBox):
+                    value = cell_widget.currentText()
+                else:
+                    item = table.item(row, col)
+                    value = item.text() if item else ""
+
+                # Проверка на объединенные ячейки в col
+                col_span = table.columnSpan(row, col)
+                if col_span != 1:
+                    merged_cells.append((row + 1, col + 1, row, col + col_span, value))
+                    col += col_span
+                else:
+                    worksheet.write(row + 1, col + 1, value, center_format)
+                    col += 1
+
+        # Объединение ячеек
+        for start_row, start_col, end_row, end_col, value in merged_cells:
+            worksheet.merge_range(start_row, start_col, end_row, end_col, value, center_format)
+
+        worksheet.autofit()
 
         Path("resources").mkdir(parents=True, exist_ok=True)
         # Экспорт графиков
         for i, view in enumerate(graphics_views):
             filename = f"resources/{sheet_name}_{i}.png"
             self.get_image_from_graphics_view(view, filename)
-            worksheet.insert_image(0, table.columnCount() + 2 + i * 10, filename)
+            worksheet.insert_image(0, table.columnCount() + 3 + i * 10, filename)
 
     def get_image_from_graphics_view(self, graphics_view, filename: str):
         pixmap = graphics_view.grab()
