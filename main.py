@@ -2,6 +2,7 @@ import csv
 import logging
 import os
 import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -1382,23 +1383,29 @@ class MainWindow(QMainWindow):
     def print_report(self):
         file_path, _ = QFileDialog.getSaveFileName(self, "Сохранить отчет", "", "Excel Files (*.xlsx)")
         if file_path:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            resources_dir = Path(file_path).parent / "resources"
+            if resources_dir.exists():
+                shutil.rmtree(resources_dir)
+
             workbook = xlsxwriter.Workbook(file_path)
 
-            self.export_page(workbook, self.tbl_profile, "Профиль", self.graphicsView_profile)
-            self.export_page(workbook, self.tbl_stratigraphy, "Стратиграфия")
-            self.export_page(workbook, self.tbl_pressure, "Давления", self.graphicsView_pressure,
+            self.export_page(workbook, self.tbl_profile, "Профиль", resources_dir, self.graphicsView_profile)
+            self.export_page(workbook, self.tbl_stratigraphy, "Стратиграфия", resources_dir)
+            self.export_page(workbook, self.tbl_pressure, "Давления", resources_dir, self.graphicsView_pressure,
                              self.graphicsView_gradient_pressure)
-            self.export_page(workbook, self.tbl_casing_strings, "Обсадные колонны", self.graphicsView_casing_strings)
-            self.export_page(workbook, self.tbl_drilling_fluids, "Буровые растворы")
-            self.export_page(workbook, self.stackedWidget.widget(4).tbl_KNBK, "КНБК")
+            self.export_page(workbook, self.tbl_casing_strings, "Обсадные колонны", resources_dir, self.graphicsView_casing_strings)
+            self.export_page(workbook, self.tbl_drilling_fluids, "Буровые растворы", resources_dir)
+            self.export_page(workbook, self.stackedWidget.widget(4).tbl_KNBK, "КНБК", resources_dir)
 
             workbook.close()
             QMessageBox.information(self, "Успех", "Отчет успешно сохранен.")
 
-    def export_page(self, workbook, table, sheet_name, *graphics_views):
+    def export_page(self, workbook, table, sheet_name, resources_dir, *graphics_views):
         worksheet = workbook.add_worksheet(sheet_name)
 
-        center_format = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
+        center_format = workbook.add_format({'align': 'center', 'valign': 'vcenter', 'border': 2})
 
         # Экспорт горизонтальных заголовков
         for col in range(table.columnCount()):
@@ -1440,7 +1447,7 @@ class MainWindow(QMainWindow):
 
         worksheet.autofit()
 
-        Path("resources").mkdir(parents=True, exist_ok=True)
+        resources_dir.mkdir(parents=True, exist_ok=True)
         # Экспорт графиков
         for i, view in enumerate(graphics_views):
             filename = f"resources/{sheet_name}_{i}.png"
