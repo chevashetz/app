@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 import xlsxwriter
 from PyQt6 import uic
-# from PyQt6 import QtCore
 from PyQt6.QtCore import Qt, pyqtSignal, QRectF, QLineF, QStringListModel
 from PyQt6.QtGui import (QAction, QUndoStack, QUndoCommand, QKeySequence, QTextDocument, QFont, QPixmap, QPainter, QPen,
                          QBrush, QColor, QPainterPath)
@@ -17,7 +16,7 @@ from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QStackedWidget, QHeaderView,
                              QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDialog, QInputDialog, QVBoxLayout,
                              QMenu, QGraphicsScene, QGraphicsView, QUndoView, QWidget, QHBoxLayout, QLabel, QMessageBox,
-                             QScrollArea, QGraphicsPathItem, QListView, QStyledItemDelegate)
+                             QScrollArea, QGraphicsPathItem, QListView, QStyledItemDelegate, QDockWidget)
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
@@ -1279,19 +1278,19 @@ class MainWindow(QMainWindow):
         self.graphicsView_casing_strings = self.findChild(QGraphicsView, 'graphicsView_casing_strings')
         self.graphicsView_casing_strings.setScene(QGraphicsScene())
 
-        menubar = self.menuBar()
-        file_menu = menubar.addMenu('Файл')
+        # menubar = self.menuBar()
+        # file_menu = menubar.addMenu('Файл')
 
-        self.open_file_act = QAction('Open', self)
-        self.open_file_act.setShortcut('Ctrl+O')
-        self.open_file_act.setStatusTip('Open new file')
+        self.open_file_act = self.findChild(QAction, 'open_file_action')
         self.open_file_act.triggered.connect(self.open_file)
-        file_menu.addAction(self.open_file_act)
 
-        self.print_action = QAction('Печать', self)
-        self.print_action.setShortcut('Ctrl+P')
+        self.print_action = self.findChild(QAction, 'print_action')
         self.print_action.triggered.connect(self.print_report)
-        file_menu.addAction(self.print_action)
+
+        self.view_menu = self.findChild(QMenu, 'view_menu')
+        self.dockWidget = self.findChild(QDockWidget, 'project_dockWidget')
+        self.toggle_dock_act = self.dockWidget.toggleViewAction()
+        self.view_menu.addAction(self.toggle_dock_act)
 
         self.stackedWidget.currentChanged.connect(self.on_current_index_changed)
         self.btn_go_to_next_page.clicked.connect(self.go_to_next_page)
@@ -1356,7 +1355,7 @@ class MainWindow(QMainWindow):
 
         self.merge_columns_1(0, 1, 3)
         self.merge_columns_2(0, 4, 7)
-        self.merge_columns_3(0, 8, 12)
+        self.merge_columns_3(0, 8, 11)
         self.set_column_width(0, 28)
         self.set_column_width(1, 130)
 
@@ -1407,11 +1406,11 @@ class MainWindow(QMainWindow):
             if header_item:
                 worksheet.write(0, col + 1, header_item.text(), center_format)
 
-        # Экспорт вертикальных заголовков
-        for row in range(table.rowCount()):
-            header_item = table.verticalHeaderItem(row)
-            if header_item:
-                worksheet.write(row + 1, 0, header_item.text(), center_format)
+        # # Экспорт вертикальных заголовков
+        # for row in range(table.rowCount()):
+        #     header_item = table.verticalHeaderItem(row)
+        #     if header_item:
+        #         worksheet.write(row + 1, 0, header_item.text(), center_format)
 
         # Экспорт данных таблицы
         merged_cells = []
