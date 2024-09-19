@@ -1695,39 +1695,11 @@ class MainWindow(QMainWindow):
                     data.append([L, zenith_angle, azimuth_angle])
 
             data = np.array(data)
-
-            # Начальные углы и координаты
-            current_zenith_angle = data[0, 1]
-            current_azimuth_angle = data[0, 2]
-            current_coordinates = np.array([0, 0, 0], dtype=np.float64)
-
-            self.selected_data = [current_coordinates.copy()]
-
-            # Выполняем расчет для каждой строки, начиная с первой
-            for i in range(1, len(data)):
-                delta_L = data[i, 0] - data[i - 1, 0]
-                delta_zenith_angle = data[i, 1] - data[i - 1, 1]
-                delta_azimuth_angle = data[i, 2] - data[i - 1, 2]
-
-                next_zenith_angle = current_zenith_angle + delta_zenith_angle
-                next_azimuth_angle = current_azimuth_angle + delta_azimuth_angle
-
-                delta_x = delta_L * np.sin(next_zenith_angle) * np.cos(next_azimuth_angle)
-                delta_y = delta_L * np.sin(next_zenith_angle) * np.sin(next_azimuth_angle)
-                delta_z = delta_L * np.cos(next_zenith_angle)
-
-                current_coordinates += np.array([delta_x, delta_y, delta_z])
-                self.selected_data.append(current_coordinates.copy())
-
-                current_zenith_angle = next_zenith_angle
-                current_azimuth_angle = next_azimuth_angle
-
-            # Convert the list of coordinates to an array and update the graph
-            selected_data = np.array(self.selected_data)
+            selected_data = self.calculate_coords(data)
             self.plot_graph(selected_data)
 
             if self.is_row_complete(row, [0, 1, 2], self.tbl_profile):
-                delta_z = current_coordinates[2]
+                delta_z = selected_data[row][2]
                 self.tbl_profile.setItem(row, 5, QTableWidgetItem(str(round(delta_z, 2))))
             else:
                 self.tbl_profile.setItem(row, 5, QTableWidgetItem(""))
@@ -1743,7 +1715,8 @@ class MainWindow(QMainWindow):
             data['Глубина по верт(м)'] = vertical_depths
 
             self.populate_table(data)
-            self.process_and_plot_data(data)
+            selected_data = self.calculate_coords(data.to_numpy())
+            self.plot_graph(selected_data)
         except Exception as e:
             logging.error(f"Error processing Excel data: {e}")
 
@@ -1796,16 +1769,14 @@ class MainWindow(QMainWindow):
         self.tbl_profile.blockSignals(False)
         self.tbl_profile.horizontalHeader().setVisible(True)
 
-    def process_and_plot_data(self, data):
-        current_coordinates = np.array([0.0, 0.0, 0.0], dtype=np.float64)
+    def calculate_coords(self, data: np.array):
         current_zenith_angle = np.radians(0)
         current_azimuth_angle = np.radians(0)
-        selected_data = [current_coordinates.copy()]
-
+        selected_data = np.zeros((1, 3))
         for i in range(1, len(data)):
-            delta_L = data.iloc[i, 0] - data.iloc[i - 1, 0]
-            delta_zenith_angle = np.radians(data.iloc[i, 1] - data.iloc[i - 1, 1])
-            delta_azimuth_angle = np.radians(data.iloc[i, 2] - data.iloc[i - 1, 2])
+            delta_L = data[i, 0] - data[i - 1, 0]
+            delta_zenith_angle = np.radians(data[i, 1] - data[i - 1, 1])
+            delta_azimuth_angle = np.radians(data[i, 2] - data[i - 1, 2])
 
             next_zenith_angle = current_zenith_angle + delta_zenith_angle
             next_azimuth_angle = current_azimuth_angle + delta_azimuth_angle
@@ -1814,14 +1785,12 @@ class MainWindow(QMainWindow):
             delta_y = delta_L * np.sin(next_zenith_angle) * np.sin(next_azimuth_angle)
             delta_z = delta_L * np.cos(next_zenith_angle)
 
-            current_coordinates += np.array([delta_x, delta_y, delta_z])
-            selected_data.append(current_coordinates.copy())
+            selected_data = np.vstack((selected_data, np.array([delta_x, delta_y, delta_z])))
 
             current_zenith_angle = next_zenith_angle
             current_azimuth_angle = next_azimuth_angle
-
-        selected_data = np.array(selected_data)
-        self.plot_graph(selected_data)
+        selected_data = np.cumsum(selected_data, axis=0)
+        return selected_data
 
     def plot_graph(self, data):
         fig = Figure()
