@@ -1706,24 +1706,29 @@ class MainWindow(QMainWindow):
 
     def process_excel_data(self, data):
         try:
+            '''
             if self.has_headers(data):
                 data.columns = data.iloc[0]
                 data = data[1:].reset_index(drop=True)
-
+            '''
             self.validate_data(data)
             vertical_depths = self.calculate_vertical_depth(data)
             data['Глубина по верт(м)'] = vertical_depths
+            vertical_deviation = self.calculate_vertical_deviation(data)
+            data['Отход от верт(м)'] = vertical_deviation
+            intensity_curvature = self.calculate_intensity_curvature(data)
+            data['1'] = intensity_curvature
 
             self.populate_table(data)
             selected_data = self.calculate_coords(data.to_numpy())
             self.plot_graph(selected_data)
         except Exception as e:
             logging.error(f"Error processing Excel data: {e}")
-
+    '''
     def has_headers(self, df):
         first_row = df.iloc[0]
         return all(isinstance(val, str) for val in first_row) and len(set(first_row)) == len(first_row)
-
+    '''
     def validate_data(self, df):
         if df.shape[1] < 3:
             raise ValueError("The file must have at least 3 columns for calculations.")
@@ -1737,16 +1742,58 @@ class MainWindow(QMainWindow):
             vertical_depth.append(vertical_depth[-1] + delta_z)
         return vertical_depth
 
+    def calculate_vertical_deviation(self, df):
+        vertical_deviation = [0.0]
+
+        for i in range(1, len(df)):
+            delta_L = df.iloc[i, 0] - df.iloc[i - 1, 0]
+
+            current_zenith_angle = np.radians(df.iloc[i, 1])
+            delta_vertical_deviation = delta_L * np.sin(current_zenith_angle)
+            '''
+            azimuth_angle = np.radians(df.iloc[i, 2])
+
+            # Normalize azimuth angle to avoid large changes due to wrapping
+
+            # Calculate deviations in x and y directions
+            delta_x = delta_L * np.sin(zenith_angle) * np.cos(azimuth_angle)
+            delta_y = delta_L * np.sin(zenith_angle) * np.sin(azimuth_angle)
+
+            # Calculate vertical deviation (assuming only horizontal deviations are needed)
+            delta_vertical_deviation = np.sqrt(delta_x ** 2 + delta_y ** 2)
+            '''
+            vertical_deviation.append(vertical_deviation[-1]+delta_vertical_deviation)
+
+        return vertical_deviation
+
+    def calculate_vertical_depth(self, df):
+        vertical_depth = [0.0]
+        for i in range(1, len(df)):
+            delta_L = df.iloc[i, 0] - df.iloc[i - 1, 0]
+            current_zenith_angle = np.radians(df.iloc[i, 1])
+            delta_z = delta_L * np.cos(current_zenith_angle)
+            vertical_depth.append(vertical_depth[-1] + delta_z)
+        return vertical_depth
+
+    def calculate_intensity_curvature(self, df):
+        intensity_curvature = [0.0]
+        for i in range(1, len(df)):
+            delta_L = df.iloc[i, 0] - df.iloc[i - 1, 0]
+            delta_deviation = df.iloc[i, 4] - df.iloc[i - 1, 4]
+            value_intensity_curvature = delta_deviation/delta_L
+            intensity_curvature.append(value_intensity_curvature)
+        return intensity_curvature
+
     def populate_table(self, df):
         self.tbl_profile.blockSignals(True)
         num_rows, num_cols = df.shape
         self.tbl_profile.setRowCount(num_rows)
-        self.tbl_profile.setColumnCount(num_cols)
-
+        #self.tbl_profile.setColumnCount(num_cols)
+        '''
         headers = ["Глубина по стволу (м)", "Зенитный угол (град)", "Азимут (град)", "Азимут маг(град)",
                    "Азимут дир(град)", "Глубина по верт(м)"]
-
-        if len(df.columns) == 4:
+        '''
+        if len(df.columns) == 5:
             text = ""
             header_item = QTableWidgetItem(text)
             self.tbl_profile.setHorizontalHeaderItem(2, header_item)
@@ -1755,12 +1802,21 @@ class MainWindow(QMainWindow):
             header_item = QTableWidgetItem(text)
             self.tbl_profile.setHorizontalHeaderItem(3, header_item)
             self.tbl_profile.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+            text = "Отклонение от верт(м)"
+            header_item = QTableWidgetItem(text)
+            self.tbl_profile.setHorizontalHeaderItem(4, header_item)
+            self.tbl_profile.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+            text = "Интенсивность искривления"
+            header_item = QTableWidgetItem(text)
+            self.tbl_profile.setHorizontalHeaderItem(5, header_item)
+            self.tbl_profile.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
+        '''
         if self.has_headers(df):
             headers = df.columns.astype(str).tolist()
             logging.info(f"Headers from file: {headers}")
             self.tbl_profile.setHorizontalHeaderLabels(headers)
-
+        '''
         for index, row in df.iterrows():
             for col_index, value in enumerate(row):
                 item = QTableWidgetItem(str(round(value, 2)))
