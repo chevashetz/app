@@ -1610,7 +1610,7 @@ class MainWindow(QMainWindow):
                    "Азимут дир(град)", "Глубина по верт(м)"]
 
         current_column_count = self.tbl_profile.columnCount()
-        if current_column_count < len(headers):
+        if current_column_count != len(headers):
             self.tbl_profile.setColumnCount(len(headers))
 
         self.tbl_profile.setHorizontalHeader(QHeaderView(Qt.Orientation.Horizontal))
@@ -1712,12 +1712,14 @@ class MainWindow(QMainWindow):
                 data = data[1:].reset_index(drop=True)
             '''
             self.validate_data(data)
-            vertical_depths = self.calculate_vertical_depth(data)
-            data['Глубина по верт(м)'] = vertical_depths
+            if data.shape[1]<4:
+                vertical_depths = self.calculate_vertical_depth(data)
+                data['Глубина по верт(м)'] = vertical_depths
+
             vertical_deviation = self.calculate_vertical_deviation(data)
             data['Отход от верт(м)'] = vertical_deviation
             intensity_curvature = self.calculate_intensity_curvature(data)
-            data['1'] = intensity_curvature
+            data['Интенсивность искревления'] = intensity_curvature
 
             self.populate_table(data)
             selected_data = self.calculate_coords(data.to_numpy())
@@ -1793,7 +1795,7 @@ class MainWindow(QMainWindow):
         headers = ["Глубина по стволу (м)", "Зенитный угол (град)", "Азимут (град)", "Азимут маг(град)",
                    "Азимут дир(град)", "Глубина по верт(м)"]
         '''
-        if len(df.columns) == 5:
+        if len(df.columns) == 6:
             text = ""
             header_item = QTableWidgetItem(text)
             self.tbl_profile.setHorizontalHeaderItem(2, header_item)
@@ -1811,6 +1813,17 @@ class MainWindow(QMainWindow):
             self.tbl_profile.setHorizontalHeaderItem(5, header_item)
             self.tbl_profile.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
+        elif len(df.columns) == 8:
+            self.tbl_profile.insertColumn(6)
+            self.tbl_profile.insertColumn(7)
+            text = "Отклонение от верт(м)"
+            header_item = QTableWidgetItem(text)
+            self.tbl_profile.setHorizontalHeaderItem(6, header_item)
+            self.tbl_profile.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+            text = "Интенсивность искривления"
+            header_item = QTableWidgetItem(text)
+            self.tbl_profile.setHorizontalHeaderItem(7, header_item)
+            self.tbl_profile.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         '''
         if self.has_headers(df):
             headers = df.columns.astype(str).tolist()
