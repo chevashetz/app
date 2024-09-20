@@ -1265,6 +1265,8 @@ class MainWindow(QMainWindow):
                                                                             'pushButton_load_stratigraphic_intervals')
         self.btn_add_row_pressure: QPushButton = self.findChild(QPushButton, 'pushButton_add_row_pressure')
         self.btn_delete_row_pressure: QPushButton = self.findChild(QPushButton, 'pushButton_delete_row_pressure')
+        self.btn_load_profile: QPushButton = self.findChild(QPushButton, 'pushButton_load_profile')
+
         self.lineEdit1: QLineEdit = self.findChild(QLineEdit, 'lineEdit_1')
         self.lineEdit2: QLineEdit = self.findChild(QLineEdit, 'lineEdit_2')
         self.lineEdit3: QLineEdit = self.findChild(QLineEdit, 'lineEdit_3')
@@ -1272,10 +1274,8 @@ class MainWindow(QMainWindow):
 
         self.graphicsView_profile = self.findChild(QGraphicsView, 'graphicsView_profile')
         self.graphicsView_profile.setScene(QGraphicsScene())
-
         self.graphicsView_pressure = self.findChild(QGraphicsView, 'graphicsView_pressure')
         self.graphicsView_gradient_pressure = self.findChild(QGraphicsView, 'graphicsView_gradient_pressure')
-
         self.graphicsView_casing_strings = self.findChild(QGraphicsView, 'graphicsView_casing_strings')
         self.graphicsView_casing_strings.setScene(QGraphicsScene())
 
@@ -1283,7 +1283,7 @@ class MainWindow(QMainWindow):
         # file_menu = menubar.addMenu('Файл')
 
         self.open_file_act = self.findChild(QAction, 'open_file_action')
-        self.open_file_act.triggered.connect(self.open_file)
+        self.open_file_act.triggered.connect(self.open_file_all)
 
         self.print_action = self.findChild(QAction, 'print_action')
         self.print_action.triggered.connect(self.print_report)
@@ -1310,6 +1310,7 @@ class MainWindow(QMainWindow):
         self.btn_load_stratigraphic_intervals.clicked.connect(self.load_stratigraphic_intervals)
         self.btn_add_row_pressure.clicked.connect(self.add_row_pressure)
         self.btn_delete_row_pressure.clicked.connect(self.delete_row_pressure)
+        self.btn_load_profile.clicked.connect(self.open_file)
 
         self.tbl_profile.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.tbl_stratigraphy.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -1380,6 +1381,8 @@ class MainWindow(QMainWindow):
         self.graphicsView_casing_strings.setBackgroundBrush(Qt.GlobalColor.white)
         self.graphicsView_profile.setBackgroundBrush(Qt.GlobalColor.white)
 
+    def open_file_all(self):
+        pass
     def print_report(self):
         file_path, _ = QFileDialog.getSaveFileName(self, "Сохранить отчет", "", "Excel Files (*.xlsx)")
         if file_path:
