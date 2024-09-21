@@ -313,7 +313,6 @@ class PasteCommand(QUndoCommand):
             self.old_data.append((current_row, old_row_data))
             current_row += 1
 
-
 class ComboHeader(QHeaderView):
     valueEntered = pyqtSignal(str)
     def __init__(self, parent=None):
