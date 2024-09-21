@@ -1702,10 +1702,26 @@ class MainWindow(QMainWindow):
             self.plot_graph(selected_data)
 
             if self.is_row_complete(row, [0, 1, 2], self.tbl_profile):
-                delta_z = selected_data[row][2]
-                self.tbl_profile.setItem(row, 5, QTableWidgetItem(str(round(delta_z, 2))))
-            else:
-                self.tbl_profile.setItem(row, 5, QTableWidgetItem(""))
+                '''
+                if self.tbl_profile.columnCount() == 4:
+                    self.tbl_profile.insertColumn(4)
+                    self.tbl_profile.insertColumn(5)
+                    self.tbl_profile.insertColumn(6)
+                '''
+                self.calculate_additional_columns(selected_data, row,3)
+
+    def calculate_additional_columns(self, selected_data, row, start_column=5):
+        delta_z = selected_data[row][2]
+        delta_y = selected_data[row][1]
+        delta_x = selected_data[row][0]
+        self.tbl_profile.setItem(row, start_column, QTableWidgetItem(str(round(delta_z, 2))))
+        sum_proection = (delta_y ** 2 + delta_x ** 2) ** 0.5
+        self.tbl_profile.setItem(row, start_column+1, QTableWidgetItem(str(round(sum_proection, 2))))
+        L_current = self.extract_number(self.tbl_profile.item(row, 0).text())
+        L_prev = self.extract_number(self.tbl_profile.item(row - 1 if row > 0 else row, 0).text())
+        delta_L = L_current - L_prev
+        if delta_L != 0:
+            self.tbl_profile.setItem(row, start_column+2, QTableWidgetItem(str(round(sum_proection / delta_L, 2))))
 
     def process_excel_data(self, data):
         try:
