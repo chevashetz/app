@@ -27,7 +27,6 @@ path2 = "db_files/"
 path3 = "images/"
 path4 = "msh_files/"
 
-
 class DualInputDialog(QDialog):
     def __init__(self, parent=None):
         super(DualInputDialog, self).__init__(parent)
@@ -70,6 +69,7 @@ class DualInputDialog(QDialog):
     def get_inputs(self):
         #Возвращает значения, введённые пользователем в оба поля
         return self.first_input.text(), self.second_input.text()
+
 class CenteredItemDelegate(QStyledItemDelegate):
     def initStyleOption(self, option, index):
         super().initStyleOption(option, index)
@@ -327,7 +327,7 @@ class ComboHeader(QHeaderView):
         self.combobox.currentIndexChanged.connect(self.on_combobox_header_changed)
 
     def on_combobox_header_changed(self, index):
-        if index == 1:  # Если выбран второй элемент
+        if index == 1:
             text, ok = QInputDialog.getText(self, "Магнитный угол", "Введите значение:")
             if ok and text:
                 self.valueEntered.emit(text)
@@ -343,7 +343,6 @@ class ComboHeader(QHeaderView):
             x = self.sectionViewportPosition(index)
             w = self.sectionSize(index)
             self.combobox.setGeometry(x, 0, w, self.height())
-
 
 class UpdateTableCommand(QUndoCommand):
     def __init__(self, knbk_table_instance, old_data, new_data, description="загрузку КНБК"):
@@ -1764,18 +1763,24 @@ class MainWindow(QMainWindow):
                     self.tbl_profile.insertColumn(5)
                     self.tbl_profile.insertColumn(6)
                 '''
-                self.calculate_additional_columns(selected_data, row,3)
+
+                if self.tbl_profile.rowCount() < 7:
+                    start_column = 3
+                else:
+                    start_column = 5
+                self.calculate_additional_columns(selected_data, row,start_column)
 
     def calculate_additional_columns(self, selected_data, row, start_column=5):
         delta_z = selected_data[row][2]
         delta_y = selected_data[row][1]
         delta_x = selected_data[row][0]
         self.tbl_profile.setItem(row, start_column, QTableWidgetItem(str(round(delta_z, 2))))
-        sum_proection = (delta_y ** 2 + delta_x ** 2) ** 0.5
-        self.tbl_profile.setItem(row, start_column+1, QTableWidgetItem(str(round(sum_proection, 2))))
+
         L_current = self.extract_number(self.tbl_profile.item(row, 0).text())
         L_prev = self.extract_number(self.tbl_profile.item(row - 1 if row > 0 else row, 0).text())
         delta_L = L_current - L_prev
+        sum_proection = (delta_y ** 2 + delta_x ** 2) ** 0.5
+        self.tbl_profile.setItem(row, start_column+1, QTableWidgetItem(str(round(sum_proection, 2))))
         if delta_L != 0:
             self.tbl_profile.setItem(row, start_column+2, QTableWidgetItem(str(round(sum_proection / delta_L, 2))))
 
