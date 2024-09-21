@@ -17,7 +17,7 @@ from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QStackedWidget, QHeaderView,
                              QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDialog, QInputDialog, QVBoxLayout,
                              QMenu, QGraphicsScene, QGraphicsView, QUndoView, QWidget, QHBoxLayout, QLabel, QMessageBox,
-                             QScrollArea, QGraphicsPathItem, QListView, QStyledItemDelegate, QDockWidget)
+                             QScrollArea, QGraphicsPathItem, QListView, QStyledItemDelegate, QDockWidget,QDialogButtonBox)
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
@@ -28,11 +28,52 @@ path3 = "images/"
 path4 = "msh_files/"
 
 
+class DualInputDialog(QDialog):
+    def __init__(self, parent=None):
+        super(DualInputDialog, self).__init__(parent)
+
+        # Устанавливаем заголовок окна
+        self.setWindowTitle("Ввод данных")
+
+        # Создаём первый текстовый ввод
+        self.first_input = QLineEdit(self)
+        self.first_input.setPlaceholderText("Введите первое значение")
+
+        # Создаём второй текстовый ввод
+        self.second_input = QLineEdit(self)
+        self.second_input.setPlaceholderText("Введите второе значение")
+
+        # Добавляем метки для каждого ввода (опционально)
+        self.first_label = QLabel("Первое значение:", self)
+        self.second_label = QLabel("Второе значение:", self)
+
+        # Создаём кнопки "ОК" и "Отмена"
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+
+        # Подключаем кнопки к функциям
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
+        # Размещение элементов в макете
+        layout = QVBoxLayout()
+
+        layout.addWidget(self.first_label)
+        layout.addWidget(self.first_input)
+
+        layout.addWidget(self.second_label)
+        layout.addWidget(self.second_input)
+
+        layout.addWidget(self.button_box)
+
+        self.setLayout(layout)
+
+    def get_inputs(self):
+        #Возвращает значения, введённые пользователем в оба поля
+        return self.first_input.text(), self.second_input.text()
 class CenteredItemDelegate(QStyledItemDelegate):
     def initStyleOption(self, option, index):
         super().initStyleOption(option, index)
         option.displayAlignment = Qt.AlignmentFlag.AlignCenter
-
 
 class ShadingDrawer:
     def __init__(self, lengths, ends, diameter_offsets, diameter_hole, x_offset, scene=None, reverse=False):
@@ -274,6 +315,7 @@ class PasteCommand(QUndoCommand):
 
 
 class ComboHeader(QHeaderView):
+    valueEntered = pyqtSignal(str)
     def __init__(self, parent=None):
         super(ComboHeader, self).__init__(Qt.Orientation.Horizontal, parent)
         self.setStretchLastSection(True)
@@ -283,7 +325,18 @@ class ComboHeader(QHeaderView):
         for i in range(self.combobox.count()):
             self.combobox.setItemData(i, Qt.AlignmentFlag.AlignCenter, Qt.ItemDataRole.TextAlignmentRole)
         self.setSectionsClickable(True)
+        self.combobox.currentIndexChanged.connect(self.on_combobox_header_changed)
 
+    def on_combobox_header_changed(self, index):
+        if index == 1:  # Если выбран второй элемент
+            text, ok = QInputDialog.getText(self, "Магнитный угол", "Введите значение:")
+            if ok and text:
+                self.valueEntered.emit(text)
+        elif index == 2:
+            dialog = DualInputDialog()
+            if dialog.exec() == QDialog.DialogCode.Accepted:  # Если нажата кнопка ОК
+                first_value, second_value = dialog.get_inputs()
+                print(f"Первое значение: {first_value}, Второе значение: {second_value}")
     def resizeEvent(self, event):
         super().resizeEvent(event)
         if self.combobox:
@@ -1383,6 +1436,10 @@ class MainWindow(QMainWindow):
 
     def open_file_all(self):
         pass
+
+    def handle_value_entered(self, value):
+        print(f"Получено значение: {value}")
+
     def print_report(self):
         file_path, _ = QFileDialog.getSaveFileName(self, "Сохранить отчет", "", "Excel Files (*.xlsx)")
         if file_path:
@@ -1802,7 +1859,9 @@ class MainWindow(QMainWindow):
             text = ""
             header_item = QTableWidgetItem(text)
             self.tbl_profile.setHorizontalHeaderItem(2, header_item)
-            self.tbl_profile.setHorizontalHeader(ComboHeader(self))
+            header = ComboHeader(self)
+            self.tbl_profile.setHorizontalHeader(header)
+            header.valueEntered.connect(self.handle_value_entered)
             text = "Глубина по верт(м)"
             header_item = QTableWidgetItem(text)
             self.tbl_profile.setHorizontalHeaderItem(3, header_item)
