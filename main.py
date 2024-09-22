@@ -10,143 +10,29 @@ import numpy as np
 import pandas as pd
 import xlsxwriter
 from PyQt6 import uic
-from PyQt6.QtCore import Qt, pyqtSignal, QRectF, QLineF, QStringListModel
-from PyQt6.QtGui import (QAction, QUndoStack, QUndoCommand, QKeySequence, QTextDocument, QFont, QPixmap, QPainter, QPen,
-                         QBrush, QColor, QPainterPath)
-from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
+from PyQt6.QtCore import Qt, pyqtSignal, QRectF, QStringListModel
+from PyQt6.QtGui import (QAction, QUndoStack, QUndoCommand, QKeySequence, QTextDocument, QPixmap, QPainter, QPen,
+                         QBrush)
+from PyQt6.QtSql import QSqlDatabase, QSqlQuery
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QStackedWidget, QHeaderView,
                              QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDialog, QInputDialog, QVBoxLayout,
-                             QMenu, QGraphicsScene, QGraphicsView, QUndoView, QWidget, QHBoxLayout, QLabel, QMessageBox,
-                             QScrollArea, QGraphicsPathItem, QListView, QStyledItemDelegate, QDockWidget,QDialogButtonBox)
+                             QMenu, QGraphicsScene, QGraphicsView, QUndoView, QWidget, QLabel, QMessageBox,
+                             QScrollArea, QListView, QStyledItemDelegate, QDockWidget)
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
+from components.db import DatabaseManager
+from components.dialogs import DualInputDialog, CsvTableDialog
+from components.shading_drawer import ShadingDrawer
+from config import path1, path2, path3
+
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
-path1 = "сsv_files/"
-path2 = "db_files/"
-path3 = "images/"
-path4 = "msh_files/"
 
-class DualInputDialog(QDialog):
-    def __init__(self, parent=None):
-        super(DualInputDialog, self).__init__(parent)
-
-        # Устанавливаем заголовок окна
-        self.setWindowTitle("Ввод данных")
-
-        # Создаём первый текстовый ввод
-        self.first_input = QLineEdit(self)
-        self.first_input.setPlaceholderText("Введите первое значение")
-
-        # Создаём второй текстовый ввод
-        self.second_input = QLineEdit(self)
-        self.second_input.setPlaceholderText("Введите второе значение")
-
-        # Добавляем метки для каждого ввода (опционально)
-        self.first_label = QLabel("Первое значение:", self)
-        self.second_label = QLabel("Второе значение:", self)
-
-        # Создаём кнопки "ОК" и "Отмена"
-        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-
-        # Подключаем кнопки к функциям
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
-
-        # Размещение элементов в макете
-        layout = QVBoxLayout()
-
-        layout.addWidget(self.first_label)
-        layout.addWidget(self.first_input)
-
-        layout.addWidget(self.second_label)
-        layout.addWidget(self.second_input)
-
-        layout.addWidget(self.button_box)
-
-        self.setLayout(layout)
-
-    def get_inputs(self):
-        #Возвращает значения, введённые пользователем в оба поля
-        return self.first_input.text(), self.second_input.text()
 
 class CenteredItemDelegate(QStyledItemDelegate):
     def initStyleOption(self, option, index):
         super().initStyleOption(option, index)
         option.displayAlignment = Qt.AlignmentFlag.AlignCenter
-
-class ShadingDrawer:
-    def __init__(self, lengths, ends, diameter_offsets, diameter_hole, x_offset, scene=None, reverse=False):
-        self.horizontal_offset = 30
-        self.reverse = reverse
-        self.x_offset = x_offset
-        self.diameter_hole = diameter_hole
-        self.lengths = lengths
-        self.scene = scene
-        self.ends = [ends[0]] + [max(ends[i] - ends[i - 1], 0) for i in range(1, len(ends))]
-        self.rectangles = [[end, max(self.horizontal_offset, offset)] for end, offset in
-                           zip(self.ends, diameter_offsets)]
-
-        self.offsets = [min(self.horizontal_offset, offset) for offset in diameter_offsets]
-        self.rectangles[0][0] += 5
-
-        if reverse:
-            for i in range(0, len(self.offsets)):
-                self.offsets[i] *= -1
-                self.rectangles[i][1] *= -1
-
-        self.pen_hole = QPen(Qt.GlobalColor.black, 2)
-
-    def build_curve(self, path, index, x, y):
-
-        # Текущие размеры и отступы блока
-        height, width = self.rectangles[index]
-        offset = self.offsets[index]
-
-        x += offset
-
-        # Начальная точка в верхнем левом углу блока
-        if index == 0:
-            path.moveTo(x, y)
-        # Слева направо
-        path.lineTo(x, y)
-        # Сверху-вниз линия
-        path.lineTo(x, y + height)
-
-        if index < len(self.rectangles) - 1:
-            self.build_curve(path, index + 1, x, y + height)
-
-        # Линия вверх
-        path.lineTo(x + width, y + height)
-        path.lineTo(x + width, y)
-        # Влево
-        path.lineTo(x + width - offset, y)
-
-        self.scene.addLine(QLineF(x + width, y + height, x + width, y), self.pen_hole)
-
-        if index == 0:
-            # Верхняя линия
-            path.lineTo(x, y)
-            self.scene.addLine(QLineF(x + width, y, x, y), self.pen_hole)
-        else:
-            self.scene.addLine(QLineF(x + width, y, x + width - offset, y), self.pen_hole)
-
-    def draw_curve(self):
-        path = QPainterPath()
-        self.build_curve(path, 0,
-                         self.x_offset - self.horizontal_offset if not self.reverse else self.x_offset + self.horizontal_offset,
-                         self.ends[0] - self.lengths[0])  # Начальная точка
-        path.closeSubpath()
-
-        # Добавление пути на сцену
-        path_item = QGraphicsPathItem(path)
-        # Установка прозрачного пера
-        transparent_pen = QPen(QColor(0, 0, 0, 0))  # Черный цвет с альфа-прозрачностью 50
-        path_item.setPen(transparent_pen)
-        # Установка штриховки для заливки
-        hatch_brush = QBrush(Qt.BrushStyle.DiagCrossPattern)
-        path_item.setBrush(hatch_brush)
-        self.scene.addItem(path_item)
 
 
 class MplCanvas(FigureCanvas):
@@ -156,95 +42,6 @@ class MplCanvas(FigureCanvas):
         super().__init__(self.fig)
         self.setParent(parent)
         self.setFixedSize(int(width * dpi), int(height * dpi))
-
-
-class DatabaseManager:
-    def __init__(self, db_path=None):
-        self.database = QSqlDatabase.addDatabase("QSQLITE")
-        if db_path:
-            self.database.setDatabaseName(db_path)
-            self.open_database()
-
-    def open_database(self):
-        if not self.database.open():
-            QMessageBox.critical(None, "Ошибка", "Не удалось открыть файл базы данных.")
-            return False
-        return True
-
-    def get_tables(self):
-        return self.database.tables()
-
-    def load_table(self, table_name):
-        model = QSqlTableModel()
-        model.setTable(table_name)
-        model.select()
-
-        if model.lastError().isValid():
-            QMessageBox.critical(None, "Ошибка", f"Не удалось загрузить данные: {model.lastError().text()}")
-            return None
-        return model
-
-    def close_database(self):
-        self.database.close()
-
-    custom_headers = ["Название", "Индексация", "Верх", "Низ", "Коэффициент ", "Плотность"]
-
-    def preview_table(self, table_name, custom_headers=None, parent=None):
-        model = self.load_table(table_name)
-        if not model:
-            return None
-
-        dialog = QDialog(parent)
-        dialog.setWindowTitle(f"Предварительный просмотр - {table_name}")
-        dialog.setGeometry(30, 150, 1410, 420)
-
-        layout = QVBoxLayout()
-
-        table_widget = QTableWidget()
-        table_widget.setRowCount(model.rowCount())
-        table_widget.setColumnCount(model.columnCount() - 1)
-
-        if custom_headers:
-            headers = custom_headers
-        else:
-            headers = [model.headerData(i, Qt.Orientation.Horizontal) for i in
-                       range(1, model.columnCount())]
-
-        table_widget.setHorizontalHeaderLabels(headers)
-
-        for row in range(model.rowCount()):
-            for col in range(1, model.columnCount()):
-                data = model.data(model.index(row, col))
-                item = QTableWidgetItem(str(data))
-                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                table_widget.setItem(row, col - 1, item)
-
-        header = table_widget.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-
-        layout.addWidget(table_widget)
-
-        button_layout = QHBoxLayout()
-
-        insert_button = QPushButton("Вставить в таблицу")
-        return_button = QPushButton("Вернуться к выбору таблицы")
-
-        insert_button.setFixedSize(685, 40)
-        return_button.setFixedSize(685, 40)
-
-        button_layout.addWidget(insert_button)
-        button_layout.addWidget(return_button)
-        layout.addLayout(button_layout)
-
-        dialog.setLayout(layout)
-
-        # Связываем кнопки с действиями
-        insert_button.clicked.connect(dialog.accept)
-        return_button.clicked.connect(dialog.reject)
-
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            return model
-        return None
 
 
 class PasteCommand(QUndoCommand):
@@ -375,226 +172,11 @@ class UpdateTableCommand(QUndoCommand):
 
         # Восстановление начального состояния
         self.knbk_table_instance.restore_initial_state()
-        self.knbk_table_instance.add_label(f"КНБК - {self.knbk_table_instance.tbl_KNBK.item(0, 4).text()} мм")
-
-
-class CsvTableDialog(QDialog):
-    data_selected = pyqtSignal(list, str)
-
-    def __init__(self, file_name, load_table=False, initial_sort_value_KNBK=None, sort_value_casing_srings=None,
-                 parent=None):
-        super().__init__(parent)
-        self.file_name = file_name
-        self.load_table = load_table
-        self.initial_sort_value_KNBK = initial_sort_value_KNBK
-        self.sort_value_casing_srings = sort_value_casing_srings
-        self.sort_order = Qt.SortOrder.AscendingOrder
-        self.sort_column = -1
-        self.initUI()
-
-    def initUI(self):
-        self.setWindowTitle('CSV Data')
-        self.setGeometry(60, 100, 1400, 700)
-        layout = QVBoxLayout()
-
-        self.tableWidget = QTableWidget(self)
-        layout.addWidget(self.tableWidget)
-
-        self.setLayout(layout)
-        self.load_csv()
-
-        self.tableWidget.setSortingEnabled(False)
-        self.tableWidget.horizontalHeader().setSortIndicatorShown(True)
-        self.tableWidget.horizontalHeader().sectionClicked.connect(self.on_header_clicked)
-
-        # Initial sort if values are provided
-        if self.load_table == False:
-            if self.sort_value_casing_srings is not None:
-                print("Sorting by sort_value_casing_srings")
-                self.sort_column = 3
-                self.sort_by_column_and_value(self.sort_column, self.sort_value_casing_srings)
-            elif self.initial_sort_value_KNBK is not None:
-                print(f"Sorting by initial_sort_value_KNBK: {self.initial_sort_value_KNBK}")
-                self.sort_column = 5
-                self.sort_by_column_and_value_custom(self.sort_column, self.initial_sort_value_KNBK)
-
-    def load_csv(self):
-        try:
-            with open(self.file_name, newline='', encoding='utf-8') as csvfile:
-                csvreader = csv.reader(csvfile)
-                data = list(csvreader)
-
-                if data:
-                    headers = data[0]
-                    self.tableWidget.setColumnCount(len(headers))
-                    self.tableWidget.setHorizontalHeaderLabels(headers)
-                    self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-
-                    for row_data in data[1:]:
-                        row = self.tableWidget.rowCount()
-                        self.tableWidget.insertRow(row)
-                        for col, cell_data in enumerate(row_data):
-                            item = QTableWidgetItem(cell_data.strip())
-                            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                            self.tableWidget.setItem(row, col, item)
-
-                    if not self.load_table:
-                        self.tableWidget.cellDoubleClicked.connect(self.cell_was_double_clicked)
-                    else:
-                        self.tableWidget.cellDoubleClicked.connect(self.cell_was_double_clicked_2)
-                        self.sort_by_column_and_value(0, self.sort_value_casing_srings)
-                        print("Connected cellDoubleClicked signal to cell_was_double_clicked_2")
-                else:
-                    print("No data found in the file.")
-        except Exception as e:
-            print(f"Error loading CSV: {e}")
-
-    def sort_by_column_and_value(self, column, value):
-        data = []
-        for row in range(self.tableWidget.rowCount()):
-            row_data = []
-            for col in range(self.tableWidget.columnCount()):
-                item = self.tableWidget.item(row, col)
-                row_data.append(item.text() if item else "")
-            data.append(row_data)
-
-        matching_rows = [row for row in data if row[column] == value]
-        non_matching_rows = [row for row in data if row[column] != value]
-
-        sorted_data = matching_rows + non_matching_rows
-
-        self.update_table_with_sorted_data(sorted_data)
-
-    def sort_by_column_and_value_custom(self, column, value):
-        try:
-            value_numeric = float(value.split('З-')[1])
-            print(value_numeric)
-        except (IndexError, ValueError):
-            value_numeric = float('inf')
-
-        data = []
-        for row in range(self.tableWidget.rowCount()):
-            row_data = []
-            for col in range(self.tableWidget.columnCount()):
-                item = self.tableWidget.item(row, col)
-                row_data.append(item.text() if item else "")
-            data.append(row_data)
-
-        def extract_numeric(text):
-            if text.startswith('З-'):
-                try:
-                    return float(text.split('З-')[1])
-                except (IndexError, ValueError):
-                    return float('inf')
-            return float('inf')
-
-        matching_rows = [row for row in data if extract_numeric(row[column]) == value_numeric]
-        non_matching_rows = [row for row in data if extract_numeric(row[column]) != value_numeric]
-
-        sorted_data = matching_rows + non_matching_rows
-
-        self.update_table_with_sorted_data(sorted_data)
-
-    def on_header_clicked(self, logical_index):
-        if self.sort_column == logical_index:
-            self.sort_order = Qt.SortOrder.DescendingOrder if self.sort_order == Qt.SortOrder.AscendingOrder else Qt.SortOrder.AscendingOrder
-        else:
-            self.sort_order = Qt.SortOrder.AscendingOrder
-        self.sort_column = logical_index
-        self.sort_table()
-
-    def sort_table(self):
-        data = []
-        for row in range(self.tableWidget.rowCount()):
-            row_data = []
-            for column in range(self.tableWidget.columnCount()):
-                item = self.tableWidget.item(row, column)
-                row_data.append(item.text() if item else "")
-            data.append(row_data)
-
-        data.sort(key=lambda row: self.custom_sort_key(row[self.sort_column]),
-                  reverse=self.sort_order == Qt.SortOrder.DescendingOrder)
-
-        self.update_table_with_sorted_data(data)
-
-    def update_table_with_sorted_data(self, sorted_data):
-        self.tableWidget.setRowCount(0)
-        for row_data in sorted_data:
-            row = self.tableWidget.rowCount()
-            self.tableWidget.insertRow(row)
-            for column, item in enumerate(row_data):
-                table_item = QTableWidgetItem(item)
-                table_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.tableWidget.setItem(row, column, table_item)
-
-    def custom_sort_key(self, text):
-        try:
-            return float(text)
-        except ValueError:
-            if text.startswith('З-'):
-                try:
-                    return int(text.split('З-')[1])
-                except ValueError:
-                    return text.lower()
-            return text.lower()
-
-    def cell_was_double_clicked(self, row, column):
-        try:
-            row_data = []
-            for col in range(self.tableWidget.columnCount()):
-                item = self.tableWidget.item(row, col)
-                if item:
-                    row_data.append(item.text())
-                else:
-                    row_data.append('')
-            self.data_selected.emit(row_data, "")
-            self.accept()
-        except Exception as e:
-            print(f"Error in cell_was_double_clicked: {e}")
-
-    def cell_was_double_clicked_2(self, row, column):
-        try:
-            column = 1
-            item = self.tableWidget.item(row, column)
-            if item:
-                data = item.text()
-                parts = data.split(';')
-
-                row_data = []
-                keys = []
-                for part in parts:
-                    part = part.strip()
-                    if not part:
-                        continue
-                    if '_' in part:
-                        key, name = part.split('_', 1)
-                        key = key.strip()
-                        name = name.strip()
-                        keys.append(key)
-                        csv_path = f'{path1}{key}.csv'
-                        try:
-                            with open(csv_path, "r", encoding='utf-8') as csvfile:
-                                csv_reader = csv.reader(csvfile)
-                                for csv_row in csv_reader:
-                                    if name == csv_row[0].strip():
-                                        row_data.append([key] + csv_row)
-                                        break
-                        except FileNotFoundError:
-                            print(f"File not found: {csv_path}")
-                        except Exception as e:
-                            print(f"Error reading {csv_path}: {e}")
-                    else:
-                        print(f"No '_' found in part: {part}")
-                self.data_selected.emit(row_data, ", ".join(keys))
-                self.accept()
-            else:
-                print("Error: item is None")
-        except Exception as e:
-            print(f"Error in cell_was_double_clicked_2: {e}")
+        self.knbk_table_instance.set_label(f"КНБК - {self.knbk_table_instance.tbl_KNBK.item(0, 4).text()} мм")
 
 
 class KNBK_Table(QWidget):
-    def __init__(self, index, sort_key=None, parent=None):
+    def __init__(self, sort_key=None, parent=None):
         super(KNBK_Table, self).__init__(parent)
         uic.loadUi('table.ui', self)
 
@@ -625,7 +207,9 @@ class KNBK_Table(QWidget):
         self.add_image(mode="static", static_path=path3 + 'Долото.png')
 
     def setup_ui(self):
-        self.label = None
+        self.label: QLabel = self.findChild(QLabel, 'label')
+        self.label.setVisible(False)
+
         self.undo_stack = QUndoStack(self)
         self.undo_view = QUndoView(self.undo_stack)
         self.tbl_KNBK: QTableWidget = self.findChild(QTableWidget, 'table_KNBK')
@@ -686,8 +270,8 @@ class KNBK_Table(QWidget):
         self.tbl_KNBK.resizeRowsToContents()
 
     def add_QCombobox(self, row_count, column):
-        combo = QComboBox()
-        combo.setModel(QStringListModel([
+        combo1 = QComboBox()
+        combo1.setModel(QStringListModel([
             "<Не выбрано>", "ВЗД", "РУС", "Бурильные трубы", "Переводник", "УБТ", "Телеметрия", "Ясс",
             "Калибратор спиральный", "Обратный клапан", "Центратор прямой",
             "Центратор спиральный", "Предохранительный переводник"]))
@@ -696,26 +280,26 @@ class KNBK_Table(QWidget):
 
         listView.setWordWrap(True)
 
-        combo.setView(listView)
+        combo1.setView(listView)
 
-        showPopup = combo.showPopup
+        showPopup = combo1.showPopup
 
         def on_popup_show():
             showPopup()
-            combo.view().reset()  # Сброс состояния представления для предотвращения наслаивания
+            combo1.view().reset()  # Сброс состояния представления для предотвращения наслаивания
 
-        combo.showPopup = on_popup_show
+        combo1.showPopup = on_popup_show
 
         listView.setItemDelegate(CenteredItemDelegate(listView))
-        combo.setEditable(True)
-        line_edit: QLineEdit = combo.lineEdit()
+        combo1.setEditable(True)
+        line_edit: QLineEdit = combo1.lineEdit()
         line_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
         line_edit.setReadOnly(False)
 
-        combo.currentIndexChanged.connect(
-            lambda index, combo=combo, row=row_count: self.handle_combo_change(row, combo))
+        combo1.currentIndexChanged.connect(
+            lambda index, combo=combo1, row=row_count: self.handle_combo_change(row, combo))
 
-        self.tbl_KNBK.setCellWidget(row_count, column, combo)
+        self.tbl_KNBK.setCellWidget(row_count, column, combo1)
 
     def handle_combo_change(self, row, combo):
         text = combo.currentText()
@@ -1167,7 +751,7 @@ class KNBK_Table(QWidget):
             self.undo_stack.push(UpdateTableCommand(self, old_data, data))
 
             self.update_table_widget(data)
-            self.add_label(f"КНБК - {self.tbl_KNBK.item(0, 4).text()} мм")
+            self.set_label(f"КНБК - {self.tbl_KNBK.item(0, 4).text()} мм")
 
         except Exception as e:
             print(f"Error in update_table_data_list_2: {e}")
@@ -1210,17 +794,11 @@ class KNBK_Table(QWidget):
 
     def update_label(self, item):
         if item.row() == 0 and item.column() == 4:
-            self.add_label(f"КНБК - {item.text()} мм")
+            self.set_label(f"КНБК - {item.text()} мм")
 
-    def add_label(self, text):
-        if self.label is None:
-            self.label = QLabel(text, self)
-            self.label.setGeometry(660, 10, 200, 50)
-            font = QFont('MS Shell Dlg 2', 14)
-            self.label.setFont(font)
-            self.label.show()
-        else:
-            self.label.setText(text)
+    def set_label(self, text):
+        self.label.setVisible(True)
+        self.label.setText(text)
 
     def center_text_in_item(self, item):
         item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -1259,7 +837,7 @@ class MainWindow(QMainWindow):
             return
 
         self.stackedWidget.setCurrentIndex(0)
-        self.stackedWidget.insertWidget(4, KNBK_Table(index=4, parent=self))
+        self.stackedWidget.insertWidget(4, KNBK_Table(parent=self))
 
         self.tbl_profile: QTableWidget = self.findChild(QTableWidget, 'tableWidget_profile')
         self.tbl_stratigraphy: QTableWidget = self.findChild(QTableWidget, 'tableWidget_stratigraphy')
@@ -1791,7 +1369,9 @@ class MainWindow(QMainWindow):
                 data.columns = data.iloc[0]
                 data = data[1:].reset_index(drop=True)
             '''
-            self.validate_data(data)
+            if data.shape[1] < 3:
+                raise ValueError("The file must have at least 3 columns for calculations.")
+
             if data.shape[1]<4:
                 vertical_depths = self.calculate_vertical_depth(data)
                 data['Глубина по верт(м)'] = vertical_depths
@@ -2402,7 +1982,7 @@ class MainWindow(QMainWindow):
             text_0 = f"КНБК - {item_0.text()} мм"
             sort_key_0 = item_0.text()
             initial_page = self.stackedWidget.widget(4)
-            initial_page.add_label(text_0)
+            initial_page.set_label(text_0)
             initial_page.sort_key = sort_key_0
 
     def add_page(self, text, sort_key=None):
@@ -2412,8 +1992,8 @@ class MainWindow(QMainWindow):
         num_pages = self.stackedWidget.count()
         insert_index = num_pages - 1
 
-        new_page = KNBK_Table(index=insert_index + 1, sort_key=sort_key, parent=self)
-        new_page.add_label(text)
+        new_page = KNBK_Table(sort_key=sort_key, parent=self)
+        new_page.set_label(text)
         new_page.sort_key = sort_key
         self.stackedWidget.insertWidget(insert_index, new_page)
         self.stackedWidget.setCurrentWidget(new_page)
@@ -2424,7 +2004,7 @@ class MainWindow(QMainWindow):
         num_pages = self.stackedWidget.count()
         insert_index = num_pages - 1
         print(f"Current number of pages: {num_pages}, Inserting at index: {insert_index}")
-        new_page = KNBK_Table(index=insert_index + 1, parent=self)
+        new_page = KNBK_Table(parent=self)
         self.stackedWidget.insertWidget(insert_index, new_page)
         self.stackedWidget.setCurrentWidget(new_page)
 
