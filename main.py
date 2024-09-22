@@ -17,7 +17,8 @@ from PyQt6.QtSql import QSqlDatabase, QSqlQuery
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QStackedWidget, QHeaderView,
                              QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDialog, QInputDialog, QVBoxLayout,
                              QMenu, QGraphicsScene, QGraphicsView, QUndoView, QWidget, QLabel, QMessageBox,
-                             QScrollArea, QListView, QStyledItemDelegate, QDockWidget)
+                             QScrollArea, QListView, QStyledItemDelegate, QDockWidget, QTreeWidget, QTreeWidgetItem,
+                             )
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
@@ -832,9 +833,13 @@ class MainWindow(QMainWindow):
 
     def setup_ui(self):
         self.stackedWidget: QStackedWidget = self.findChild(QStackedWidget, 'stackedWidget')
-        if self.stackedWidget is None:
-            print("Error: QStackedWidget not found in the .ui file")
-            return
+
+        self.tree_widget: QTreeWidget = self.findChild(QTreeWidget, 'treeWidget')
+        self.tree_widget.setHeaderLabels(["Наименование"])
+
+        self.project = QTreeWidgetItem(self.tree_widget, ["Проект"])
+        self.custs = QTreeWidgetItem(self.project, ["Кусты"])
+        self.cust = QTreeWidgetItem(self.custs, ["Куст"])
 
         self.stackedWidget.setCurrentIndex(0)
         self.stackedWidget.insertWidget(4, KNBK_Table(parent=self))
@@ -911,11 +916,15 @@ class MainWindow(QMainWindow):
         # menubar = self.menuBar()
         # file_menu = menubar.addMenu('Файл')
 
-        self.open_file_act = self.findChild(QAction, 'open_file_action')
-        self.open_file_act.triggered.connect(self.open_file_all)
+        self.open_file_action = self.findChild(QAction, 'open_file_action')
+        self.open_file_action.triggered.connect(self.open_file_all)
+
+        self.save_file_action = self.findChild(QAction, 'save_file_action')
+        self.save_file_action.triggered.connect(self.save_file)
 
         self.print_action = self.findChild(QAction, 'print_action')
         self.print_action.triggered.connect(self.print_report)
+
 
         self.view_menu = self.findChild(QMenu, 'view_menu')
         self.dockWidget = self.findChild(QDockWidget, 'project_dockWidget')
@@ -1011,6 +1020,9 @@ class MainWindow(QMainWindow):
         self.graphicsView_profile.setBackgroundBrush(Qt.GlobalColor.white)
 
     def open_file_all(self):
+        pass
+
+    def save_file(self):
         pass
 
     def handle_value_entered(self, value):
