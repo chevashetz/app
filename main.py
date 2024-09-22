@@ -1342,7 +1342,7 @@ class MainWindow(QMainWindow):
                     self.tbl_profile.insertColumn(6)
                 '''
 
-                if self.tbl_profile.rowCount() < 7:
+                if data.shape[1]<7:
                     start_column = 3
                 else:
                     start_column = 5
@@ -1352,8 +1352,7 @@ class MainWindow(QMainWindow):
         delta_z = selected_data[row][2]
         delta_y = selected_data[row][1]
         delta_x = selected_data[row][0]
-        self.tbl_profile.setItem(row, start_column, QTableWidgetItem(str(round(delta_z, 2))))
-
+        self.vertical_depth_and_vertical_deviation_on_item_changed(row, delta_z,start_column)
         L_current = self.extract_number(self.tbl_profile.item(row, 0).text())
         L_prev = self.extract_number(self.tbl_profile.item(row - 1 if row > 0 else row, 0).text())
         delta_L = L_current - L_prev
@@ -1361,6 +1360,18 @@ class MainWindow(QMainWindow):
         self.tbl_profile.setItem(row, start_column+1, QTableWidgetItem(str(round(sum_proection, 2))))
         if delta_L != 0:
             self.tbl_profile.setItem(row, start_column+2, QTableWidgetItem(str(round(sum_proection / delta_L, 2))))
+
+    def vertical_depth_and_vertical_deviation_on_item_changed(self,row,delta_z, delta_x, delta_y,start_column):
+        delta_z_old = self.extract_number(self.tbl_profile.item(row, start_column).text())
+        delta_delta = delta_z-delta_z_old
+        self.tbl_profile.setItem(row, start_column, QTableWidgetItem(str(round(delta_z, 2))))
+        for row_i in range(row+1,self.tbl_profile.rowCount()):
+            old_value = self.extract_number(self.tbl_profile.item(row_i, start_column).text())
+            self.tbl_profile.item(row_i, start_column).setText(str(round(old_value+delta_delta, 2)))
+        delta_x_old = self.extract_number(self.tbl_profile.item(row, start_column).text())
+        delta_y_old = self.extract_number(self.tbl_profile.item(row, start_column).text())
+        delta_delta = delta_z-delta_z_old
+        self.tbl_profile.setItem(row, start_column, QTableWidgetItem(str(round(delta_z, 2))))
 
     def process_excel_data(self, data):
         try:
