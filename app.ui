@@ -42,7 +42,7 @@
        </sizepolicy>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="page_1">
        <layout class="QVBoxLayout" name="verticalLayout_7">
@@ -154,7 +154,7 @@
                  <number>6</number>
                 </property>
                 <attribute name="horizontalHeaderVisible">
-                 <bool>true</bool>
+                 <bool>false</bool>
                 </attribute>
                 <attribute name="horizontalHeaderCascadingSectionResizes">
                  <bool>false</bool>
@@ -670,9 +670,15 @@
             <widget class="QGraphicsView" name="graphicsView_pressure">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-               <horstretch>7</horstretch>
+               <horstretch>26</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>1040</width>
+               <height>180</height>
+              </size>
              </property>
             </widget>
            </item>
@@ -680,9 +686,15 @@
             <widget class="QGraphicsView" name="graphicsView_gradient_pressure">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-               <horstretch>3</horstretch>
+               <horstretch>9</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>360</width>
+               <height>180</height>
+              </size>
              </property>
             </widget>
            </item>
@@ -1105,8 +1117,14 @@
        <enum>QFrame::Raised</enum>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout">
+       <property name="leftMargin">
+        <number>10</number>
+       </property>
        <property name="topMargin">
         <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>10</number>
        </property>
        <property name="bottomMargin">
         <number>0</number>
@@ -1118,6 +1136,12 @@
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>30</height>
+          </size>
          </property>
          <property name="maximumSize">
           <size>
@@ -1155,6 +1179,12 @@
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>30</height>
+          </size>
          </property>
          <property name="maximumSize">
           <size>
@@ -1203,7 +1233,19 @@
       <number>0</number>
      </property>
      <item>
-      <widget class="QTreeView" name="treeView"/>
+      <widget class="QTreeWidget" name="treeWidget">
+       <property name="minimumSize">
+        <size>
+         <width>200</width>
+         <height>0</height>
+        </size>
+       </property>
+       <column>
+        <property name="text">
+         <string notr="true">1</string>
+        </property>
+       </column>
+      </widget>
      </item>
     </layout>
    </widget>
@@ -1222,6 +1264,8 @@
      <string>Файл</string>
     </property>
     <addaction name="open_file_action"/>
+    <addaction name="action"/>
+    <addaction name="save_file_action"/>
     <addaction name="print_action"/>
    </widget>
    <widget class="QMenu" name="view_menu">
@@ -1244,6 +1288,9 @@
    </property>
   </action>
   <action name="print_action">
+   <property name="checkable">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Печать</string>
    </property>
@@ -1251,12 +1298,17 @@
     <string>Ctrl+P</string>
    </property>
   </action>
-  <action name="action">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
+  <action name="save_file_action">
    <property name="text">
-    <string>Окно проекта</string>
+    <string>Сохранить</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="action">
+   <property name="text">
+    <string>Создать</string>
    </property>
   </action>
  </widget>
