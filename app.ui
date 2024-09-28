@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1416</width>
+    <width>1680</width>
     <height>807</height>
    </rect>
   </property>
@@ -42,7 +42,7 @@
        </sizepolicy>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="page_1">
        <layout class="QVBoxLayout" name="verticalLayout_7">
@@ -154,7 +154,7 @@
                  <number>6</number>
                 </property>
                 <attribute name="horizontalHeaderVisible">
-                 <bool>false</bool>
+                 <bool>true</bool>
                 </attribute>
                 <attribute name="horizontalHeaderCascadingSectionResizes">
                  <bool>false</bool>
@@ -1255,7 +1255,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1416</width>
+     <width>1680</width>
      <height>26</height>
     </rect>
    </property>
@@ -1264,7 +1264,7 @@
      <string>Файл</string>
     </property>
     <addaction name="open_file_action"/>
-    <addaction name="action"/>
+    <addaction name="create_action"/>
     <addaction name="save_file_action"/>
     <addaction name="print_action"/>
    </widget>
@@ -1306,9 +1306,15 @@
     <string>Ctrl+S</string>
    </property>
   </action>
-  <action name="action">
+  <action name="create_action">
    <property name="text">
     <string>Создать</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+N</string>
+   </property>
+   <property name="shortcutVisibleInContextMenu">
+    <bool>false</bool>
    </property>
   </action>
  </widget>

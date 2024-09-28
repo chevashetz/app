@@ -23,7 +23,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 from components.db import DatabaseManager
-from components.dialogs import DualInputDialog, CsvTableDialog
+from components.dialogs import DualInputDialog, CsvTableDialog, WellDialog, CustDialog
 from components.shading_drawer import ShadingDrawer
 from config import path1, path2, path3
 
@@ -837,8 +837,10 @@ class MainWindow(QMainWindow):
         self.tree_widget.setHeaderLabels(["Наименование"])
 
         self.project = QTreeWidgetItem(self.tree_widget, ["Проект"])
-        self.custs = QTreeWidgetItem(self.project, ["Кусты"])
-        self.cust = QTreeWidgetItem(self.custs, ["Куст"])
+        self.fields = QTreeWidgetItem(self.project, ["Месторождения"])
+        self.new_field = QTreeWidgetItem(self.fields, ["+"])
+
+        self.tree_widget.itemClicked.connect(self.on_item_clicked_tree)
 
         self.stackedWidget.setCurrentIndex(0)
         self.stackedWidget.insertWidget(4, KNBK_Table(parent=self))
@@ -924,6 +926,8 @@ class MainWindow(QMainWindow):
         self.print_action = self.findChild(QAction, 'print_action')
         self.print_action.triggered.connect(self.print_report)
 
+        self.create_action = self.findChild(QAction, 'create_action')
+        self.create_action.triggered.connect(self.create)
 
         self.view_menu = self.findChild(QMenu, 'view_menu')
         self.dockWidget = self.findChild(QDockWidget, 'project_dockWidget')
@@ -1018,12 +1022,86 @@ class MainWindow(QMainWindow):
         self.graphicsView_casing_strings.setBackgroundBrush(Qt.GlobalColor.white)
         self.graphicsView_profile.setBackgroundBrush(Qt.GlobalColor.white)
 
+
     def open_file_all(self):
         pass
 
     def save_file(self):
         pass
 
+
+
+    def on_item_clicked_tree(self, item, column):
+        # Проверяем, по какому элементу кликнули
+        if item == self.new_field:
+            self.create_new_field()
+        elif item.text(0) == "+" and item.parent().text(0) == "Кусты":
+            # Если клик на "+" для создания кустов
+            parent = item.parent()
+            self.create_new_cust(parent)
+        elif item.text(0) == "+" and item.parent().text(0) == "Скважины":
+            # Если клик на "+" для создания скважин
+            parent = item.parent()
+            self.create_new_well(parent)
+
+    def create_new_field(self):
+        # Используем стандартное диалоговое окно для ввода текста
+        field_value, ok = QInputDialog.getText(self, "Добавить месторождение", "Введите название месторождения:")
+
+        if ok and field_value:  # Если пользователь нажал OK и ввел значение
+            # Создаем новый элемент "Месторождение"
+            new_field_item = QTreeWidgetItem([field_value])
+
+            # Создаем вложенный элемент "Кусты"
+            new_custs_item = QTreeWidgetItem(new_field_item, ["Кусты"])
+            # Добавляем знак "+" для добавления новых кустов
+            new_cust_plus_item = QTreeWidgetItem(new_custs_item, ["+"])
+
+            # Вставляем новый элемент перед "self.new_field"
+            self.fields.insertChild(self.fields.indexOfChild(self.new_field), new_field_item)
+            self.fields.setExpanded(True)
+
+    def create_new_cust(self, parent_item):
+        dialog = CustDialog()
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            cust_value = dialog.get_inputs()
+
+            if cust_value:
+                # Создаем новый куст
+                new_cust_item = QTreeWidgetItem([cust_value])
+
+                # Создаем вложенный элемент "Скважины"
+                new_wells_item = QTreeWidgetItem(new_cust_item, ["Скважины"])
+                # Добавляем знак "+" для добавления новых скважин
+                new_well_plus_item = QTreeWidgetItem(new_wells_item, ["+"])
+
+                # Вставляем перед элементом "+"
+                plus_item = parent_item.child(parent_item.childCount() - 1)  # Это элемент с "+"
+                parent_item.insertChild(parent_item.indexOfChild(plus_item), new_cust_item)
+                parent_item.setExpanded(True)
+
+    def create_new_well(self, parent_item):
+        dialog = WellDialog()
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            well_value = dialog.get_inputs()
+
+            if well_value:
+                # Создаем новую скважину
+                new_well_item = QTreeWidgetItem([well_value])
+
+                # Вставляем перед элементом "+"
+                plus_item = parent_item.child(parent_item.childCount() - 1)  # Это элемент с "+"
+                parent_item.insertChild(parent_item.indexOfChild(plus_item), new_well_item)
+                parent_item.setExpanded(True)
+
+    def create(self):
+        pass
+        '''
+        dialog = GGDialog()
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            first_value, second_value = dialog.get_inputs()
+            print(f"Первое значение: {first_value}, Второе значение: {second_value}")
+        '''
     def handle_value_entered(self, value):
         print(f"Получено значение: {value}")
 
