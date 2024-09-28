@@ -44,7 +44,6 @@ class MplCanvas(FigureCanvas):
         self.setParent(parent)
         self.setFixedSize(int(width * dpi), int(height * dpi))
 
-
 class PasteCommand(QUndoCommand):
     def __init__(self, tableWidget, text_data, start_row, start_col, description, parent=None):
         super().__init__(description, parent)
