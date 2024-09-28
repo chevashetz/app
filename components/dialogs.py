@@ -6,7 +6,6 @@ from PyQt6.QtWidgets import QDialog, QLineEdit, QLabel, QDialogButtonBox, QVBoxL
 
 from config import path1
 
-
 class DualInputDialog(QDialog):
     def __init__(self, parent=None):
         super(DualInputDialog, self).__init__(parent)
@@ -264,3 +263,71 @@ class CsvTableDialog(QDialog):
                 print("Error: item is None")
         except Exception as e:
             print(f"Error in cell_was_double_clicked_2: {e}")
+
+class WellDialog(QDialog):
+    def __init__(self, parent=None):
+        super(WellDialog, self).__init__(parent)
+
+        self.setWindowTitle("Ввод данных")
+        # Создаём первый текстовый ввод
+        self.well_input = QLineEdit(self)
+        self.well_input.setPlaceholderText("")
+
+        # Добавляем метки для каждого ввода (опционально)
+        self.well_label = QLabel("Месторождение:", self)
+
+
+        # Создаём кнопки "ОК" и "Отмена"
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+
+        # Подключаем кнопки к функциям
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
+        # Размещение элементов в макете
+        layout = QVBoxLayout()
+
+        layout.addWidget(self.well_label)
+        layout.addWidget(self.well_input)
+
+        layout.addWidget(self.button_box)
+
+        self.setLayout(layout)
+
+    def get_inputs(self):
+        # Возвращает значения, введённые пользователем в оба поля
+        return self.well_input.text()
+
+class CustDialog(QDialog):
+    def __init__(self, parent=None):
+        super(CustDialog, self).__init__(parent)
+        self.setWindowTitle("Ввод данных")
+        # Создаём первый текстовый ввод
+        self.cust_input = QLineEdit(self)
+        self.cust_input.setPlaceholderText("")
+
+        # Добавляем метки для каждого ввода (опционально)
+        self.cust_label = QLabel("Куст:", self)
+
+
+        # Создаём кнопки "ОК" и "Отмена"
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+
+        # Подключаем кнопки к функциям
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
+        # Размещение элементов в макете
+        layout = QVBoxLayout()
+
+        layout.addWidget(self.cust_label)
+        layout.addWidget(self.cust_input)
+
+        layout.addWidget(self.button_box)
+
+        self.setLayout(layout)
+
+    def get_inputs(self):
+        return self.cust_input.text()
+
+
