@@ -29,7 +29,6 @@ from config import path1, path2, path3
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
-
 class CenteredItemDelegate(QStyledItemDelegate):
     def initStyleOption(self, option, index):
         super().initStyleOption(option, index)
@@ -173,7 +172,6 @@ class UpdateTableCommand(QUndoCommand):
         # Восстановление начального состояния
         self.knbk_table_instance.restore_initial_state()
         self.knbk_table_instance.set_label(f"КНБК - {self.knbk_table_instance.tbl_KNBK.item(0, 4).text()} мм")
-
 
 class KNBK_Table(QWidget):
     def __init__(self, sort_key=None, parent=None):
