@@ -1,4 +1,4 @@
-
+import csv
 import logging
 import os
 import re
@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import xlsxwriter
-from PyQt6 import uic
+from PyQt6 import uic, QtGui
 from PyQt6.QtCore import Qt, QRectF, pyqtSignal
 from PyQt6.QtGui import (QAction, QKeySequence, QPainter, QPen,
                          QBrush, QUndoStack)
@@ -35,6 +35,42 @@ class MplCanvas(FigureCanvas):
         super().__init__(self.fig)
         self.setParent(parent)
         self.setFixedSize(int(width * dpi), int(height * dpi))
+
+
+class ComboHeader(QHeaderView):
+    valueEntered = pyqtSignal(str)
+
+    def __init__(self, parent=None):
+        super(ComboHeader, self).__init__(Qt.Orientation.Horizontal, parent)
+        self.setStretchLastSection(True)
+        self.combobox = QComboBox(self)
+        self.combobox.addItems(["Азимут (град)", "Азимут маг(град)", "Азимут дир(град)"])
+        self.combobox.setStyleSheet("QComboBox { text-align: center; }")
+        for i in range(self.combobox.count()):
+            self.combobox.setItemData(i, Qt.AlignmentFlag.AlignCenter, Qt.ItemDataRole.TextAlignmentRole)
+        self.setSectionsClickable(True)
+        self.combobox.currentIndexChanged.connect(self.on_combobox_header_changed)
+
+    def on_combobox_header_changed(self, index):
+        if index == 1:
+            text, ok = QInputDialog.getText(self, "Магнитный угол", "Введите значение:")
+            if ok and text:
+                self.valueEntered.emit(text)
+        elif index == 2:
+            dialog = DualInputDialog()
+            if dialog.exec() == QDialog.DialogCode.Accepted:  # Если нажата кнопка ОК
+                first_value, second_value = dialog.get_inputs()
+                print(f"Первое значение: {first_value}, Второе значение: {second_value}")
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self.combobox:
+            index = 2
+            x = self.sectionViewportPosition(index)
+            w = self.sectionSize(index)
+            self.combobox.setGeometry(x, 0, w, self.height())
+
+
 class Tables(QWidget):
     def __init__(self, parent=None):
         super(Tables, self).__init__(parent)
@@ -210,10 +246,8 @@ class Tables(QWidget):
         self.graphicsView_casing_strings.setBackgroundBrush(Qt.GlobalColor.white)
         self.graphicsView_profile.setBackgroundBrush(Qt.GlobalColor.white)
 
-
     def set_column_width(self, column, width):
         self.tbl_pressure.setColumnWidth(column, width)
-
 
     def merge_columns_1(self, row, start_col, end_col):
         text = "Интервал"
@@ -231,7 +265,6 @@ class Tables(QWidget):
         for col in range(start_col + 1, end_col + 1):
             self.tbl_pressure.setItem(row, col, QTableWidgetItem(""))
 
-
     def merge_columns_2(self, row, start_col, end_col):
         text = "Давление, кгс/см^2"
         for col in range(start_col, end_col + 1):
@@ -247,7 +280,6 @@ class Tables(QWidget):
 
         for col in range(start_col + 1, end_col + 1):
             self.tbl_pressure.setItem(row, col, QTableWidgetItem(""))
-
 
     def merge_columns_3(self, row, start_col, end_col):
         text = "Градиент давления, кгс/см^2/м"
@@ -265,13 +297,11 @@ class Tables(QWidget):
         for col in range(start_col + 1, end_col + 1):
             self.tbl_pressure.setItem(row, col, QTableWidgetItem(""))
 
-
     def insert_text_in_cells(self, cells_data):
         for row, col, text in cells_data:
             item = QTableWidgetItem(text)
             item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tbl_pressure.setItem(row, col, item)
-
 
     def create_context_menu(self, pos, table):
         context_menu = QMenu(self)
@@ -287,10 +317,8 @@ class Tables(QWidget):
 
         context_menu.exec(table.viewport().mapToGlobal(pos))
 
-
     def get_page_count(self):
         return self.stackedWidget.count()
-
 
     def on_current_index_changed(self, index):
         total_pages = self.get_page_count()
@@ -305,21 +333,17 @@ class Tables(QWidget):
         else:
             self.btn_go_to_next_page.setVisible(True)
 
-
     def go_to_next_page(self):
         current_index = self.stackedWidget.currentIndex()
         self.stackedWidget.setCurrentIndex(current_index + 1)
-
 
     def go_to_previous_page(self):
         current_index = self.stackedWidget.currentIndex()
         if current_index > 0:
             self.stackedWidget.setCurrentIndex(current_index - 1)
 
-
     def center_text_in_item(self, item):
         item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-
 
     def paste_from_clipboard(self, tableWidget):
         allowed_tables = [self.tbl_profile, self.tbl_stratigraphy, self.tbl_casing_strings, self.tbl_drilling_fluids]
@@ -348,7 +372,6 @@ class Tables(QWidget):
         except Exception as e:
             print(f"Error pasting from clipboard: {e}")
 
-
     def convert_html_to_plain_text(self, html):
         from bs4 import BeautifulSoup
         data = []
@@ -360,7 +383,6 @@ class Tables(QWidget):
             cols = [ele.text.strip() for ele in cols]
             data.append([ele for ele in cols if ele])
         return data
-
 
     def clear_table(self):
         self.tbl_profile.clearContents()
@@ -380,7 +402,6 @@ class Tables(QWidget):
         self.tbl_profile.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.graphicsView_profile.setScene(QGraphicsScene())
 
-
     def add_row_stratigraphy(self):
         row_count2_2 = self.tbl_stratigraphy.rowCount()
         self.tbl_stratigraphy.setRowCount(row_count2_2 + 1)
@@ -388,7 +409,6 @@ class Tables(QWidget):
             item = QTableWidgetItem("")
             item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tbl_stratigraphy.setItem(row_count2_2, column, item)
-
 
     def add_row_casing_strings(self):
         row_count2_3 = self.tbl_casing_strings.rowCount()
@@ -407,7 +427,6 @@ class Tables(QWidget):
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.tbl_casing_strings.setItem(row_count2_3, column, item)
 
-
     def add_row_drilling_fluids(self):
         row_count2_4 = self.tbl_drilling_fluids.rowCount()
         self.tbl_drilling_fluids.setRowCount(row_count2_4 + 1)
@@ -415,7 +434,6 @@ class Tables(QWidget):
             item = QTableWidgetItem("")
             item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tbl_drilling_fluids.setItem(row_count2_4, column, item)
-
 
     def add_row_pressure(self):
         row_count2_5 = self.tbl_pressure.rowCount()
@@ -427,7 +445,6 @@ class Tables(QWidget):
         k = QTableWidgetItem(str(row_count2_5 - 1))
         k.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         self.tbl_pressure.setItem(row_count2_5, 0, k)
-
 
     def open_file(self):
         try:
@@ -441,7 +458,6 @@ class Tables(QWidget):
 
         except Exception as e:
             logging.error(f"Error opening file: {e}")
-
 
     def on_item_changed_tbl_profile(self, item):
         row = item.row()
@@ -477,7 +493,6 @@ class Tables(QWidget):
                     start_column = 5
                 self.calculate_additional_columns(selected_data, row, start_column)
 
-
     def calculate_additional_columns(self, selected_data, row, start_column=5):
         delta_z = selected_data[row][2]
         delta_y = selected_data[row][1]
@@ -491,7 +506,6 @@ class Tables(QWidget):
         if delta_L != 0:
             self.tbl_profile.setItem(row, start_column + 2, QTableWidgetItem(str(round(sum_proection / delta_L, 2))))
 
-
     def vertical_depth_and_vertical_deviation_on_item_changed(self, row, delta_z, delta_x, delta_y, start_column):
         delta_z_old = self.extract_number(self.tbl_profile.item(row, start_column).text())
         delta_delta = delta_z - delta_z_old
@@ -503,7 +517,6 @@ class Tables(QWidget):
         delta_y_old = self.extract_number(self.tbl_profile.item(row, start_column).text())
         delta_delta = delta_z - delta_z_old
         self.tbl_profile.setItem(row, start_column, QTableWidgetItem(str(round(delta_z, 2))))
-
 
     def process_excel_data(self, data):
         try:
@@ -530,18 +543,15 @@ class Tables(QWidget):
         except Exception as e:
             logging.error(f"Error processing Excel data: {e}")
 
-
     '''
     def has_headers(self, df):
         first_row = df.iloc[0]
         return all(isinstance(val, str) for val in first_row) and len(set(first_row)) == len(first_row)
     '''
 
-
     def validate_data(self, df):
         if df.shape[1] < 3:
             raise ValueError("The file must have at least 3 columns for calculations.")
-
 
     def calculate_vertical_depth(self, df):
         vertical_depth = [0.0]
@@ -551,7 +561,6 @@ class Tables(QWidget):
             delta_z = delta_L * np.cos(current_zenith_angle)
             vertical_depth.append(vertical_depth[-1] + delta_z)
         return vertical_depth
-
 
     def calculate_vertical_deviation(self, df):
         vertical_deviation = [0.0]
@@ -577,7 +586,6 @@ class Tables(QWidget):
 
         return vertical_deviation
 
-
     def calculate_vertical_depth(self, df):
         vertical_depth = [0.0]
         for i in range(1, len(df)):
@@ -587,7 +595,6 @@ class Tables(QWidget):
             vertical_depth.append(vertical_depth[-1] + delta_z)
         return vertical_depth
 
-
     def calculate_intensity_curvature(self, df):
         intensity_curvature = [0.0]
         for i in range(1, len(df)):
@@ -596,7 +603,6 @@ class Tables(QWidget):
             value_intensity_curvature = delta_deviation / delta_L
             intensity_curvature.append(value_intensity_curvature)
         return intensity_curvature
-
 
     def populate_table(self, df):
         self.tbl_profile.blockSignals(True)
@@ -652,7 +658,6 @@ class Tables(QWidget):
         self.tbl_profile.blockSignals(False)
         self.tbl_profile.horizontalHeader().setVisible(True)
 
-
     def calculate_coords(self, data: np.array):
         current_zenith_angle = np.radians(0)
         current_azimuth_angle = np.radians(0)
@@ -676,7 +681,6 @@ class Tables(QWidget):
         selected_data = np.cumsum(selected_data, axis=0)
         return selected_data
 
-
     def plot_graph(self, data):
         fig = Figure()
         ax = fig.add_subplot(111, projection='3d')
@@ -693,7 +697,6 @@ class Tables(QWidget):
         scene.addWidget(canvas)
 
         self.graphicsView_profile.setScene(scene)
-
 
     def init_graphics_views(self):
         self.canvas_pressure = MplCanvas(self.graphicsView_pressure, width=10.40, height=1.8, dpi=100)
@@ -720,14 +723,12 @@ class Tables(QWidget):
         self.add_canvas_to_view(self.canvas_pressure, self.graphicsView_pressure)
         self.add_canvas_to_view(self.canvas_gradient, self.graphicsView_gradient_pressure)
 
-
     def add_canvas_to_view(self, canvas, graphics_view):
         scene = QGraphicsScene()
         scene.addWidget(canvas)
         graphics_view.setScene(scene)
         graphics_view.setRenderHint(QPainter.RenderHint.Antialiasing)
         graphics_view.fitInView(scene.itemsBoundingRect(), Qt.AspectRatioMode.KeepAspectRatio)
-
 
     def on_item_changed_tbl_pressure(self, item):
         row = item.row()
@@ -829,14 +830,12 @@ class Tables(QWidget):
             if self.is_row_complete(row, [2, 3, 4, 5], self.tbl_pressure):
                 self.update_graph(row, [4, 5], self.canvas_pressure, self.lines_on_pressure_chart, line_id=1)
 
-
     def is_row_complete(self, row, required_columns, table):
         for col in required_columns:
             table_item = table.item(row, col)
             if not table_item or not table_item.text().strip():
                 return False
         return True
-
 
     def update_graph(self, row, columns, canvas, chart, line_id):
         try:
@@ -866,30 +865,25 @@ class Tables(QWidget):
         except Exception as e:
             print(f"Неизвестная ошибка при обновлении графиков в строке {row}: {e}")
 
-
     def delete_row_stratigraphy(self):
         row_count2_2 = self.tbl_stratigraphy.rowCount()
         if row_count2_2 > 0:
             self.tbl_stratigraphy.setRowCount(row_count2_2 - 1)
-
 
     def delete_row_casing_strings(self):
         row_count2_3 = self.tbl_casing_strings.rowCount()
         self.tbl_casing_strings.setRowCount(row_count2_3 - 1)
         self.draw_wellbore_diagram()
 
-
     def delete_row_drilling_fluids(self):
         row_count2_4 = self.tbl_drilling_fluids.rowCount()
         if row_count2_4 > 0:
             self.tbl_drilling_fluids.setRowCount(row_count2_4 - 1)
 
-
     def delete_row_pressure(self):
         row_count2_5 = self.tbl_pressure.rowCount()
         if row_count2_5 > 2:
             self.tbl_pressure.setRowCount(row_count2_5 - 1)
-
 
     def on_item_changed_tbl_casing_strings(self, item):
         row = item.row()
@@ -898,7 +892,6 @@ class Tables(QWidget):
             self.update_drilling_fluids(row, column)
         if self.is_row_complete(row, [1, 2, 3, 4], self.tbl_casing_strings):
             self.draw_wellbore_diagram()
-
 
     def update_drilling_fluids(self, row, column):
         item = self.tbl_casing_strings.item(row, column)
@@ -943,7 +936,6 @@ class Tables(QWidget):
 
         print(f"Updated row: {row}, column: {column}, text: {text}")
 
-
     def extract_number(self, text):
         text = text.replace(",", ".")
         match = re.search(r'\d+\.\d+', text)
@@ -954,7 +946,6 @@ class Tables(QWidget):
         except ValueError as ve:
             print(f"Ошибка преобразования данных: {ve}")
             return 0
-
 
     def draw_wellbore_diagram(self):
         scene = self.graphicsView_casing_strings.scene()
@@ -1026,7 +1017,6 @@ class Tables(QWidget):
         self.graphicsView_casing_strings.fitInView(scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         self.graphicsView_casing_strings.update()
 
-
     def form_fluids(self):
         row_count_casing_strings = self.tbl_casing_strings.rowCount()
 
@@ -1085,7 +1075,6 @@ class Tables(QWidget):
 
             drilling_fluids_row += 1
 
-
     def load_stratigraphic_intervals(self):
         row_count = self.tbl_stratigraphy.rowCount()
         self.tbl_pressure.setRowCount(row_count + 2)
@@ -1101,7 +1090,6 @@ class Tables(QWidget):
                     new_item = QTableWidgetItem(item.text())
                     new_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     self.tbl_pressure.setItem(row + 2, column, new_item)
-
 
     def form_KNBK(self):
         if self.tbl_casing_strings is None or self.stackedWidget is None:
@@ -1141,7 +1129,6 @@ class Tables(QWidget):
 
         next_index = min(current_index + 1, self.stackedWidget.count() - 1)
         self.stackedWidget.setCurrentIndex(next_index)
-
 
     def process_first_element(self):
         if self.tbl_casing_strings is None or self.stackedWidget is None:
@@ -1204,13 +1191,11 @@ class Tables(QWidget):
             print(
                 "Cannot delete the only remaining page.")
 
-
     def on_current_index_changed(self, index):
         total_pages = self.stackedWidget.count()
 
         self.btn_go_to_previous_page.setVisible(index > 0)
         self.btn_go_to_next_page.setVisible(index < total_pages - 1)
-
 
     def save_to_db(self):
         stratigraphy_name, ok = QInputDialog.getText(self, "Имя", "Введите имя:")
@@ -1278,7 +1263,8 @@ class Tables(QWidget):
             self.export_page(workbook, self.tbl_stratigraphy, "Стратиграфия", resources_dir)
             self.export_page(workbook, self.tbl_pressure, "Давления", resources_dir, self.graphicsView_pressure,
                              self.graphicsView_gradient_pressure)
-            self.export_page(workbook, self.tbl_casing_strings, "Обсадные колонны", resources_dir, self.graphicsView_casing_strings)
+            self.export_page(workbook, self.tbl_casing_strings, "Обсадные колонны", resources_dir,
+                             self.graphicsView_casing_strings)
             self.export_page(workbook, self.tbl_drilling_fluids, "Буровые растворы", resources_dir)
             self.export_page(workbook, self.stackedWidget.widget(4).tbl_KNBK, "КНБК", resources_dir)
 
@@ -1389,34 +1375,86 @@ class Tables(QWidget):
 
         self.db_manager.close_database()
 
+    def save_all(self, name):
+        file_path = QFileDialog.getExistingDirectory(self, "Сохранить проект", "")
+        if file_path:
+            file_path: Path = Path(file_path) / name
+            file_path.mkdir(parents=True, exist_ok=True)
 
-class ComboHeader(QHeaderView):
-    valueEntered = pyqtSignal(str)
-    def __init__(self, parent=None):
-        super(ComboHeader, self).__init__(Qt.Orientation.Horizontal, parent)
-        self.setStretchLastSection(True)
-        self.combobox = QComboBox(self)
-        self.combobox.addItems(["Азимут (град)", "Азимут маг(град)", "Азимут дир(град)"])
-        self.combobox.setStyleSheet("QComboBox { text-align: center; }")
-        for i in range(self.combobox.count()):
-            self.combobox.setItemData(i, Qt.AlignmentFlag.AlignCenter, Qt.ItemDataRole.TextAlignmentRole)
-        self.setSectionsClickable(True)
-        self.combobox.currentIndexChanged.connect(self.on_combobox_header_changed)
+            self.export_to_csv(self.tbl_profile, file_path / "Профиль.csv")
+            self.export_to_csv(self.tbl_stratigraphy, file_path / "Стратиграфия.csv")
+            self.export_to_csv(self.tbl_pressure, file_path / "Давления.csv")
+            self.export_to_csv(self.tbl_casing_strings, file_path / "Обсадные колонны.csv")
+            self.export_to_csv(self.tbl_drilling_fluids, file_path / "Буровые растворы.csv")
+            self.export_to_csv(self.stackedWidget.widget(4).tbl_KNBK, file_path / "КНБК.csv")
 
-    def on_combobox_header_changed(self, index):
-        if index == 1:
-            text, ok = QInputDialog.getText(self, "Магнитный угол", "Введите значение:")
-            if ok and text:
-                self.valueEntered.emit(text)
-        elif index == 2:
-            dialog = DualInputDialog()
-            if dialog.exec() == QDialog.DialogCode.Accepted:  # Если нажата кнопка ОК
-                first_value, second_value = dialog.get_inputs()
-                print(f"Первое значение: {first_value}, Второе значение: {second_value}")
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        if self.combobox:
-            index = 2
-            x = self.sectionViewportPosition(index)
-            w = self.sectionSize(index)
-            self.combobox.setGeometry(x, 0, w, self.height())
+    def load_all(self, file_path: Path):
+        if file_path:
+            self.import_from_csv(self.tbl_profile, file_path / "Профиль.csv")
+            self.import_from_csv(self.tbl_stratigraphy, file_path / "Стратиграфия.csv")
+            self.import_from_csv(self.tbl_pressure, file_path / "Давления.csv")
+            self.import_from_csv(self.tbl_casing_strings, file_path / "Обсадные колонны.csv")
+            self.import_from_csv(self.tbl_drilling_fluids, file_path / "Буровые растворы.csv")
+            self.import_from_csv(self.stackedWidget.widget(4).tbl_KNBK, file_path / "КНБК.csv")
+
+    def export_to_csv(self, table, file_path):
+        if not table:
+            return
+
+        if not file_path:
+            return
+
+        try:
+            with open(file_path, 'w', newline='', encoding='utf-8') as stream:
+                writer = csv.writer(stream)
+
+                # Записываем заголовки
+                headers = []
+                for column in range(table.columnCount()):
+                    headers.append(table.horizontalHeaderItem(column).text())
+                writer.writerow(headers)
+
+                # Записываем данные
+                for row in range(table.rowCount()):
+                    row_data = []
+                    for column in range(table.columnCount()):
+                        item = table.item(row, column)
+                        if item is not None:
+                            row_data.append(item.text())
+                        else:
+                            row_data.append('')
+                    writer.writerow(row_data)
+
+            QMessageBox.information(self, "Экспорт завершен", f"Данные успешно экспортированы в {file_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Не удалось экспортировать данные: {str(e)}")
+
+    def import_from_csv(self, table, file_path):
+        if not table:
+            return
+
+        if not file_path:
+            return
+
+        try:
+            with open(file_path, 'r', encoding='utf-8') as stream:
+                reader = csv.reader(stream)
+
+                # Читаем заголовки
+                headers = next(reader)
+                table.setColumnCount(len(headers))
+                table.setHorizontalHeaderLabels(headers)
+
+                # Читаем данные
+                table.setRowCount(0)
+                for row_data in reader:
+                    row = table.rowCount()
+                    table.insertRow(row)
+                    for column, data in enumerate(row_data):
+                        item = QTableWidgetItem(data)
+                        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                        table.setItem(row, column, item)
+
+            QMessageBox.information(self, "Импорт завершен", f"Данные успешно импортированы из {file_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Не удалось импортировать данные: {str(e)}")

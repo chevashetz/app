@@ -1,16 +1,18 @@
 import logging
 import sys
+from pathlib import Path
 
 from PyQt6 import uic
 from PyQt6.QtGui import (QAction)
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QDialog, QInputDialog, QMenu, QDockWidget, QTreeWidget,
-                             QTreeWidgetItem,
+                             QTreeWidgetItem, QFileDialog,
                              )
 
 from components.dialogs import WellDialog, CustDialog
 from components.tables import Tables
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
@@ -39,10 +41,11 @@ class MainWindow(QMainWindow):
         self.open_file_action.triggered.connect(self.open_file_all)
 
         self.save_file_action = self.findChild(QAction, 'save_file_action')
-        self.save_file_action.triggered.connect(self.save_file)
+        # self.save_file_action.triggered.connect(self.save_file)
+        self.save_file_action.setDisabled(True)
 
         self.print_action: QAction = self.findChild(QAction, 'print_action')
-        #self.print_action.triggered.connect(self.tables.print_report)
+        # self.print_action.triggered.connect(self.tables.print_report)
         self.print_action.setDisabled(True)
 
         self.create_action = self.findChild(QAction, 'create_action')
@@ -54,25 +57,32 @@ class MainWindow(QMainWindow):
         self.view_menu.addAction(self.toggle_dock_act)
 
     def open_file_all(self):
-        pass
+        file_path = QFileDialog.getExistingDirectory(self, "Загрузить проект", "")
+        if file_path:
+            file_path = Path(file_path)
+            self.create_tables(file_path.name)
+            self.tables.load_all(file_path)
 
-    def save_file(self):
-        pass
+    def create_tables(self, name):
+        self.tables = Tables(self)
+        self.wellbores[name] = self.tables
+        self.setCentralWidget(self.tables)
+
+        self.save_file_action.setDisabled(False)
+        self.save_file_action.triggered.connect(lambda _ : self.tables.save_all(name))
+
+        self.print_action.setDisabled(False)
+        self.print_action.triggered.connect(self.tables.print_report)
 
     def create(self):
 
         wellbore_name, ok = QInputDialog.getText(self, "Проект", "Введите название:")
 
         if ok and wellbore_name.strip():
-            self.tables = Tables(self)
-            self.wellbores[wellbore_name.strip()] = self.tables
-            self.setCentralWidget(self.tables)
-            self.print_action.setDisabled(False)
-            self.print_action.triggered.connect(self.tables.print_report)
+            self.create_tables(wellbore_name.strip())
 
     def handle_value_entered(self, value):
         print(f"Получено значение: {value}")
-
 
     def on_item_clicked_tree(self, item, column):
         # Проверяем, по какому элементу кликнули
@@ -136,6 +146,7 @@ class MainWindow(QMainWindow):
                 plus_item = parent_item.child(parent_item.childCount() - 1)  # Это элемент с "+"
                 parent_item.insertChild(parent_item.indexOfChild(plus_item), new_well_item)
                 parent_item.setExpanded(True)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
