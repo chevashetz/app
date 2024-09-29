@@ -1,9 +1,13 @@
 
 import logging
+import os
 import re
+import shutil
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import xlsxwriter
 from PyQt6 import uic
 from PyQt6.QtCore import Qt, QRectF, pyqtSignal
 from PyQt6.QtGui import (QAction, QKeySequence, QPainter, QPen,
@@ -1166,7 +1170,6 @@ class Tables(QWidget):
         self.stackedWidget.insertWidget(insert_index, new_page)
         self.stackedWidget.setCurrentWidget(new_page)
 
-
     def add_page_2(self):
         if self.stackedWidget is None:
             return
@@ -1176,7 +1179,6 @@ class Tables(QWidget):
         new_page = KNBK_Table(parent=self)
         self.stackedWidget.insertWidget(insert_index, new_page)
         self.stackedWidget.setCurrentWidget(new_page)
-
 
     def delete_page(self):
         if self.stackedWidget is None:

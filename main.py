@@ -17,12 +17,11 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__(*args, **kwargs)
         uic.loadUi('app.ui', self)
         self.setup_ui()
+        self.wellbores = {}
         # Проверка загрузки файла .ui
         print("app.ui loaded successfully")
 
     def setup_ui(self):
-        self.tables = Tables(parent=self)
-        self.setCentralWidget(self.tables)
 
         self.tree_widget: QTreeWidget = self.findChild(QTreeWidget, 'treeWidget')
         self.tree_widget.setHeaderLabels(["Наименование"])
@@ -42,8 +41,9 @@ class MainWindow(QMainWindow):
         self.save_file_action = self.findChild(QAction, 'save_file_action')
         self.save_file_action.triggered.connect(self.save_file)
 
-        self.print_action = self.findChild(QAction, 'print_action')
-        self.print_action.triggered.connect(self.tables.print_report)
+        self.print_action: QAction = self.findChild(QAction, 'print_action')
+        #self.print_action.triggered.connect(self.tables.print_report)
+        self.print_action.setDisabled(True)
 
         self.create_action = self.findChild(QAction, 'create_action')
         self.create_action.triggered.connect(self.create)
@@ -60,13 +60,16 @@ class MainWindow(QMainWindow):
         pass
 
     def create(self):
-        pass
-        '''
-        dialog = GGDialog()
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            first_value, second_value = dialog.get_inputs()
-            print(f"Первое значение: {first_value}, Второе значение: {second_value}")
-        '''
+
+        wellbore_name, ok = QInputDialog.getText(self, "Проект", "Введите название:")
+
+        if ok and wellbore_name.strip():
+            self.tables = Tables(self)
+            self.wellbores[wellbore_name.strip()] = self.tables
+            self.setCentralWidget(self.tables)
+            self.print_action.setDisabled(False)
+            self.print_action.triggered.connect(self.tables.print_report)
+
     def handle_value_entered(self, value):
         print(f"Получено значение: {value}")
 
