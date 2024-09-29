@@ -1156,7 +1156,6 @@ class Tables(QWidget):
             initial_page.set_label(text_0)
             initial_page.sort_key = sort_key_0
 
-
     def add_page(self, text, sort_key=None):
         if self.stackedWidget is None:
             return
