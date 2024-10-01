@@ -27,20 +27,6 @@ class KNBK_Table(QWidget):
         self.current_y = 700
         self.max_height = 700
 
-        self.scroll_area = QScrollArea(self)
-        self.scroll_area.setGeometry(1445, 50, 75, 700)
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self.scroll_area.hide()
-
-        self.image_container = QWidget(self.scroll_area)
-        self.image_container.setFixedWidth(67)
-        self.image_container_layout = QVBoxLayout(self.image_container)
-        self.image_container_layout.setSpacing(0)
-        self.image_container_layout.setContentsMargins(0, 0, 0, 40)
-        self.scroll_area.setWidget(self.image_container)
-
         header = self.tbl_KNBK.horizontalHeaderItem(0)
         if header is not None:
             header.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -54,7 +40,14 @@ class KNBK_Table(QWidget):
         self.undo_view = QUndoView(self.undo_stack)
 
         self.label: QLabel = self.findChild(QLabel, 'label')
-        self.label_image: QLabel = self.findChild(QLabel, 'label_image')
+        #self.label_image: QLabel = self.findChild(QLabel, 'label_image')
+        self.image_container = self.findChild(QWidget, 'image_container')
+        self.scroll_area = self.findChild(QScrollArea, 'scroll_area')
+        self.image_container_layout = self.image_container.layout()
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        #self.scroll_area.hide()
+
         self.label.setVisible(False)
         self.tbl_KNBK: QTableWidget = self.findChild(QTableWidget, 'table_KNBK')
         self.tbl_KNBK.itemChanged.connect(self.update_label)
