@@ -5,7 +5,7 @@ from pathlib import Path
 from PyQt6 import uic
 from PyQt6.QtGui import (QAction)
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QDialog, QInputDialog, QMenu, QDockWidget, QTreeWidget,
-                             QTreeWidgetItem, QFileDialog,
+                             QTreeWidgetItem, QFileDialog, QTabWidget, QWidget,
                              )
 from PyQt6.QtCore import Qt
 from components.dialogs import WellDialog, CustDialog
@@ -27,6 +27,8 @@ class MainWindow(QMainWindow):
     def setup_ui(self):
 
         self.tree_widget: QTreeWidget = self.findChild(QTreeWidget, 'treeWidget')
+        self.tab_widget: QTabWidget = self.findChild(QTabWidget, 'tabWidget')
+
         self.tree_widget.setHeaderLabels(["Наименование"])
 
         self.project = QTreeWidgetItem(self.tree_widget, ["Проект"])
@@ -183,9 +185,10 @@ class MainWindow(QMainWindow):
             self.tables.load_all(file_path)
 
     def create_tables(self, name):
-        self.tables = Tables(self)
-        self.wellbores[name] = self.tables
-        self.setCentralWidget(self.tables)
+        self.wellbores[name] = Tables(self)
+        self.tables = self.wellbores[name]
+        self.tab_widget.addTab(self.tables, name)
+        self.set_current_tab()
 
         self.save_file_action.setDisabled(False)
         self.save_file_action.triggered.connect(lambda _ : self.tables.save_all(name))
@@ -205,7 +208,9 @@ class MainWindow(QMainWindow):
 
     def on_item_clicked_tree(self, item, column):
         # Проверяем, по какому элементу кликнули
-        if item == self.new_field:
+        if item.parent() is None:  # Корневой элемент "Проект"
+            return
+        elif item == self.new_field:
             self.create_new_field()
         elif item.text(0) == "+" and item.parent().text(0) == "Кусты":
             # Если клик на "+" для создания кустов
@@ -218,7 +223,13 @@ class MainWindow(QMainWindow):
         elif item.parent().text(0) == "Скважины":
             name = item.text(0)
             self.tables = self.wellbores[name]
-            self.setCentralWidget(self.tables)
+            self.set_current_tab()
+
+    def set_current_tab(self):
+        for i in range(self.tab_widget.count()):
+            if self.tab_widget.widget(i).isAncestorOf(self.tables):
+                self.tab_widget.setCurrentIndex(i)
+                return
 
     def create_new_field(self):
         # Используем стандартное диалоговое окно для ввода текста
@@ -235,6 +246,8 @@ class MainWindow(QMainWindow):
 
             # Вставляем новый элемент перед "self.new_field"
             self.fields.insertChild(self.fields.indexOfChild(self.new_field), new_field_item)
+            new_field_item.setExpanded(True)
+            new_custs_item.setExpanded(True)
             self.fields.setExpanded(True)
 
     def create_new_cust(self, parent_item):
@@ -254,6 +267,8 @@ class MainWindow(QMainWindow):
                 # Вставляем перед элементом "+"
                 plus_item = parent_item.child(parent_item.childCount() - 1)  # Это элемент с "+"
                 parent_item.insertChild(parent_item.indexOfChild(plus_item), new_cust_item)
+                new_cust_item.setExpanded(True)
+                new_wells_item.setExpanded(True)
                 parent_item.setExpanded(True)
 
     def create_new_well(self, parent_item):
@@ -269,6 +284,8 @@ class MainWindow(QMainWindow):
                 plus_item = parent_item.child(parent_item.childCount() - 1)  # Это элемент с "+"
                 parent_item.insertChild(parent_item.indexOfChild(plus_item), new_well_item)
                 parent_item.setExpanded(True)
+
+                self.create_tables(well_value)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
