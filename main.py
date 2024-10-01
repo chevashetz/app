@@ -50,7 +50,7 @@ class MainWindow(QMainWindow):
         self.print_action.setDisabled(True)
 
         self.create_action = self.findChild(QAction, 'create_action')
-        self.create_action.triggered.connect(self.create)
+        self.create_action.triggered.connect(self.create_project)
 
         self.view_menu = self.findChild(QMenu, 'view_menu')
         self.dockWidget = self.findChild(QDockWidget, 'project_dockWidget')
@@ -108,7 +108,6 @@ class MainWindow(QMainWindow):
             new_text, ok = QInputDialog.getText(self, "Редактирование элемента",
                                                 "Введите новое имя:", text=item.text(0))
 
-            # Если пользователь нажал "ОК" и ввел текст
             if ok and new_text:
                 item.setText(0, new_text)
                 print(f"Элемент изменен на: {new_text}")
@@ -176,10 +175,6 @@ class MainWindow(QMainWindow):
         # Пример функции для открытия файла
         print("Файл открыт")
 
-    def create(self):
-        # Пример функции создания элемента
-        print("Создание элемента")
-
     def open_file_all(self):
         file_path = QFileDialog.getExistingDirectory(self, "Загрузить проект", "")
         if file_path:
@@ -198,7 +193,7 @@ class MainWindow(QMainWindow):
         self.print_action.setDisabled(False)
         self.print_action.triggered.connect(self.tables.print_report)
 
-    def create(self):
+    def create_project(self):
 
         wellbore_name, ok = QInputDialog.getText(self, "Проект", "Введите название:")
 
@@ -220,6 +215,10 @@ class MainWindow(QMainWindow):
             # Если клик на "+" для создания скважин
             parent = item.parent()
             self.create_new_well(parent)
+        elif item.parent().text(0) == "Скважины":
+            name = item.text(0)
+            self.tables = self.wellbores[name]
+            self.setCentralWidget(self.tables)
 
     def create_new_field(self):
         # Используем стандартное диалоговое окно для ввода текста
