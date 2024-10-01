@@ -54,6 +54,7 @@ class KNBK_Table(QWidget):
         self.undo_view = QUndoView(self.undo_stack)
 
         self.label: QLabel = self.findChild(QLabel, 'label')
+        self.label_image: QLabel = self.findChild(QLabel, 'label_image')
         self.label.setVisible(False)
         self.tbl_KNBK: QTableWidget = self.findChild(QTableWidget, 'table_KNBK')
         self.tbl_KNBK.itemChanged.connect(self.update_label)

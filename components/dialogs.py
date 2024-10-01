@@ -274,7 +274,7 @@ class WellDialog(QDialog):
         self.well_input.setPlaceholderText("")
 
         # Добавляем метки для каждого ввода (опционально)
-        self.well_label = QLabel("Свтол:", self)
+        self.well_label = QLabel("Ствол:", self)
 
 
         # Создаём кнопки "ОК" и "Отмена"
