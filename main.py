@@ -7,12 +7,11 @@ from PyQt6.QtGui import (QAction)
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QDialog, QInputDialog, QMenu, QDockWidget, QTreeWidget,
                              QTreeWidgetItem, QFileDialog,
                              )
-
+from PyQt6.QtCore import Qt
 from components.dialogs import WellDialog, CustDialog
 from components.tables import Tables
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
-
 
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
@@ -20,6 +19,8 @@ class MainWindow(QMainWindow):
         uic.loadUi('app.ui', self)
         self.setup_ui()
         self.wellbores = {}
+        self.undo_stack = []
+        self.redo_stack = []
         # Проверка загрузки файла .ui
         print("app.ui loaded successfully")
 
@@ -55,6 +56,129 @@ class MainWindow(QMainWindow):
         self.dockWidget = self.findChild(QDockWidget, 'project_dockWidget')
         self.toggle_dock_act = self.dockWidget.toggleViewAction()
         self.view_menu.addAction(self.toggle_dock_act)
+        # Установка контекстного меню
+        self.tree_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tree_widget.customContextMenuRequested.connect(self.open_context_menu)
+
+    def open_context_menu(self, position):
+        item = self.tree_widget.itemAt(position)
+        if item:
+            # Создание контекстного меню
+            menu = QMenu()
+
+            # Создаем действия Undo и Redo
+            undo_action = QAction("Отменить последнее действие", self)
+            undo_action.triggered.connect(self.undo_last_action)
+            undo_action.setEnabled(bool(self.undo_stack))  # Активируем, только если есть что отменять
+
+            redo_action = QAction("Повторить действие", self)
+            redo_action.triggered.connect(self.redo_last_action)
+            redo_action.setEnabled(bool(self.redo_stack))  # Активируем, только если есть что повторять
+
+            # Добавляем действия Undo и Redo в меню
+            menu.addAction(undo_action)
+            menu.addAction(redo_action)
+
+            # Добавление действий "Редактировать" и "Удалить"
+            edit_action = QAction("Редактировать", self)
+            delete_action = QAction("Удалить", self)
+
+            # Пример действий
+            edit_action.triggered.connect(lambda: self.edit_item(item))
+            delete_action.triggered.connect(lambda: self.delete_item(item))
+
+            # Добавляем действия в меню
+            menu.addAction(edit_action)
+            menu.addAction(delete_action)
+
+            # Отображаем меню
+            menu.exec(self.tree_widget.viewport().mapToGlobal(position))
+
+    def edit_item(self, item):
+        # Названия элементов, которые нельзя редактировать
+        non_editable_items = ["Проект", "Месторождения", "Кусты"]
+
+        # Проверяем, можно ли редактировать элемент
+        if item.text(0) in non_editable_items:
+            print(f"Нельзя редактировать элемент: {item.text(0)}")
+        else:
+            print(f"Редактирование элемента: {item.text(0)}")
+
+            # Открываем диалоговое окно для редактирования текста элемента
+            new_text, ok = QInputDialog.getText(self, "Редактирование элемента",
+                                                "Введите новое имя:", text=item.text(0))
+
+            # Если пользователь нажал "ОК" и ввел текст
+            if ok and new_text:
+                item.setText(0, new_text)
+                print(f"Элемент изменен на: {new_text}")
+
+    def undo_last_action(self):
+        if self.undo_stack:
+            last_action = self.undo_stack.pop()
+            action_type, item, parent = last_action
+
+            if action_type == 'delete':
+                # Если элемент был верхнеуровневым, добавляем его обратно в QTreeWidget
+                if isinstance(parent, QTreeWidget):
+                    parent.addTopLevelItem(item)
+                    print(f"Отменено удаление верхнеуровневого элемента: {item.text(0)}")
+                else:
+                    # Если элемент был дочерним, добавляем его обратно к родительскому элементу
+                    parent.addChild(item)
+                    print(f"Отменено удаление дочернего элемента: {item.text(0)}")
+
+                self.redo_stack.append(last_action)  # Добавляем действие в стек redo
+
+    def redo_last_action(self):
+        if self.redo_stack:
+            last_action = self.redo_stack.pop()
+            action_type, item, parent = last_action
+
+            if action_type == 'delete':
+                # Если элемент был верхнеуровневым
+                if isinstance(parent, QTreeWidget):
+                    index = parent.indexOfTopLevelItem(item)
+                    if index != -1:
+                        parent.takeTopLevelItem(index)
+                        print(f"Действие повторено: Удаление верхнеуровневого элемента {item.text(0)}")
+                else:
+                    # Если элемент был дочерним
+                    parent.removeChild(item)
+                    print(f"Действие повторено: Удаление дочернего элемента {item.text(0)}")
+
+                self.undo_stack.append(last_action)  # Возвращаем действие в undo-стек
+
+    def delete_item(self, item):
+        parent = item.parent()
+        if parent is None:
+            # Если элемент верхнеуровневый
+            index = self.tree_widget.indexOfTopLevelItem(item)
+            if index != -1:
+                self.undo_stack.append(('delete', item, self.tree_widget))
+                self.tree_widget.takeTopLevelItem(index)
+                print(f"Элемент удален: {item.text(0)}")
+                self.redo_stack.clear()  # Очищаем стек redo при новом действии
+            else:
+                print(f"Не удалось удалить элемент: {item.text(0)}")
+        else:
+            # Если элемент является дочерним элементом
+            parent.removeChild(item)
+            self.undo_stack.append(('delete', item, parent))
+            print(f"Элемент удален: {item.text(0)}")
+            self.redo_stack.clear()  # Очищаем стек redo при новом действии
+
+    def on_item_clicked_tree(self, item, column):
+        # Обработка клика на элементе дерева
+        print(f"Клик на элементе: {item.text(column)}")
+
+    def open_file_all(self):
+        # Пример функции для открытия файла
+        print("Файл открыт")
+
+    def create(self):
+        # Пример функции создания элемента
+        print("Создание элемента")
 
     def open_file_all(self):
         file_path = QFileDialog.getExistingDirectory(self, "Загрузить проект", "")
@@ -146,7 +270,6 @@ class MainWindow(QMainWindow):
                 plus_item = parent_item.child(parent_item.childCount() - 1)  # Это элемент с "+"
                 parent_item.insertChild(parent_item.indexOfChild(plus_item), new_well_item)
                 parent_item.setExpanded(True)
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
