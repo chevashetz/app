@@ -3,21 +3,25 @@ import sys
 from pathlib import Path
 
 from PyQt6 import uic
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import (QAction)
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QDialog, QInputDialog, QMenu, QDockWidget, QTreeWidget,
-                             QTreeWidgetItem, QFileDialog, QTabWidget, QWidget,
-                             )
-from PyQt6.QtCore import Qt
+                             QTreeWidgetItem, QFileDialog, QTabWidget, )
+
 from components.dialogs import WellDialog, CustDialog
 from components.tables import Tables
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
+
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
         uic.loadUi('app.ui', self)
+
         self.setup_ui()
+        self.setup_actions()
+
         self.wellbores = {}
         self.undo_stack = []
         self.redo_stack = []
@@ -37,23 +41,6 @@ class MainWindow(QMainWindow):
 
         self.tree_widget.itemClicked.connect(self.on_item_clicked_tree)
 
-        # menubar = self.menuBar()
-        # file_menu = menubar.addMenu('Файл')
-
-        self.open_file_action = self.findChild(QAction, 'open_file_action')
-        self.open_file_action.triggered.connect(self.open_file_all)
-
-        self.save_file_action = self.findChild(QAction, 'save_file_action')
-        # self.save_file_action.triggered.connect(self.save_file)
-        self.save_file_action.setDisabled(True)
-
-        self.print_action: QAction = self.findChild(QAction, 'print_action')
-        # self.print_action.triggered.connect(self.tables.print_report)
-        self.print_action.setDisabled(True)
-
-        self.create_action = self.findChild(QAction, 'create_action')
-        self.create_action.triggered.connect(self.create_project)
-
         self.view_menu = self.findChild(QMenu, 'view_menu')
         self.dockWidget = self.findChild(QDockWidget, 'project_dockWidget')
         self.toggle_dock_act = self.dockWidget.toggleViewAction()
@@ -61,6 +48,16 @@ class MainWindow(QMainWindow):
         # Установка контекстного меню
         self.tree_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree_widget.customContextMenuRequested.connect(self.open_context_menu)
+
+    def setup_actions(self):
+        self.open_file_action = self.findChild(QAction, 'open_file_action')
+        self.open_file_action.triggered.connect(self.open_file_all)
+        self.save_file_action = self.findChild(QAction, 'save_file_action')
+        self.save_file_action.setDisabled(True)
+        self.print_action: QAction = self.findChild(QAction, 'print_action')
+        self.print_action.setDisabled(True)
+        self.create_action = self.findChild(QAction, 'create_action')
+        self.create_action.triggered.connect(self.create_project)
 
     def open_context_menu(self, position):
         item = self.tree_widget.itemAt(position)
@@ -185,13 +182,13 @@ class MainWindow(QMainWindow):
             self.tables.load_all(file_path)
 
     def create_tables(self, name):
-        self.wellbores[name] = Tables(self)
-        self.tables = self.wellbores[name]
+        self.tables = Tables(self)
+        self.wellbores[name] = self.tables
         self.tab_widget.addTab(self.tables, name)
         self.set_current_tab()
 
         self.save_file_action.setDisabled(False)
-        self.save_file_action.triggered.connect(lambda _ : self.tables.save_all(name))
+        self.save_file_action.triggered.connect(lambda _: self.tables.save_all(name))
 
         self.print_action.setDisabled(False)
         self.print_action.triggered.connect(self.tables.print_report)
@@ -226,10 +223,7 @@ class MainWindow(QMainWindow):
             self.set_current_tab()
 
     def set_current_tab(self):
-        for i in range(self.tab_widget.count()):
-            if self.tab_widget.widget(i).isAncestorOf(self.tables):
-                self.tab_widget.setCurrentIndex(i)
-                return
+        self.tab_widget.setCurrentIndex(self.tab_widget.indexOf(self.tables))
 
     def create_new_field(self):
         # Используем стандартное диалоговое окно для ввода текста
@@ -286,6 +280,7 @@ class MainWindow(QMainWindow):
                 parent_item.setExpanded(True)
 
                 self.create_tables(well_value)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

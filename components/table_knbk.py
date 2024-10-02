@@ -34,19 +34,13 @@ class KNBK_Table(QWidget):
         self.add_image(mode="static", static_path=path3 + 'Долото.png')
 
     def setup_ui(self):
-
-        self.open_file_act: QAction = self.findChild(QAction, 'actionOpen')
         self.undo_stack = QUndoStack(self)
         self.undo_view = QUndoView(self.undo_stack)
 
         self.label: QLabel = self.findChild(QLabel, 'label')
-        #self.label_image: QLabel = self.findChild(QLabel, 'label_image')
         self.image_container = self.findChild(QWidget, 'image_container')
         self.scroll_area = self.findChild(QScrollArea, 'scroll_area')
         self.image_container_layout = self.image_container.layout()
-        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        #self.scroll_area.hide()
 
         self.label.setVisible(False)
         self.tbl_KNBK: QTableWidget = self.findChild(QTableWidget, 'table_KNBK')
