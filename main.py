@@ -4,59 +4,47 @@ from pathlib import Path
 
 from PyQt6 import uic
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import (QAction)
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QDialog, QInputDialog, QMenu, QDockWidget, QTreeWidget,
-                             QTreeWidgetItem, QFileDialog, QTabWidget, )
+from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QInputDialog, QMenu, QDockWidget, QTreeWidget,
+    QTreeWidgetItem, QFileDialog, QTabWidget
+)
 
-from components.dialogs import WellDialog, CustDialog, WellboreDialog
 from components.tables import Tables
 from config import path5
+
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 class ProjectManager:
     def __init__(self, root_folder):
-        self.root_folder = root_folder
+        self.root_folder = Path(root_folder)
 
-    def create_folder(self, path):
-        """Создаёт папку, если её не существует."""
-        if not os.path.exists(path):
-            os.makedirs(path)
+    def create_folder(self, path: Path):
+        """Creates a folder if it doesn't exist."""
+        path.mkdir(parents=True, exist_ok=True)
 
-    def create_project_structure(self, project_name, wellbore_name=None):
-        """Создаёт структуру проекта с папками и поддиректориями."""
-        project_path = os.path.join(self.root_folder, project_name)
-        self.create_folder(project_path)
+    def create_project_structure(self, *args):
+        """Creates the project folder structure based on hierarchy."""
+        current_path = self.root_folder
+        args = list(args)
 
-        if wellbore_name:
-            wellbore_path = os.path.join(project_path, wellbore_name)
-            self.create_folder(wellbore_path)
+        # Remove 'Месторождения' if it's the first element
+        if args and args[0] == "Месторождения":
+            args.pop(0)
 
-    def load_project_structure(self):
-        """Загружает существующую структуру папок проекта."""
-        if not os.path.exists(self.root_folder):
-            print(f"Папка {self.root_folder} не найдена.")
-            return []
+        # Add 'Месторождения' to the path
+        current_path = current_path / "Месторождения"
+        self.create_folder(current_path)
 
-        project_structure = []
-        for project in os.listdir(self.root_folder):
-            project_path = os.path.join(self.root_folder, project)
-            if os.path.isdir(project_path):
-                wellbores = self.load_wellbores(project_path)
-                project_structure.append((project, wellbores))
-        return project_structure
+        for folder_name in args:
+            current_path = current_path / folder_name
+            self.create_folder(current_path)
 
-    def load_wellbores(self, project_path):
-        """Читает структуру стволов для проекта."""
-        wellbores = []
-        for wellbore in os.listdir(project_path):
-            wellbore_path = os.path.join(project_path, wellbore)
-            if os.path.isdir(wellbore_path):
-                wellbores.append(wellbore)
-        return wellbores
 
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
-        super(MainWindow, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         uic.loadUi('app.ui', self)
 
         self.setup_ui()
@@ -65,27 +53,31 @@ class MainWindow(QMainWindow):
         self.wellbores = {}
         self.undo_stack = []
         self.redo_stack = []
-        # Проверка загрузки файла .ui
+        self.project_manager = ProjectManager(path5)
+
+        # Start loading from "Месторождения"
+        fields_path = self.project_manager.root_folder / "Месторождения"
+        #self.load_project_structure(fields_path, self.fields_item)
+
         print("app.ui loaded successfully")
 
     def setup_ui(self):
-
         self.tree_widget: QTreeWidget = self.findChild(QTreeWidget, 'treeWidget')
         self.tab_widget: QTabWidget = self.findChild(QTabWidget, 'tabWidget')
 
         self.tree_widget.setHeaderLabels(["Наименование"])
 
-        self.project = QTreeWidgetItem(self.tree_widget, ["Проект"])
-        self.fields = QTreeWidgetItem(self.project, ["Месторождения"])
-        self.new_field = QTreeWidgetItem(self.fields, ["+"])
+        self.project_item = QTreeWidgetItem(self.tree_widget, ["Проект"])
+        self.fields_item = QTreeWidgetItem(self.project_item, ["Месторождения"])
+        self.new_field_item = QTreeWidgetItem(self.fields_item, ["+"])
 
         self.tree_widget.itemClicked.connect(self.on_item_clicked_tree)
 
         self.view_menu = self.findChild(QMenu, 'view_menu')
-        self.dockWidget = self.findChild(QDockWidget, 'project_dockWidget')
-        self.toggle_dock_act = self.dockWidget.toggleViewAction()
+        self.dock_widget = self.findChild(QDockWidget, 'project_dockWidget')
+        self.toggle_dock_act = self.dock_widget.toggleViewAction()
         self.view_menu.addAction(self.toggle_dock_act)
-        # Установка контекстного меню
+
         self.tree_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree_widget.customContextMenuRequested.connect(self.open_context_menu)
 
@@ -102,54 +94,44 @@ class MainWindow(QMainWindow):
     def open_context_menu(self, position):
         item = self.tree_widget.itemAt(position)
         if item:
-            # Создание контекстного меню
             menu = QMenu()
-
-            # Создаем действия Undo и Redo
+            # Undo and Redo actions
             undo_action = QAction("Отменить последнее действие", self)
             undo_action.triggered.connect(self.undo_last_action)
-            undo_action.setEnabled(bool(self.undo_stack))  # Активируем, только если есть что отменять
+            undo_action.setEnabled(bool(self.undo_stack))
 
             redo_action = QAction("Повторить действие", self)
             redo_action.triggered.connect(self.redo_last_action)
-            redo_action.setEnabled(bool(self.redo_stack))  # Активируем, только если есть что повторять
+            redo_action.setEnabled(bool(self.redo_stack))
 
-            # Добавляем действия Undo и Redo в меню
             menu.addAction(undo_action)
             menu.addAction(redo_action)
 
-            # Добавление действий "Редактировать" и "Удалить"
+            # Edit and Delete actions
             edit_action = QAction("Редактировать", self)
-            delete_action = QAction("Удалить", self)
-
-            # Пример действий
             edit_action.triggered.connect(lambda: self.edit_item(item))
+
+            delete_action = QAction("Удалить", self)
             delete_action.triggered.connect(lambda: self.delete_item(item))
 
-            # Добавляем действия в меню
             menu.addAction(edit_action)
             menu.addAction(delete_action)
 
-            # Отображаем меню
             menu.exec(self.tree_widget.viewport().mapToGlobal(position))
 
     def edit_item(self, item):
-        # Названия элементов, которые нельзя редактировать
-        non_editable_items = ["Проект", "Месторождения", "Кусты"]
+        non_editable_items = {"Проект", "Месторождения", "Кусты", "Скважины", "Стволы", "+"}
 
-        # Проверяем, можно ли редактировать элемент
         if item.text(0) in non_editable_items:
             print(f"Нельзя редактировать элемент: {item.text(0)}")
-        else:
-            print(f"Редактирование элемента: {item.text(0)}")
+            return
 
-            # Открываем диалоговое окно для редактирования текста элемента
-            new_text, ok = QInputDialog.getText(self, "Редактирование элемента",
-                                                "Введите новое имя:", text=item.text(0))
+        new_text, ok = QInputDialog.getText(self, "Редактирование элемента",
+                                            "Введите новое имя:", text=item.text(0))
 
-            if ok and new_text:
-                item.setText(0, new_text)
-                print(f"Элемент изменен на: {new_text}")
+        if ok and new_text.strip():
+            item.setText(0, new_text.strip())
+            print(f"Элемент изменен на: {new_text.strip()}")
 
     def undo_last_action(self):
         if self.undo_stack:
@@ -157,16 +139,12 @@ class MainWindow(QMainWindow):
             action_type, item, parent = last_action
 
             if action_type == 'delete':
-                # Если элемент был верхнеуровневым, добавляем его обратно в QTreeWidget
                 if isinstance(parent, QTreeWidget):
                     parent.addTopLevelItem(item)
-                    print(f"Отменено удаление верхнеуровневого элемента: {item.text(0)}")
                 else:
-                    # Если элемент был дочерним, добавляем его обратно к родительскому элементу
                     parent.addChild(item)
-                    print(f"Отменено удаление дочернего элемента: {item.text(0)}")
-
-                self.redo_stack.append(last_action)  # Добавляем действие в стек redo
+                print(f"Отменено удаление элемента: {item.text(0)}")
+                self.redo_stack.append(last_action)
 
     def redo_last_action(self):
         if self.redo_stack:
@@ -174,47 +152,122 @@ class MainWindow(QMainWindow):
             action_type, item, parent = last_action
 
             if action_type == 'delete':
-                # Если элемент был верхнеуровневым
                 if isinstance(parent, QTreeWidget):
                     index = parent.indexOfTopLevelItem(item)
                     if index != -1:
                         parent.takeTopLevelItem(index)
-                        print(f"Действие повторено: Удаление верхнеуровневого элемента {item.text(0)}")
                 else:
-                    # Если элемент был дочерним
                     parent.removeChild(item)
-                    print(f"Действие повторено: Удаление дочернего элемента {item.text(0)}")
-
-                self.undo_stack.append(last_action)  # Возвращаем действие в undo-стек
+                print(f"Действие повторено: Удаление элемента {item.text(0)}")
+                self.undo_stack.append(last_action)
 
     def delete_item(self, item):
         parent = item.parent()
         if parent is None:
-            # Если элемент верхнеуровневый
             index = self.tree_widget.indexOfTopLevelItem(item)
             if index != -1:
                 self.undo_stack.append(('delete', item, self.tree_widget))
                 self.tree_widget.takeTopLevelItem(index)
+                self.redo_stack.clear()
                 print(f"Элемент удален: {item.text(0)}")
-                self.redo_stack.clear()  # Очищаем стек redo при новом действии
-            else:
-                print(f"Не удалось удалить элемент: {item.text(0)}")
         else:
-            # Если элемент является дочерним элементом
-            parent.removeChild(item)
             self.undo_stack.append(('delete', item, parent))
+            parent.removeChild(item)
+            self.redo_stack.clear()
             print(f"Элемент удален: {item.text(0)}")
-            self.redo_stack.clear()  # Очищаем стек redo при новом действии
 
-    '''
     def on_item_clicked_tree(self, item, column):
-        # Обработка клика на элементе дерева
-        print(f"Клик на элементе: {item.text(column)}")
-    '''
+        if item.parent() is None:
+            return
+        elif item.text(0) == "+":
+            parent_item = item.parent()
+            parent_text = parent_item.text(0)
+            item_mapping = {
+                "Месторождения": ("Месторождение", "Кусты"),
+                "Кусты": ("Куст", "Скважины"),
+                "Скважины": ("Скважину", "Стволы"),
+                "Стволы": ("Ствол", None)
+            }
 
-    def open_file_all(self):
-        # Пример функции для открытия файла
-        print("Файл открыт")
+            if parent_text in item_mapping:
+                item_type_name, child_name = item_mapping[parent_text]
+                item_name, ok = QInputDialog.getText(self, f"Добавить {item_type_name}",
+                                                     f"Введите название {item_type_name.lower()}:")
+                if ok and item_name.strip():
+                    self.create_new_item(parent_item, item_name.strip(), child_name)
+        elif item.text(0) in {"Месторождения", "Кусты", "Скважины", "Стволы"}:
+            # Expand or collapse the branch
+            item.setExpanded(not item.isExpanded())
+        elif item.parent().text(0) == "Стволы":
+            # Load data for the selected borehole
+            name = item.text(0)
+            self.tables = self.wellbores.get(name)
+            if self.tables:
+                self.set_current_tab()
+            else:
+                self.create_tables(name)
+        else:
+            # Handle clicks on other items if necessary
+            pass
+
+    def create_new_item(self, parent_item, name, child_text=None):
+        """Generic method to create a new item and associated folder."""
+        new_item = QTreeWidgetItem([name])
+
+        if child_text:
+            child_item = QTreeWidgetItem(new_item, [child_text])
+            self.add_plus_button(child_item)
+            # Expand the child item
+            child_item.setExpanded(True)
+        # Do not add '+' if there is no child category (i.e., at the 'Ствол' level)
+
+        plus_item = None
+        for i in range(parent_item.childCount()):
+            if parent_item.child(i).text(0) == "+":
+                plus_item = parent_item.child(i)
+                break
+
+        if plus_item:
+            parent_item.insertChild(parent_item.indexOfChild(plus_item), new_item)
+        else:
+            parent_item.addChild(new_item)
+
+        self.expand_items(new_item)
+        self.create_project_folders(new_item)
+
+    def create_project_folders(self, item):
+        """Creates folders corresponding to the item in the project structure."""
+        hierarchy = []
+        current_item = item
+
+        while current_item:
+            text = current_item.text(0)
+            if text not in {"Проект", "+", "Месторождения"}:
+                hierarchy.insert(0, text)
+            current_item = current_item.parent()
+
+        # Create folders based on the hierarchy
+        self.project_manager.create_project_structure(*hierarchy)
+
+        # If the item is a borehole, create a table
+        if len(hierarchy) >= 4 and hierarchy[-2] == "Стволы":
+            borehole_name = hierarchy[-1]
+            self.create_tables(borehole_name)
+
+    def add_plus_button(self, parent_item):
+        plus_item = QTreeWidgetItem(["+"])
+        parent_item.addChild(plus_item)
+
+    def expand_items(self, item):
+        """Recursively expands all child items."""
+        item.setExpanded(True)
+        for i in range(item.childCount()):
+            child = item.child(i)
+            self.expand_items(child)
+
+    def set_current_tab(self):
+        """Sets the current tab to self.tables."""
+        self.tab_widget.setCurrentWidget(self.tables)
 
     def open_file_all(self):
         file_path = QFileDialog.getExistingDirectory(self, "Загрузить проект", "")
@@ -236,102 +289,12 @@ class MainWindow(QMainWindow):
         self.print_action.triggered.connect(self.tables.print_report)
 
     def create_project(self):
-
-        wellbore_name, ok = QInputDialog.getText(self, "Проект", "Введите название:")
-
-        if ok and wellbore_name.strip():
-            self.create_tables(wellbore_name.strip())
-
-    def handle_value_entered(self, value):
-        print(f"Получено значение: {value}")
-
-    def on_item_clicked_tree(self, item, column):
-        # Проверяем, по какому элементу кликнули
-        if item.parent() is None:  # Корневой элемент "Проект"
-            return
-        elif item == self.new_field:
-            self.create_new_item("Месторождение", self.create_new_field)
-        elif item.text(0) == "+":
-            parent_text = item.parent().text(0)
-            if parent_text == "Кусты":
-                self.create_new_item("Куст", self.create_new_cust, item.parent())
-            elif parent_text == "Скважины":
-                self.create_new_item("Скважина", self.create_new_well, item.parent())
-            elif parent_text == "Стволы":
-                self.create_new_item("Ствол", self.create_new_wellbore, item.parent())
-        elif item.parent().text(0) == "Стволы":
-            name = item.text(0)
-            self.tables = self.wellbores[name]
-            self.set_current_tab()
-
-    def create_new_item(self, dialog_title, create_function, parent_item=None):
-        dialog_class = {
-            "Месторождение": QInputDialog,
-            "Куст": CustDialog,
-            "Скважина": WellDialog,
-            "Ствол": WellboreDialog
-        }.get(dialog_title)
-
-        if dialog_class == QInputDialog:
-            value, ok = QInputDialog.getText(self, f"Добавить {dialog_title}", f"Введите название {dialog_title}:")
-        else:
-            dialog = dialog_class()
-            ok = dialog.exec() == QDialog.DialogCode.Accepted
-            value = dialog.get_inputs() if ok else None
-
-        if ok and value:
-            create_function(parent_item, value)
-
-    def create_new_field(self, parent_item, value):
-        # Создаем новый элемент "Месторождение"
-        new_field_item = self.add_tree_item(self.fields, value, "Кусты", self.new_field)
-        self.expand_items(new_field_item)
-
-    def create_new_cust(self, parent_item, value):
-        # Создаем новый куст
-        new_cust_item = self.add_tree_item(parent_item, value, "Скважины")
-        self.expand_items(new_cust_item)
-
-    def create_new_well(self, parent_item, value):
-        # Создаем новую скважину
-        new_well_item = self.add_tree_item(parent_item, value, "Стволы")
-        self.expand_items(new_well_item)
-
-    def create_new_wellbore(self, parent_item, value):
-        # Создаем новый ствол
-        new_wellbore_item = self.add_tree_item(parent_item, value)
-        self.expand_items(new_wellbore_item)
-        self.create_tables(value)
-
-    def add_tree_item(self, parent_item, text, child_text=None, insert_before=None):
-        # Создаем новый элемент дерева
-        new_item = QTreeWidgetItem([text])
-
-        # Если есть вложенный элемент, добавляем его
-        if child_text:
-            child_item = QTreeWidgetItem(new_item, [child_text])
-            QTreeWidgetItem(child_item, ["+"])  # Знак "+" для добавления нового элемента
-
-        # Вставляем элемент
-        if insert_before:
-            parent_item.insertChild(parent_item.indexOfChild(insert_before), new_item)
-        else:
-            plus_item = parent_item.child(parent_item.childCount() - 1)  # Это элемент с "+"
-            parent_item.insertChild(parent_item.indexOfChild(plus_item), new_item)
-
-        return new_item
-
-    def expand_items(self, item):
-        """ Рекурсивно раскрываем все вложенные элементы дерева """
-        item.setExpanded(True)
-        for i in range(item.childCount()):
-            item.child(i).setExpanded(True)
-
-    def set_current_tab(self):
-        self.tab_widget.setCurrentIndex(self.tab_widget.indexOf(self.tables))
+        project_name, ok = QInputDialog.getText(self, "Проект", "Введите название:")
+        if ok and project_name.strip():
+            self.create_new_item(self.fields_item, project_name.strip(), "Кусты")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    mainWindow = MainWindow()
-    mainWindow.show()
+    main_window = MainWindow()
+    main_window.show()
     sys.exit(app.exec())
