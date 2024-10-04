@@ -10,9 +10,49 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QDialog, QInputDialog, Q
 
 from components.dialogs import WellDialog, CustDialog, WellboreDialog
 from components.tables import Tables
-
+from config import path5
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
+class ProjectManager:
+    def __init__(self, root_folder):
+        self.root_folder = root_folder
+
+    def create_folder(self, path):
+        """Создаёт папку, если её не существует."""
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+    def create_project_structure(self, project_name, wellbore_name=None):
+        """Создаёт структуру проекта с папками и поддиректориями."""
+        project_path = os.path.join(self.root_folder, project_name)
+        self.create_folder(project_path)
+
+        if wellbore_name:
+            wellbore_path = os.path.join(project_path, wellbore_name)
+            self.create_folder(wellbore_path)
+
+    def load_project_structure(self):
+        """Загружает существующую структуру папок проекта."""
+        if not os.path.exists(self.root_folder):
+            print(f"Папка {self.root_folder} не найдена.")
+            return []
+
+        project_structure = []
+        for project in os.listdir(self.root_folder):
+            project_path = os.path.join(self.root_folder, project)
+            if os.path.isdir(project_path):
+                wellbores = self.load_wellbores(project_path)
+                project_structure.append((project, wellbores))
+        return project_structure
+
+    def load_wellbores(self, project_path):
+        """Читает структуру стволов для проекта."""
+        wellbores = []
+        for wellbore in os.listdir(project_path):
+            wellbore_path = os.path.join(project_path, wellbore)
+            if os.path.isdir(wellbore_path):
+                wellbores.append(wellbore)
+        return wellbores
 
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
@@ -166,9 +206,11 @@ class MainWindow(QMainWindow):
             print(f"Элемент удален: {item.text(0)}")
             self.redo_stack.clear()  # Очищаем стек redo при новом действии
 
+    '''
     def on_item_clicked_tree(self, item, column):
         # Обработка клика на элементе дерева
         print(f"Клик на элементе: {item.text(column)}")
+    '''
 
     def open_file_all(self):
         # Пример функции для открытия файла
