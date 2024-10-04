@@ -16,32 +16,6 @@ from config import path5
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-class ProjectManager:
-    def __init__(self, root_folder):
-        self.root_folder = Path(root_folder)
-
-    def create_folder(self, path: Path):
-        """Creates a folder if it doesn't exist."""
-        path.mkdir(parents=True, exist_ok=True)
-
-    def create_project_structure(self, *args):
-        """Creates the project folder structure based on hierarchy."""
-        current_path = self.root_folder
-        args = list(args)
-
-        # Remove 'Месторождения' if it's the first element
-        if args and args[0] == "Месторождения":
-            args.pop(0)
-
-        # Add 'Месторождения' to the path
-        current_path = current_path / "Месторождения"
-        self.create_folder(current_path)
-
-        for folder_name in args:
-            current_path = current_path / folder_name
-            self.create_folder(current_path)
-
-
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -50,13 +24,11 @@ class MainWindow(QMainWindow):
         self.setup_ui()
         self.setup_actions()
 
-        self.wellbores = {}
+        self.wellbores: dict[str, Tables] = {}
         self.undo_stack = []
         self.redo_stack = []
-        self.project_manager = ProjectManager(path5)
 
         # Start loading from "Месторождения"
-        fields_path = self.project_manager.root_folder / "Месторождения"
         #self.load_project_structure(fields_path, self.fields_item)
 
         print("app.ui loaded successfully")
@@ -183,15 +155,15 @@ class MainWindow(QMainWindow):
             parent_item = item.parent()
             parent_text = parent_item.text(0)
             item_mapping = {
-                "Месторождения": ("Месторождение", "Кусты"),
-                "Кусты": ("Куст", "Скважины"),
-                "Скважины": ("Скважину", "Стволы"),
-                "Стволы": ("Ствол", None)
+                "Месторождения": ("Месторождение", "Кусты", QInputDialog),
+                "Кусты": ("Куст", "Скважины", QInputDialog),
+                "Скважины": ("Скважину", "Стволы", QInputDialog),
+                "Стволы": ("Ствол", None, QInputDialog)
             }
 
             if parent_text in item_mapping:
-                item_type_name, child_name = item_mapping[parent_text]
-                item_name, ok = QInputDialog.getText(self, f"Добавить {item_type_name}",
+                item_type_name, child_name, dialog = item_mapping[parent_text]
+                item_name, ok = dialog.getText(self, f"Добавить {item_type_name}",
                                                      f"Введите название {item_type_name.lower()}:")
                 if ok and item_name.strip():
                     self.create_new_item(parent_item, item_name.strip(), child_name)
@@ -233,26 +205,24 @@ class MainWindow(QMainWindow):
             parent_item.addChild(new_item)
 
         self.expand_items(new_item)
-        self.create_project_folders(new_item)
 
-    def create_project_folders(self, item):
+        if parent_item.text(0) == "Стволы":
+            self.create_tables(name)
+
+    def create_project_folders(self, item, path: Path):
         """Creates folders corresponding to the item in the project structure."""
-        hierarchy = []
-        current_item = item
+        if item:
+            text = item.text(0).strip()
+            path = path / text
+            for i in range(item.childCount()):
+                child = item.child(i)
+                child_text = child.text(0).strip()
+                if child_text and child_text != '+':
+                    if text == 'Стволы':
+                        self.wellbores[child_text].save_all(child_text, path)
+                    else:
+                        self.create_project_folders(child, path)
 
-        while current_item:
-            text = current_item.text(0)
-            if text not in {"Проект", "+", "Месторождения"}:
-                hierarchy.insert(0, text)
-            current_item = current_item.parent()
-
-        # Create folders based on the hierarchy
-        self.project_manager.create_project_structure(*hierarchy)
-
-        # If the item is a borehole, create a table
-        if len(hierarchy) >= 4 and hierarchy[-2] == "Стволы":
-            borehole_name = hierarchy[-1]
-            self.create_tables(borehole_name)
 
     def add_plus_button(self, parent_item):
         plus_item = QTreeWidgetItem(["+"])
@@ -283,7 +253,7 @@ class MainWindow(QMainWindow):
         self.set_current_tab()
 
         self.save_file_action.setDisabled(False)
-        self.save_file_action.triggered.connect(lambda _: self.tables.save_all(name))
+        self.save_file_action.triggered.connect(lambda _: self.save_project(name))
 
         self.print_action.setDisabled(False)
         self.print_action.triggered.connect(self.tables.print_report)
@@ -291,7 +261,13 @@ class MainWindow(QMainWindow):
     def create_project(self):
         project_name, ok = QInputDialog.getText(self, "Проект", "Введите название:")
         if ok and project_name.strip():
-            self.create_new_item(self.fields_item, project_name.strip(), "Кусты")
+            self.create_new_item(self.tree_widget, project_name.strip(), "Кусты")
+
+    def save_project(self, name):
+        file_path = QFileDialog.getExistingDirectory(self, "Сохранить проект", "")
+        if file_path:
+            file_path = Path(file_path)
+            self.create_project_folders(self.project_item, file_path)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

@@ -1375,16 +1375,15 @@ class Tables(QWidget):
 
         self.db_manager.close_database()
 
-    def save_all(self, name):
-        file_path = QFileDialog.getExistingDirectory(self, "Сохранить проект", "")
+    def save_all(self, name, file_path):
         if file_path:
-            file_path: Path = Path(file_path) / name
+            file_path: Path = file_path / name
             file_path.mkdir(parents=True, exist_ok=True)
 
             try:
                 self.export_to_csv(self.tbl_profile, file_path / "Профиль.csv")
                 self.export_to_csv(self.tbl_stratigraphy, file_path / "Стратиграфия.csv")
-                self.export_to_csv(self.tbl_pressure, file_path / "Давления.csv")
+                # self.export_to_csv(self.tbl_pressure, file_path / "Давления.csv")
                 self.export_to_csv(self.tbl_casing_strings, file_path / "Обсадные колонны.csv")
                 self.export_to_csv(self.tbl_drilling_fluids, file_path / "Буровые растворы.csv")
                 self.export_to_csv(self.stackedWidget.widget(4).tbl_KNBK, file_path / "КНБК.csv")
