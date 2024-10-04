@@ -330,4 +330,37 @@ class CustDialog(QDialog):
     def get_inputs(self):
         return self.cust_input.text()
 
+class WellboreDialog(QDialog):
+    def __init__(self, parent=None):
+        super(WellboreDialog, self).__init__(parent)
+
+        self.setWindowTitle("Ввод данных")
+        # Создаём первый текстовый ввод
+        self.well_input = QLineEdit(self)
+        self.well_input.setPlaceholderText("")
+
+        # Добавляем метки для каждого ввода (опционально)
+        self.well_label = QLabel("Ствол:", self)
+
+
+        # Создаём кнопки "ОК" и "Отмена"
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+
+        # Подключаем кнопки к функциям
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
+        # Размещение элементов в макете
+        layout = QVBoxLayout()
+
+        layout.addWidget(self.well_label)
+        layout.addWidget(self.well_input)
+
+        layout.addWidget(self.button_box)
+
+        self.setLayout(layout)
+
+    def get_inputs(self):
+        # Возвращает значения, введённые пользователем в оба поля
+        return self.well_input.text()
 

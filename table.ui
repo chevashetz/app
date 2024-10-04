@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1495</width>
+    <width>1403</width>
     <height>668</height>
    </rect>
   </property>
@@ -292,7 +292,7 @@
    <item>
     <widget class="QScrollArea" name="scroll_area">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+      <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
