@@ -1381,21 +1381,29 @@ class Tables(QWidget):
             file_path: Path = Path(file_path) / name
             file_path.mkdir(parents=True, exist_ok=True)
 
-            self.export_to_csv(self.tbl_profile, file_path / "Профиль.csv")
-            self.export_to_csv(self.tbl_stratigraphy, file_path / "Стратиграфия.csv")
-            self.export_to_csv(self.tbl_pressure, file_path / "Давления.csv")
-            self.export_to_csv(self.tbl_casing_strings, file_path / "Обсадные колонны.csv")
-            self.export_to_csv(self.tbl_drilling_fluids, file_path / "Буровые растворы.csv")
-            self.export_to_csv(self.stackedWidget.widget(4).tbl_KNBK, file_path / "КНБК.csv")
+            try:
+                self.export_to_csv(self.tbl_profile, file_path / "Профиль.csv")
+                self.export_to_csv(self.tbl_stratigraphy, file_path / "Стратиграфия.csv")
+                self.export_to_csv(self.tbl_pressure, file_path / "Давления.csv")
+                self.export_to_csv(self.tbl_casing_strings, file_path / "Обсадные колонны.csv")
+                self.export_to_csv(self.tbl_drilling_fluids, file_path / "Буровые растворы.csv")
+                self.export_to_csv(self.stackedWidget.widget(4).tbl_KNBK, file_path / "КНБК.csv")
+                QMessageBox.information(self, "Сохранение завершено", f"Данные успешно сохранены в {file_path}")
+            except Exception as e:
+                QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить данные: {str(e)}")
 
     def load_all(self, file_path: Path):
         if file_path:
-            self.import_from_csv(self.tbl_profile, file_path / "Профиль.csv")
-            self.import_from_csv(self.tbl_stratigraphy, file_path / "Стратиграфия.csv")
-            self.import_from_csv(self.tbl_pressure, file_path / "Давления.csv")
-            self.import_from_csv(self.tbl_casing_strings, file_path / "Обсадные колонны.csv")
-            self.import_from_csv(self.tbl_drilling_fluids, file_path / "Буровые растворы.csv")
-            self.import_from_csv(self.stackedWidget.widget(4).tbl_KNBK, file_path / "КНБК.csv")
+            try:
+                self.import_from_csv(self.tbl_profile, file_path / "Профиль.csv")
+                self.import_from_csv(self.tbl_stratigraphy, file_path / "Стратиграфия.csv")
+                self.import_from_csv(self.tbl_pressure, file_path / "Давления.csv")
+                self.import_from_csv(self.tbl_casing_strings, file_path / "Обсадные колонны.csv")
+                self.import_from_csv(self.tbl_drilling_fluids, file_path / "Буровые растворы.csv")
+                self.import_from_csv(self.stackedWidget.widget(4).tbl_KNBK, file_path / "КНБК.csv")
+                QMessageBox.information(self, "Импорт завершен", f"Данные успешно загружены из {file_path}")
+            except Exception as e:
+                QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить данные: {str(e)}")
 
     def export_to_csv(self, table, file_path):
         if not table:
@@ -1404,30 +1412,25 @@ class Tables(QWidget):
         if not file_path:
             return
 
-        try:
-            with open(file_path, 'w', newline='', encoding='utf-8') as stream:
-                writer = csv.writer(stream)
+        with open(file_path, 'w', newline='', encoding='utf-8') as stream:
+            writer = csv.writer(stream)
 
-                # Записываем заголовки
-                headers = []
+            # Записываем заголовки
+            headers = []
+            for column in range(table.columnCount()):
+                headers.append(table.horizontalHeaderItem(column).text())
+            writer.writerow(headers)
+
+            # Записываем данные
+            for row in range(table.rowCount()):
+                row_data = []
                 for column in range(table.columnCount()):
-                    headers.append(table.horizontalHeaderItem(column).text())
-                writer.writerow(headers)
-
-                # Записываем данные
-                for row in range(table.rowCount()):
-                    row_data = []
-                    for column in range(table.columnCount()):
-                        item = table.item(row, column)
-                        if item is not None:
-                            row_data.append(item.text())
-                        else:
-                            row_data.append('')
-                    writer.writerow(row_data)
-
-            QMessageBox.information(self, "Экспорт завершен", f"Данные успешно экспортированы в {file_path}")
-        except Exception as e:
-            QMessageBox.critical(self, "Ошибка", f"Не удалось экспортировать данные: {str(e)}")
+                    item = table.item(row, column)
+                    if item is not None:
+                        row_data.append(item.text())
+                    else:
+                        row_data.append('')
+                writer.writerow(row_data)
 
     def import_from_csv(self, table, file_path):
         if not table:
@@ -1436,25 +1439,20 @@ class Tables(QWidget):
         if not file_path:
             return
 
-        try:
-            with open(file_path, 'r', encoding='utf-8') as stream:
-                reader = csv.reader(stream)
+        with open(file_path, 'r', encoding='utf-8') as stream:
+            reader = csv.reader(stream)
 
-                # Читаем заголовки
-                headers = next(reader)
-                table.setColumnCount(len(headers))
-                table.setHorizontalHeaderLabels(headers)
+            # Читаем заголовки
+            headers = next(reader)
+            table.setColumnCount(len(headers))
+            table.setHorizontalHeaderLabels(headers)
 
-                # Читаем данные
-                table.setRowCount(0)
-                for row_data in reader:
-                    row = table.rowCount()
-                    table.insertRow(row)
-                    for column, data in enumerate(row_data):
-                        item = QTableWidgetItem(data)
-                        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                        table.setItem(row, column, item)
-
-            QMessageBox.information(self, "Импорт завершен", f"Данные успешно импортированы из {file_path}")
-        except Exception as e:
-            QMessageBox.critical(self, "Ошибка", f"Не удалось импортировать данные: {str(e)}")
+            # Читаем данные
+            table.setRowCount(0)
+            for row_data in reader:
+                row = table.rowCount()
+                table.insertRow(row)
+                for column, data in enumerate(row_data):
+                    item = QTableWidgetItem(data)
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    table.setItem(row, column, item)
