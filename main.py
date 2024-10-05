@@ -12,7 +12,6 @@ from PyQt6.QtWidgets import (
 
 from components.dialogs import WellboreDialog, CustDialog, WellDialog, FieldDialog
 from components.tables import Tables
-from config import path5
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -148,7 +147,6 @@ class MainWindow(QMainWindow):
             self.redo_stack.clear()
             print(f"Элемент удален: {item.text(0)}")
 
-
     def on_item_clicked_tree(self, item, column):
         if item.parent() is None:
             return
@@ -245,12 +243,37 @@ class MainWindow(QMainWindow):
         """Sets the current tab to self.tables."""
         self.tab_widget.setCurrentWidget(self.tables)
 
+    def load_project_folders(self, parent_item, path: Path):
+        # Маркеры, после которых нужно добавлять "+"
+        markers = ["Месторождения", "Кусты", "Стволы"]
+
+        for subpath in path.iterdir():
+            if subpath.is_dir():
+                # Создаем элемент для папки
+                folder_item = QTreeWidgetItem([subpath.name])
+                parent_item.addChild(folder_item)
+
+                # Рекурсивно добавляем подпапки
+                self.load_project_folders(folder_item, subpath)
+
+        # Добавляем "+" если текст элемента совпадает с маркером
+        if parent_item.text(0) in markers:
+            plus_item = QTreeWidgetItem(["+"])
+            parent_item.addChild(plus_item)
+
+        self.expand_items(parent_item)
+
     def open_file_all(self):
-        file_path = QFileDialog.getExistingDirectory(self, "Загрузить проект", "")
+        file_path = QFileDialog.getExistingDirectory(self, "Открыть проект", "")
         if file_path:
             file_path = Path(file_path)
-            self.create_tables(file_path.name)
-            self.tables.load_all(file_path)
+            # Очищаем дерево перед загрузкой нового проекта
+            self.tree_widget.clear()
+            # Создаем корневой элемент для проекта
+            project_item = QTreeWidgetItem([file_path.name])
+            self.tree_widget.addTopLevelItem(project_item)
+            # Загружаем структуру папок в дерево
+            self.load_project_folders(project_item, file_path)
 
     def create_tables(self, name):
         self.tables = Tables(self)
