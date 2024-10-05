@@ -1396,7 +1396,7 @@ class Tables(QWidget):
             try:
                 self.import_from_csv(self.tbl_profile, file_path / "Профиль.csv")
                 self.import_from_csv(self.tbl_stratigraphy, file_path / "Стратиграфия.csv")
-                self.import_from_csv(self.tbl_pressure, file_path / "Давления.csv")
+                #self.import_from_csv(self.tbl_pressure, file_path / "Давления.csv")
                 self.import_from_csv(self.tbl_casing_strings, file_path / "Обсадные колонны.csv")
                 self.import_from_csv(self.tbl_drilling_fluids, file_path / "Буровые растворы.csv")
                 self.import_from_csv(self.stackedWidget.widget(4).tbl_KNBK, file_path / "КНБК.csv")

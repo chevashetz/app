@@ -294,7 +294,7 @@ class WellDialog(QDialog):
 
         self.setLayout(layout)
 
-    def get_inputs(self):
+    def getText(self):
         # Возвращает значения, введённые пользователем в оба поля
         return self.well_input.text()
 
@@ -327,7 +327,7 @@ class CustDialog(QDialog):
 
         self.setLayout(layout)
 
-    def get_inputs(self):
+    def getText(self):
         return self.cust_input.text()
 
 class WellboreDialog(QDialog):
@@ -360,7 +360,28 @@ class WellboreDialog(QDialog):
 
         self.setLayout(layout)
 
-    def get_inputs(self):
+    def getText(self):
         # Возвращает значения, введённые пользователем в оба поля
         return self.well_input.text()
 
+class FieldDialog(QDialog):
+    def __init__(self, parent=None):
+        super(FieldDialog, self).__init__(parent)
+        self.setWindowTitle("Ввод данных")
+        self.field_input = QLineEdit(self)
+        self.field_input.setPlaceholderText("Введите название месторождения")
+        self.field_label = QLabel("Месторождение:", self)
+
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.field_label)
+        layout.addWidget(self.field_input)
+        layout.addWidget(self.button_box)
+
+        self.setLayout(layout)
+
+    def getText(self):
+        return self.field_input.text()

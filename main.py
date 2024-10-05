@@ -7,14 +7,14 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QInputDialog, QMenu, QDockWidget, QTreeWidget,
-    QTreeWidgetItem, QFileDialog, QTabWidget
+    QTreeWidgetItem, QFileDialog, QTabWidget, QDialog
 )
 
+from components.dialogs import WellboreDialog, CustDialog, WellDialog, FieldDialog
 from components.tables import Tables
 from config import path5
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
-
 
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
@@ -148,6 +148,7 @@ class MainWindow(QMainWindow):
             self.redo_stack.clear()
             print(f"Элемент удален: {item.text(0)}")
 
+
     def on_item_clicked_tree(self, item, column):
         if item.parent() is None:
             return
@@ -155,18 +156,24 @@ class MainWindow(QMainWindow):
             parent_item = item.parent()
             parent_text = parent_item.text(0)
             item_mapping = {
-                "Месторождения": ("Месторождение", "Кусты", QInputDialog),
-                "Кусты": ("Куст", "Скважины", QInputDialog),
-                "Скважины": ("Скважину", "Стволы", QInputDialog),
-                "Стволы": ("Ствол", None, QInputDialog)
+                "Месторождения": ("Месторождение", "Кусты", FieldDialog),
+                "Кусты": ("Куст", "Скважины", CustDialog),
+                "Скважины": ("Скважину", "Стволы", WellDialog),
+                "Стволы": ("Ствол", None, WellboreDialog)
             }
 
-            if parent_text in item_mapping:
-                item_type_name, child_name, dialog = item_mapping[parent_text]
-                item_name, ok = dialog.getText(self, f"Добавить {item_type_name}",
-                                                     f"Введите название {item_type_name.lower()}:")
-                if ok and item_name.strip():
-                    self.create_new_item(parent_item, item_name.strip(), child_name)
+            if item.text(0) == "+" and parent_text in item_mapping:
+                item_type_name, child_name, dialog_class = item_mapping[parent_text]
+
+                # Прямое создание диалога
+                dialog = dialog_class(self)
+                dialog.setWindowTitle(f"Добавить {item_type_name}")
+
+                if dialog.exec() == QDialog.DialogCode.Accepted:
+                    item_name = dialog.getText().strip()
+                    if item_name:
+                        self.create_new_item(parent_item, item_name, child_name)
+
         elif item.text(0) in {"Месторождения", "Кусты", "Скважины", "Стволы"}:
             # Expand or collapse the branch
             item.setExpanded(not item.isExpanded())
@@ -223,7 +230,6 @@ class MainWindow(QMainWindow):
                     else:
                         self.create_project_folders(child, path)
 
-
     def add_plus_button(self, parent_item):
         plus_item = QTreeWidgetItem(["+"])
         parent_item.addChild(plus_item)
@@ -261,7 +267,7 @@ class MainWindow(QMainWindow):
     def create_project(self):
         project_name, ok = QInputDialog.getText(self, "Проект", "Введите название:")
         if ok and project_name.strip():
-            self.create_new_item(self.tree_widget, project_name.strip(), "Кусты")
+            self.create_tables(project_name.strip())
 
     def save_project(self, name):
         file_path = QFileDialog.getExistingDirectory(self, "Сохранить проект", "")

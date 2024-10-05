@@ -3,7 +3,6 @@ from PyQt6.QtSql import QSqlDatabase, QSqlTableModel
 from PyQt6.QtWidgets import QMessageBox, QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView, QHBoxLayout, \
     QPushButton
 
-
 class DatabaseManager:
     def __init__(self, db_path=None):
         self.database = QSqlDatabase.addDatabase("QSQLITE")
