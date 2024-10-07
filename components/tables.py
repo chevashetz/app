@@ -1386,7 +1386,14 @@ class Tables(QWidget):
                 # self.export_to_csv(self.tbl_pressure, file_path / "Давления.csv")
                 self.export_to_csv(self.tbl_casing_strings, file_path / "Обсадные колонны.csv")
                 self.export_to_csv(self.tbl_drilling_fluids, file_path / "Буровые растворы.csv")
-                self.export_to_csv(self.stackedWidget.widget(4).tbl_KNBK, file_path / "КНБК.csv")
+
+                # Сохраняем несколько файлов KNBK (например, "КНБК1.csv", "КНБК2.csv")
+                for i in range(0, 10):  # Предположим, у вас максимум 10 таблиц KNBK
+                    widget = self.stackedWidget.widget(i + 4)  # получаем виджет
+                    if hasattr(widget, 'tbl_KNBK'):  # проверяем, есть ли таблица tbl_KNBK
+                        tbl_knbk = widget.tbl_KNBK
+                        self.export_to_csv(tbl_knbk, file_path / f"КНБК{i}.csv")
+
                 QMessageBox.information(self, "Сохранение завершено", f"Данные успешно сохранены в {file_path}")
             except Exception as e:
                 QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить данные: {str(e)}")
@@ -1394,12 +1401,27 @@ class Tables(QWidget):
     def load_all(self, file_path: Path):
         if file_path:
             try:
+                # Загрузка данных для основной таблицы
                 self.import_from_csv(self.tbl_profile, file_path / "Профиль.csv")
                 self.import_from_csv(self.tbl_stratigraphy, file_path / "Стратиграфия.csv")
-                #self.import_from_csv(self.tbl_pressure, file_path / "Давления.csv")
+                # self.import_from_csv(self.tbl_pressure, file_path / "Давления.csv")
                 self.import_from_csv(self.tbl_casing_strings, file_path / "Обсадные колонны.csv")
                 self.import_from_csv(self.tbl_drilling_fluids, file_path / "Буровые растворы.csv")
-                self.import_from_csv(self.stackedWidget.widget(4).tbl_KNBK, file_path / "КНБК.csv")
+
+                # Загрузка нескольких таблиц KNBK (например, "КНБК1.csv", "КНБК2.csv")
+                i = 0
+                while (file_path / f"КНБК{i}.csv").exists():
+                    print(f"Файл КНБК{i}.csv найден. Добавляем страницу.")  # Отладочная информация
+
+                    # Загружаем данные в таблицу на новой странице
+                    knbk_page = self.stackedWidget.widget(4 + i)  # Получаем страницу
+                    if hasattr(knbk_page, 'tbl_KNBK'):  # Проверяем, есть ли таблица tbl_KNBK
+                        self.import_from_csv(knbk_page.tbl_KNBK, file_path / f"КНБК{i}.csv")
+                        print(f"Данные из КНБК{i}.csv загружены.")  # Отладочная информация
+                    else:
+                        print(f"Таблица KNBK{i} не найдена на странице.")  # Отладочная информация
+                    i += 1
+
                 QMessageBox.information(self, "Импорт завершен", f"Данные успешно загружены из {file_path}")
             except Exception as e:
                 QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить данные: {str(e)}")

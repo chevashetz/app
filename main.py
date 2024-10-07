@@ -26,6 +26,7 @@ class MainWindow(QMainWindow):
         self.wellbores: dict[str, Tables] = {}
         self.undo_stack = []
         self.redo_stack = []
+        self.tables = None
 
         # Start loading from "Месторождения"
         #self.load_project_structure(fields_path, self.fields_item)
@@ -243,25 +244,44 @@ class MainWindow(QMainWindow):
         """Sets the current tab to self.tables."""
         self.tab_widget.setCurrentWidget(self.tables)
 
+    from pathlib import Path
+
     def load_project_folders(self, parent_item, path: Path):
         # Маркеры, после которых нужно добавлять "+"
-        markers = ["Месторождения", "Кусты", "Стволы"]
+        markers = ["Месторождения", "Кусты", "Скважины", "Стволы"]
+
+        # Список для хранения последних путей
+        last_paths = []
+
+        # Флаг для определения наличия поддиректорий
+        has_subfolders = False
 
         for subpath in path.iterdir():
             if subpath.is_dir():
+                # Если мы находим поддиректорию, флаг становится True
+                has_subfolders = True
+
                 # Создаем элемент для папки
                 folder_item = QTreeWidgetItem([subpath.name])
                 parent_item.addChild(folder_item)
 
-                # Рекурсивно добавляем подпапки
-                self.load_project_folders(folder_item, subpath)
+                # Рекурсивно собираем подпапки
+                last_paths.extend(self.load_project_folders(folder_item, subpath))
+
+        # Если папка не содержит поддиректорий, возвращаем её полный путь
+        if not has_subfolders:
+            last_paths.append(str(path))
 
         # Добавляем "+" если текст элемента совпадает с маркером
         if parent_item.text(0) in markers:
             plus_item = QTreeWidgetItem(["+"])
             parent_item.addChild(plus_item)
 
+        # Разворачиваем элементы
         self.expand_items(parent_item)
+
+        # Возвращаем список последних путей
+        return last_paths
 
     def open_file_all(self):
         file_path = QFileDialog.getExistingDirectory(self, "Открыть проект", "")
@@ -272,8 +292,13 @@ class MainWindow(QMainWindow):
             # Создаем корневой элемент для проекта
             project_item = QTreeWidgetItem([file_path.name])
             self.tree_widget.addTopLevelItem(project_item)
-            # Загружаем структуру папок в дерево
-            self.load_project_folders(project_item, file_path)
+            # Загружаем структуру папок в дерево и получаем последние пути
+            last_paths = self.load_project_folders(project_item, file_path)
+            # Загружаем таблицы для всех последних папок
+            for path in last_paths:
+                table_name = Path(path).name  # Используем имя папки как имя таблицы
+                self.create_tables(table_name)  # Создаем таблицу для каждого пути
+                self.tables.load_all(Path(path))  # Загружаем данные из каждого последнего пути
 
     def create_tables(self, name):
         self.tables = Tables(self)
@@ -297,6 +322,7 @@ class MainWindow(QMainWindow):
         if file_path:
             file_path = Path(file_path)
             self.create_project_folders(self.project_item, file_path)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
