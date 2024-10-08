@@ -53,6 +53,8 @@ class MainWindow(QMainWindow):
         self.tree_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree_widget.customContextMenuRequested.connect(self.open_context_menu)
 
+        self.showMaximized()
+
     def setup_actions(self):
         self.open_file_action = self.findChild(QAction, 'open_file_action')
         self.open_file_action.triggered.connect(self.open_file_all)
