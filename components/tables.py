@@ -480,13 +480,6 @@ class Tables(QWidget):
             self.plot_graph(selected_data)
 
             if self.is_row_complete(row, [0, 1, 2], self.tbl_profile):
-                '''
-                if self.tbl_profile.columnCount() == 4:
-                    self.tbl_profile.insertColumn(4)
-                    self.tbl_profile.insertColumn(5)
-                    self.tbl_profile.insertColumn(6)
-                '''
-
                 if data.shape[1] < 7:
                     start_column = 3
                 else:
@@ -497,7 +490,7 @@ class Tables(QWidget):
         delta_z = selected_data[row][2]
         delta_y = selected_data[row][1]
         delta_x = selected_data[row][0]
-        self.vertical_depth_and_vertical_deviation_on_item_changed(row, delta_z, start_column)
+        self.vertical_depth_and_vertical_deviation_on_item_changed(row, delta_z, delta_x, delta_y, start_column)
         L_current = self.extract_number(self.tbl_profile.item(row, 0).text())
         L_prev = self.extract_number(self.tbl_profile.item(row - 1 if row > 0 else row, 0).text())
         delta_L = L_current - L_prev
@@ -507,24 +500,33 @@ class Tables(QWidget):
             self.tbl_profile.setItem(row, start_column + 2, QTableWidgetItem(str(round(sum_proection / delta_L, 2))))
 
     def vertical_depth_and_vertical_deviation_on_item_changed(self, row, delta_z, delta_x, delta_y, start_column):
-        delta_z_old = self.extract_number(self.tbl_profile.item(row, start_column).text())
-        delta_delta = delta_z - delta_z_old
-        self.tbl_profile.setItem(row, start_column, QTableWidgetItem(str(round(delta_z, 2))))
-        for row_i in range(row + 1, self.tbl_profile.rowCount()):
-            old_value = self.extract_number(self.tbl_profile.item(row_i, start_column).text())
-            self.tbl_profile.item(row_i, start_column).setText(str(round(old_value + delta_delta, 2)))
-        delta_x_old = self.extract_number(self.tbl_profile.item(row, start_column).text())
-        delta_y_old = self.extract_number(self.tbl_profile.item(row, start_column).text())
+        item = self.tbl_profile.item(row, start_column)
+        if item is not None:
+            delta_z_old = self.extract_number(item.text())
+        else:
+            delta_z_old = 0  # Или другое значение по умолчанию
+
         delta_delta = delta_z - delta_z_old
         self.tbl_profile.setItem(row, start_column, QTableWidgetItem(str(round(delta_z, 2))))
 
+        for row_i in range(row + 1, self.tbl_profile.rowCount()):
+            item = self.tbl_profile.item(row_i, start_column)
+            if item is not None:
+                old_value = self.extract_number(item.text())
+                self.tbl_profile.item(row_i, start_column).setText(str(round(old_value + delta_delta, 2)))
+
+        # Аналогичная проверка для остальных вычислений
+        item_x = self.tbl_profile.item(row, start_column)
+        item_y = self.tbl_profile.item(row, start_column + 1)
+
+        if item_x is not None and item_y is not None:
+            delta_x_old = self.extract_number(item_x.text())
+            delta_y_old = self.extract_number(item_y.text())
+            delta_delta = delta_z - delta_z_old
+            self.tbl_profile.setItem(row, start_column, QTableWidgetItem(str(round(delta_z, 2))))
+
     def process_excel_data(self, data):
         try:
-            '''
-            if self.has_headers(data):
-                data.columns = data.iloc[0]
-                data = data[1:].reset_index(drop=True)
-            '''
             if data.shape[1] < 3:
                 raise ValueError("The file must have at least 3 columns for calculations.")
 
@@ -542,12 +544,6 @@ class Tables(QWidget):
             self.plot_graph(selected_data)
         except Exception as e:
             logging.error(f"Error processing Excel data: {e}")
-
-    '''
-    def has_headers(self, df):
-        first_row = df.iloc[0]
-        return all(isinstance(val, str) for val in first_row) and len(set(first_row)) == len(first_row)
-    '''
 
     def validate_data(self, df):
         if df.shape[1] < 3:
@@ -570,18 +566,6 @@ class Tables(QWidget):
 
             current_zenith_angle = np.radians(df.iloc[i, 1])
             delta_vertical_deviation = delta_L * np.sin(current_zenith_angle)
-            '''
-            azimuth_angle = np.radians(df.iloc[i, 2])
-    
-            # Normalize azimuth angle to avoid large changes due to wrapping
-    
-            # Calculate deviations in x and y directions
-            delta_x = delta_L * np.sin(zenith_angle) * np.cos(azimuth_angle)
-            delta_y = delta_L * np.sin(zenith_angle) * np.sin(azimuth_angle)
-    
-            # Calculate vertical deviation (assuming only horizontal deviations are needed)
-            delta_vertical_deviation = np.sqrt(delta_x ** 2 + delta_y ** 2)
-            '''
             vertical_deviation.append(vertical_deviation[-1] + delta_vertical_deviation)
 
         return vertical_deviation
@@ -608,18 +592,13 @@ class Tables(QWidget):
         self.tbl_profile.blockSignals(True)
         num_rows, num_cols = df.shape
         self.tbl_profile.setRowCount(num_rows)
-        # self.tbl_profile.setColumnCount(num_cols)
-        '''
-        headers = ["Глубина по стволу (м)", "Зенитный угол (град)", "Азимут (град)", "Азимут маг(град)",
-                   "Азимут дир(град)", "Глубина по верт(м)"]
-        '''
+
         if len(df.columns) == 6:
             text = ""
             header_item = QTableWidgetItem(text)
             self.tbl_profile.setHorizontalHeaderItem(2, header_item)
             header = ComboHeader(self)
             self.tbl_profile.setHorizontalHeader(header)
-            header.valueEntered.connect(self.handle_value_entered)
             text = "Глубина по верт(м)"
             header_item = QTableWidgetItem(text)
             self.tbl_profile.setHorizontalHeaderItem(3, header_item)
@@ -644,12 +623,7 @@ class Tables(QWidget):
             header_item = QTableWidgetItem(text)
             self.tbl_profile.setHorizontalHeaderItem(7, header_item)
             self.tbl_profile.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        '''
-        if self.has_headers(df):
-            headers = df.columns.astype(str).tolist()
-            logging.info(f"Headers from file: {headers}")
-            self.tbl_profile.setHorizontalHeaderLabels(headers)
-        '''
+
         for index, row in df.iterrows():
             for col_index, value in enumerate(row):
                 item = QTableWidgetItem(str(round(value, 2)))
