@@ -488,7 +488,7 @@ class Tables(QWidget):
                 '''
 
                 if data.shape[1] < 7:
-                    start_column = 3
+                    start_column = 6
                 else:
                     start_column = 5
                 self.calculate_additional_columns(selected_data, row, start_column)
@@ -506,7 +506,7 @@ class Tables(QWidget):
         if delta_L != 0:
             self.tbl_profile.setItem(row, start_column + 2, QTableWidgetItem(str(round(sum_proection / delta_L, 2))))
 
-    def vertical_depth_and_vertical_deviation_on_item_changed(self, row, delta_z, delta_x, delta_y, start_column):
+    def vertical_depth_and_vertical_deviation_on_item_changed(self, row, delta_z, start_column):
         delta_z_old = self.extract_number(self.tbl_profile.item(row, start_column).text())
         delta_delta = delta_z - delta_z_old
         self.tbl_profile.setItem(row, start_column, QTableWidgetItem(str(round(delta_z, 2))))
@@ -619,7 +619,7 @@ class Tables(QWidget):
             self.tbl_profile.setHorizontalHeaderItem(2, header_item)
             header = ComboHeader(self)
             self.tbl_profile.setHorizontalHeader(header)
-            header.valueEntered.connect(self.handle_value_entered)
+            # header.valueEntered.connect(self.handle_value_entered)
             text = "Глубина по верт(м)"
             header_item = QTableWidgetItem(text)
             self.tbl_profile.setHorizontalHeaderItem(3, header_item)
@@ -963,7 +963,6 @@ class Tables(QWidget):
 
         pen_casing = QPen(Qt.GlobalColor.black)
         brush_casing = QBrush(Qt.GlobalColor.lightGray)
-        pen_hole = QPen(Qt.GlobalColor.black, 2)
 
         x_offset = view_width / 2
         last_end = 0
@@ -972,18 +971,17 @@ class Tables(QWidget):
         diameter_offsets = []
         ends = []
         first_diameter_hole = 0
-        row = 0
+
         for row in range(row_count):
             item = self.tbl_casing_strings.item(row, 1)
             if item is None or item.text() == "":
                 break
             end = self.extract_number(
                 self.tbl_casing_strings.item(row, 1).text())
-            if row > 0 and end > last_end:
-                total_height = self.extract_number(
-                    self.tbl_casing_strings.item(row - 1, 1).text()) + 2 * vertical_padding
+            if end > last_end:
+                total_height = end + 2 * vertical_padding
             else:
-                total_height = last_end
+                total_height = last_end + 2 * vertical_padding
             last_end = end
 
         for row in range(row_count):
@@ -1009,10 +1007,9 @@ class Tables(QWidget):
             last_diameter_hole = diameter_hole
 
         scene.setSceneRect(0, 0, view_width, view_height)
-        if row != 0:
-            ShadingDrawer(lengths, ends, diameter_offsets, first_diameter_hole, x_offset, scene).draw_curve()
-            ShadingDrawer(lengths, ends, diameter_offsets, first_diameter_hole, x_offset, scene,
-                          reverse=True).draw_curve()
+        ShadingDrawer(lengths, ends, diameter_offsets, first_diameter_hole, x_offset, scene).draw_curve()
+        ShadingDrawer(lengths, ends, diameter_offsets, first_diameter_hole, x_offset, scene,
+                      reverse=True).draw_curve()
         self.graphicsView_casing_strings.setScene(scene)
         self.graphicsView_casing_strings.fitInView(scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         self.graphicsView_casing_strings.update()
