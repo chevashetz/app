@@ -599,6 +599,7 @@ class Tables(QWidget):
             self.tbl_profile.setHorizontalHeaderItem(2, header_item)
             header = ComboHeader(self)
             self.tbl_profile.setHorizontalHeader(header)
+
             text = "Глубина по верт(м)"
             header_item = QTableWidgetItem(text)
             self.tbl_profile.setHorizontalHeaderItem(3, header_item)
@@ -937,7 +938,6 @@ class Tables(QWidget):
 
         pen_casing = QPen(Qt.GlobalColor.black)
         brush_casing = QBrush(Qt.GlobalColor.lightGray)
-        pen_hole = QPen(Qt.GlobalColor.black, 2)
 
         x_offset = view_width / 2
         last_end = 0
@@ -946,18 +946,17 @@ class Tables(QWidget):
         diameter_offsets = []
         ends = []
         first_diameter_hole = 0
-        row = 0
+
         for row in range(row_count):
             item = self.tbl_casing_strings.item(row, 1)
             if item is None or item.text() == "":
                 break
             end = self.extract_number(
                 self.tbl_casing_strings.item(row, 1).text())
-            if row > 0 and end > last_end:
-                total_height = self.extract_number(
-                    self.tbl_casing_strings.item(row - 1, 1).text()) + 2 * vertical_padding
+            if end > last_end:
+                total_height = end + 2 * vertical_padding
             else:
-                total_height = last_end
+                total_height = last_end + 2 * vertical_padding
             last_end = end
 
         for row in range(row_count):
@@ -983,10 +982,9 @@ class Tables(QWidget):
             last_diameter_hole = diameter_hole
 
         scene.setSceneRect(0, 0, view_width, view_height)
-        if row != 0:
-            ShadingDrawer(lengths, ends, diameter_offsets, first_diameter_hole, x_offset, scene).draw_curve()
-            ShadingDrawer(lengths, ends, diameter_offsets, first_diameter_hole, x_offset, scene,
-                          reverse=True).draw_curve()
+        ShadingDrawer(lengths, ends, diameter_offsets, first_diameter_hole, x_offset, scene).draw_curve()
+        ShadingDrawer(lengths, ends, diameter_offsets, first_diameter_hole, x_offset, scene,
+                      reverse=True).draw_curve()
         self.graphicsView_casing_strings.setScene(scene)
         self.graphicsView_casing_strings.fitInView(scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         self.graphicsView_casing_strings.update()
