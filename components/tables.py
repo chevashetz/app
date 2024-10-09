@@ -9,33 +9,26 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import xlsxwriter
-from PyQt6 import uic, QtGui
+from PyQt6 import uic
 from PyQt6.QtCore import Qt, QRectF, pyqtSignal
-from PyQt6.QtGui import (QAction, QKeySequence, QPainter, QPen,
+from PyQt6.QtGui import (QAction, QKeySequence, QPen,
                          QBrush, QUndoStack)
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery
 from PyQt6.QtWidgets import (QApplication, QLineEdit, QPushButton, QHeaderView,
                              QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QInputDialog, QMenu,
                              QGraphicsScene, QGraphicsView, QMessageBox, QWidget, QStackedWidget, QUndoView, QDialog,
+                             QMainWindow, QSizePolicy, QVBoxLayout, QFrame,
                              )
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
+from components.comands import PasteCommand
 from components.db import DatabaseManager
 from components.dialogs import DualInputDialog
 from components.shading_drawer import ShadingDrawer
 from components.table_knbk import KNBK_Table
 from config import path2, BASE_DIR
-from components.comands import PasteCommand
 
-
-class MplCanvas(FigureCanvas):
-    def __init__(self, parent=None, width=4.5, height=1.5, dpi=100):
-        self.fig = Figure(figsize=(width, height), dpi=dpi)
-        self.axes = self.fig.add_subplot(111)
-        super().__init__(self.fig)
-        self.setParent(parent)
-        self.setFixedSize(int(width * dpi), int(height * dpi))
 
 
 class ComboHeader(QHeaderView):
@@ -155,8 +148,9 @@ class Tables(QWidget):
 
         self.graphicsView_profile = self.findChild(QGraphicsView, 'graphicsView_profile')
         self.graphicsView_profile.setScene(QGraphicsScene())
-        self.graphicsView_pressure = self.findChild(QGraphicsView, 'graphicsView_pressure')
-        self.graphicsView_gradient_pressure = self.findChild(QGraphicsView, 'graphicsView_gradient_pressure')
+        self.graphics: QFrame = self.findChild(QFrame, 'graphics')
+        self.graphics_layout: QVBoxLayout = self.graphics.layout()
+
         self.graphicsView_casing_strings = self.findChild(QGraphicsView, 'graphicsView_casing_strings')
         self.graphicsView_casing_strings.setScene(QGraphicsScene())
         self.stackedWidget.currentChanged.connect(self.on_current_index_changed)
@@ -675,36 +669,29 @@ class Tables(QWidget):
         self.graphicsView_profile.setScene(scene)
 
     def init_graphics_views(self):
-        self.canvas_pressure = MplCanvas(self.graphicsView_pressure, width=10.40, height=1.8, dpi=100)
-        self.canvas_gradient = MplCanvas(self.graphicsView_gradient_pressure, width=3.6, height=1.8, dpi=100)
+        self.canvas_pressure = FigureCanvas(Figure(figsize=(7, 1.8)))
+        self.canvas_gradient = FigureCanvas(Figure(figsize=(3.5, 1.8)))
 
-        self.canvas_pressure.axes.invert_yaxis()
-        self.canvas_pressure.axes.set_title(" Давления", fontsize=10)
-        self.canvas_pressure.axes.set_xlabel("Давления, кгс/см2", fontsize=8)
-        self.canvas_pressure.axes.set_ylabel("Глубина по вертикали, м", fontsize=8)
-        self.canvas_pressure.axes.tick_params(axis='x', labelsize=8)
-        self.canvas_pressure.axes.tick_params(axis='y', labelsize=8)
-        self.canvas_pressure.fig.tight_layout()
-        self.canvas_pressure.axes.grid(True)
+        self.canvas_pressure.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.canvas_gradient.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
-        self.canvas_gradient.axes.invert_yaxis()
-        self.canvas_gradient.axes.set_title("Градиент давления", fontsize=10)
-        self.canvas_gradient.axes.set_xlabel("Градиент давления, кгс/см2/м", fontsize=8)
-        self.canvas_gradient.axes.set_ylabel("Глубина по вертикали, м", fontsize=8)
-        self.canvas_gradient.axes.tick_params(axis='x', labelsize=8)
-        self.canvas_gradient.axes.tick_params(axis='y', labelsize=8)
-        self.canvas_gradient.fig.tight_layout()
-        self.canvas_gradient.axes.grid(True)
+        self.set_canvas(self.canvas_pressure, "Давления", "Глубина по вертикали, м")
+        self.set_canvas(self.canvas_gradient, "Градиент давления", "Градиент давления, кгс/см2/м")
 
-        self.add_canvas_to_view(self.canvas_pressure, self.graphicsView_pressure)
-        self.add_canvas_to_view(self.canvas_gradient, self.graphicsView_gradient_pressure)
+        self.graphics_layout.addWidget(self.canvas_pressure, stretch=23)
+        self.graphics_layout.addWidget(self.canvas_gradient, stretch=9)
 
-    def add_canvas_to_view(self, canvas, graphics_view):
-        scene = QGraphicsScene()
-        scene.addWidget(canvas)
-        graphics_view.setScene(scene)
-        graphics_view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        graphics_view.fitInView(scene.itemsBoundingRect(), Qt.AspectRatioMode.KeepAspectRatio)
+
+    def set_canvas(self, canvas: FigureCanvas, title: str, x_label: str):
+        axes = canvas.figure.add_subplot(111)
+        axes.set_title(title, fontsize=10)
+        axes.set_xlabel(x_label, fontsize=8)
+        axes.set_ylabel("Глубина по вертикали, м", fontsize=8)
+        axes.tick_params(axis='x', labelsize=8)
+        axes.invert_yaxis()
+        axes.tick_params(axis='y', labelsize=8)
+        axes.grid(True)
+        canvas.figure.tight_layout()
 
     def on_item_changed_tbl_pressure(self, item):
         row = item.row()
@@ -1451,9 +1438,22 @@ class Tables(QWidget):
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     table.setItem(row, column, item)
 
+
+class TestTables(QMainWindow):
+    """ТЕСТОВЫЙ КЛАСС, ЧТОБЫ ЗАПУСКАЛАСЬ Tables"""
+
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    def initUI(self):
+        ex = Tables()
+        self.setCentralWidget(ex)
+
+
 # Тестирование tables
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    ex = Tables()
+    ex = TestTables()
     ex.show()
     sys.exit(app.exec())
