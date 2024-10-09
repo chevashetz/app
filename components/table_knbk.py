@@ -1,5 +1,4 @@
 import csv
-import os
 import sys
 
 from PyQt6 import uic
@@ -27,8 +26,6 @@ class KNBK_Table(QWidget):
         self.sort_key = sort_key
         self.setup_ui()
         self.labels = []
-        self.current_y = 700
-        self.max_height = 700
 
         header = self.tbl_KNBK.horizontalHeaderItem(0)
         if header is not None:
@@ -91,16 +88,17 @@ class KNBK_Table(QWidget):
         self.tbl_KNBK.setColumnWidth(column, width)
 
     def add_row_KNBK(self):
-        row_count2_1 = self.tbl_KNBK.rowCount()
-        self.tbl_KNBK.setRowCount(row_count2_1 + 1)
+        new_row = self.tbl_KNBK.rowCount()
+        self.tbl_KNBK.setRowCount(new_row + 1)
         for column in range(self.tbl_KNBK.columnCount()):
             if column == 0:
-                self.add_QCombobox(row_count=row_count2_1, column=column)
+                self.add_QCombobox(row_count=new_row, column=column)
             else:
                 item = QTableWidgetItem("")
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.tbl_KNBK.setItem(row_count2_1, column, item)
+                self.tbl_KNBK.setItem(new_row, column, item)
         self.tbl_KNBK.resizeRowsToContents()
+
 
     def add_QCombobox(self, row_count, column):
         combo1 = QComboBox()
@@ -156,12 +154,12 @@ class KNBK_Table(QWidget):
         label.setPixmap(pixmap)
         label.setFixedWidth(67)
         label.setScaledContents(True)
-        if row is None:
-            row = 1
-            self.labels.append(label)
-        else:
-            self.labels.insert(row, label)
-            row = self.image_container_layout.count() - row
+
+        row = row or (self.image_container_layout.count() - 1)
+        row = min(row, len(self.labels))
+
+        self.labels.insert(row, label)
+        row = self.image_container_layout.count() - row
 
         self.image_container_layout.insertWidget(row, label, alignment=Qt.AlignmentFlag.AlignBottom)
 
@@ -171,25 +169,12 @@ class KNBK_Table(QWidget):
         self.image_container_layout.removeWidget(label_to_remove)
         label_to_remove.deleteLater()
 
-
-    def convert_table_index_to_image_index(self, table_index):
-        return (self.image_container_layout.count() - 1) - table_index
-
-    def put_up_image(self, index1):
-        index1 = self.convert_table_index_to_image_index(index1)
-
-        # Get the widgets at the specified indexes
-        item1 = self.image_container_layout.itemAt(index1)
-
-        # Swap the widgets
-        widget1 = item1.widget()
-        self.image_container_layout.removeWidget(widget1)
-        self.image_container_layout.insertWidget(index1 - 1, widget1)
-
     def delete_row_KNBK(self):
-        row_count2_1 = self.tbl_KNBK.currentRow()
-        self.remove_image(row_count2_1)
-        self.tbl_KNBK.removeRow(row_count2_1)
+        current_row = self.tbl_KNBK.currentRow()
+        if current_row > 0:
+            if not isinstance(self.tbl_KNBK.cellWidget(current_row, 0), QComboBox):
+                self.remove_image(current_row)
+            self.tbl_KNBK.removeRow(current_row)
 
 
     def load_table(self):
@@ -202,32 +187,40 @@ class KNBK_Table(QWidget):
         current_row = self.tbl_KNBK.currentRow()
         if current_row > 1:
             self.swap_rows(current_row, current_row - 1)
-            self.tbl_KNBK.setCurrentCell(current_row - 1, 0)
-            self.put_up_image(current_row - 1)
-            self.update_labels_after_swap(current_row, current_row - 1)
 
     def row_down(self):
         current_row = self.tbl_KNBK.currentRow()
         if (current_row < self.tbl_KNBK.rowCount() - 1) and current_row > 0:
             self.swap_rows(current_row, current_row + 1)
-            self.tbl_KNBK.setCurrentCell(current_row + 1, 0)
-            self.put_up_image(current_row)
-            self.update_labels_after_swap(current_row, current_row + 1)
 
     def swap_rows(self, row1, row2):
-        for column in range(self.tbl_KNBK.columnCount()):
-            item1 = self.tbl_KNBK.takeItem(row1, column)
-            item2 = self.tbl_KNBK.takeItem(row2, column)
-            if item1:
-                self.tbl_KNBK.setItem(row2, column, item1)
-            if item2:
-                self.tbl_KNBK.setItem(row1, column, item2)
+        if (not isinstance(self.tbl_KNBK.cellWidget(row1, 0), QComboBox) and
+                not isinstance(self.tbl_KNBK.cellWidget(row2, 0), QComboBox)):
+            for column in range(self.tbl_KNBK.columnCount()):
+                item1 = self.tbl_KNBK.takeItem(row1, column)
+                item2 = self.tbl_KNBK.takeItem(row2, column)
+                if item1:
+                    self.tbl_KNBK.setItem(row2, column, item1)
+                if item2:
+                    self.tbl_KNBK.setItem(row1, column, item2)
 
+            self.tbl_KNBK.setCurrentCell(row2, 0)
 
-    def update_labels_after_swap(self, row1, row2):
-        self.labels[row1], self.labels[row2] = self.labels[row2], self.labels[row1]
+            comboBoxCount = 0
+            for row in range(row1):
+                if isinstance(self.tbl_KNBK.cellWidget(row, 0), QComboBox):
+                    comboBoxCount += 1
 
+            row1 -= comboBoxCount
+            row2 -= comboBoxCount
 
+            for label in self.labels:
+                self.image_container_layout.removeWidget(label)
+
+            self.labels[row1], self.labels[row2] = self.labels[row2], self.labels[row1]
+
+            for label in self.labels:
+                self.image_container_layout.insertWidget(1, label)
 
     def get_file_name(self, file_key):
         files = {

@@ -652,7 +652,7 @@ class Tables(QWidget):
         return selected_data
 
     def plot_graph(self, data):
-        fig = Figure()
+        fig = Figure(figsize=(5, 5))
         ax = fig.add_subplot(111, projection='3d')
         ax.plot(data[:, 0], data[:, 1], data[:, 2], marker='o', linewidth=0.25)
         ax.set_xlim([min(data[:, 0]), max(data[:, 0])])
@@ -663,7 +663,7 @@ class Tables(QWidget):
 
         scene = QGraphicsScene()
         canvas = FigureCanvas(fig)
-        canvas.setGeometry(0, 0, 475, 615)
+        # canvas.setGeometry(0, 0, 475, 615)
         scene.addWidget(canvas)
 
         self.graphicsView_profile.setScene(scene)

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1249</width>
-    <height>603</height>
+    <height>633</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -29,7 +29,7 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="page_1">
       <layout class="QVBoxLayout" name="verticalLayout_7">
@@ -141,7 +141,7 @@
                 <number>6</number>
                </property>
                <attribute name="horizontalHeaderVisible">
-                <bool>false</bool>
+                <bool>true</bool>
                </attribute>
                <attribute name="horizontalHeaderCascadingSectionResizes">
                 <bool>false</bool>
@@ -426,10 +426,16 @@
           <item>
            <widget class="QGraphicsView" name="graphicsView_profile">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+             <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
               <horstretch>1</horstretch>
               <verstretch>1</verstretch>
              </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>510</width>
+              <height>510</height>
+             </size>
             </property>
            </widget>
           </item>
@@ -641,9 +647,9 @@
        <item>
         <widget class="QFrame" name="graphics">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+          <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
            <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
+           <verstretch>2</verstretch>
           </sizepolicy>
          </property>
          <property name="minimumSize">
