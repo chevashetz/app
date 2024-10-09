@@ -1,5 +1,6 @@
 import csv
 import sys
+from collections import OrderedDict
 
 from PyQt6 import uic
 from PyQt6.QtCore import Qt, QStringListModel
@@ -25,7 +26,7 @@ class KNBK_Table(QWidget):
 
         self.sort_key = sort_key
         self.setup_ui()
-        self.labels = []
+        self.labels = OrderedDict()
 
         header = self.tbl_KNBK.horizontalHeaderItem(0)
         if header is not None:
@@ -142,10 +143,10 @@ class KNBK_Table(QWidget):
 
         self.add_image(text, row=row)
 
-    def add_image(self, file_key="", image_path=None, row=None):
+    def add_image(self, file_key="", image_path=None, row=0):
         if not image_path:
             name = self.get_file_name(file_key)
-            if name is None:
+            if name is None or name[1] is None:
                 return
             image_path = IMAGE_PATH / name[1]
 
@@ -155,25 +156,31 @@ class KNBK_Table(QWidget):
         label.setFixedWidth(67)
         label.setScaledContents(True)
 
-        row = row or (self.image_container_layout.count() - 1)
-        row = min(row, len(self.labels))
+        self.labels[row] = label
 
-        self.labels.insert(row, label)
-        row = self.image_container_layout.count() - row
+        # if row is None:
+        #     insert_row = 1
+        # else:
+        insert_row = self.image_container_layout.count() - sorted(list(self.labels.keys())).index(row)
 
-        self.image_container_layout.insertWidget(row, label, alignment=Qt.AlignmentFlag.AlignBottom)
+        self.image_container_layout.insertWidget(insert_row, label, alignment=Qt.AlignmentFlag.AlignBottom)
 
 
-    def remove_image(self, table_index):
-        label_to_remove = self.labels.pop(table_index)
-        self.image_container_layout.removeWidget(label_to_remove)
-        label_to_remove.deleteLater()
+    def remove_image(self, table_index, reorder=False):
+        if table_index in self.labels:
+            label_to_remove = self.labels.pop(table_index)
+
+            if reorder:
+                self.labels = {(key if key <= table_index else (key - 1)): self.labels[key] for key in self.labels}
+
+            self.image_container_layout.removeWidget(label_to_remove)
+            label_to_remove.deleteLater()
 
     def delete_row_KNBK(self):
         current_row = self.tbl_KNBK.currentRow()
         if current_row > 0:
             if not isinstance(self.tbl_KNBK.cellWidget(current_row, 0), QComboBox):
-                self.remove_image(current_row)
+                self.remove_image(current_row, reorder=True)
             self.tbl_KNBK.removeRow(current_row)
 
 
@@ -206,26 +213,18 @@ class KNBK_Table(QWidget):
 
             self.tbl_KNBK.setCurrentCell(row2, 0)
 
-            comboBoxCount = 0
-            for row in range(row1):
-                if isinstance(self.tbl_KNBK.cellWidget(row, 0), QComboBox):
-                    comboBoxCount += 1
-
-            row1 -= comboBoxCount
-            row2 -= comboBoxCount
-
-            for label in self.labels:
+            for label in self.labels.values():
                 self.image_container_layout.removeWidget(label)
 
             self.labels[row1], self.labels[row2] = self.labels[row2], self.labels[row1]
 
-            for label in self.labels:
+            for label in self.labels.values():
                 self.image_container_layout.insertWidget(1, label)
 
     def get_file_name(self, file_key):
         files = {
             "ВЗД": ["ВЗД.csv", "ВЗД.png"],
-            "РУС": ["РУС.csv", "РУС.png"],
+            "РУС": ["РУС.csv", None],
             "Бурильные трубы": ["Бурильные трубы.csv", "Бурильные трубы.png"],
             "Переводник": ["Переводник.csv", "Переводник.png"],
             "Предохранительный переводник": ["Предохранительный переводник.csv",
@@ -522,7 +521,7 @@ class KNBK_Table(QWidget):
             self.add_image(file_key)
 
     def clear_images(self):
-        for label in self.labels:
+        for label in self.labels.values():
             self.image_container_layout.removeWidget(label)
             label.deleteLater()
 
