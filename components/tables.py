@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import shutil
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -24,7 +25,7 @@ from components.db import DatabaseManager
 from components.dialogs import DualInputDialog
 from components.shading_drawer import ShadingDrawer
 from components.table_knbk import KNBK_Table
-from config import path2
+from config import path2, BASE_DIR
 from components.comands import PasteCommand
 
 
@@ -74,7 +75,7 @@ class ComboHeader(QHeaderView):
 class Tables(QWidget):
     def __init__(self, parent=None):
         super(Tables, self).__init__(parent)
-        uic.loadUi('tables.ui', self)
+        uic.loadUi(BASE_DIR / 'tables.ui', self)
         self.undo_stack = QUndoStack(self)
         self.undo_view = QUndoView(self.undo_stack)
         self.file_paths = {}
@@ -1449,3 +1450,10 @@ class Tables(QWidget):
                     item = QTableWidgetItem(data)
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     table.setItem(row, column, item)
+
+# Тестирование tables
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    ex = Tables()
+    ex.show()
+    sys.exit(app.exec())

@@ -4,7 +4,7 @@ from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6.QtWidgets import QDialog, QLineEdit, QLabel, QDialogButtonBox, QVBoxLayout, QTableWidget, QHeaderView, \
     QTableWidgetItem
 
-from config import path1
+from config import CSV_PATH
 
 class DualInputDialog(QDialog):
     def __init__(self, parent=None):
@@ -243,7 +243,7 @@ class CsvTableDialog(QDialog):
                         key = key.strip()
                         name = name.strip()
                         keys.append(key)
-                        csv_path = f'{path1}{key}.csv'
+                        csv_path = str(CSV_PATH / f'{key}.csv')
                         try:
                             with open(csv_path, "r", encoding='utf-8') as csvfile:
                                 csv_reader = csv.reader(csvfile)

@@ -1,14 +1,15 @@
 import csv
 import os
+import sys
 
 from PyQt6 import uic
 from PyQt6.QtCore import Qt, QStringListModel
 from PyQt6.QtGui import QAction, QUndoStack, QPixmap
 from PyQt6.QtWidgets import QWidget, QScrollArea, QVBoxLayout, QUndoView, QLabel, QTableWidget, QPushButton, \
-    QTableWidgetItem, QComboBox, QListView, QLineEdit, QMenu, QStyledItemDelegate
+    QTableWidgetItem, QComboBox, QListView, QLineEdit, QMenu, QStyledItemDelegate, QApplication, QMainWindow
 
 from components.dialogs import CsvTableDialog
-from config import path3, path1
+from config import IMAGE_PATH, CSV_PATH, BASE_DIR
 from components.comands import UpdateTableCommand
 
 
@@ -16,10 +17,12 @@ class CenteredItemDelegate(QStyledItemDelegate):
     def initStyleOption(self, option, index):
         super().initStyleOption(option, index)
         option.displayAlignment = Qt.AlignmentFlag.AlignCenter
+
+
 class KNBK_Table(QWidget):
     def __init__(self, sort_key=None, parent=None):
-        super(KNBK_Table, self).__init__(parent)
-        uic.loadUi('table.ui', self)
+        super().__init__(parent)
+        uic.loadUi(BASE_DIR / 'table.ui', self)
 
         self.sort_key = sort_key
         self.setup_ui()
@@ -31,7 +34,7 @@ class KNBK_Table(QWidget):
         if header is not None:
             header.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self.add_image(mode="static", static_path=path3 + 'Долото.png')
+        self.add_image(image_path=IMAGE_PATH / 'Долото.png')
 
     def setup_ui(self):
         self.undo_stack = QUndoStack(self)
@@ -40,7 +43,8 @@ class KNBK_Table(QWidget):
         self.label: QLabel = self.findChild(QLabel, 'label')
         self.image_container = self.findChild(QWidget, 'image_container')
         self.scroll_area = self.findChild(QScrollArea, 'scroll_area')
-        self.image_container_layout = self.image_container.layout()
+        self.image_container_layout: QVBoxLayout = self.image_container.layout()
+
 
         self.label.setVisible(False)
         self.tbl_KNBK: QTableWidget = self.findChild(QTableWidget, 'table_KNBK')
@@ -54,8 +58,6 @@ class KNBK_Table(QWidget):
         self.btn_row_down: QPushButton = self.findChild(QPushButton, 'pushButton_row_down')
         self.btn_add_page: QPushButton = self.findChild(QPushButton, 'pushButton_add_page')
         self.btn_delete_page: QPushButton = self.findChild(QPushButton, 'pushButton_delete_page')
-
-
 
         self.tbl_KNBK.cellDoubleClicked.connect(self.open_csv_table_dialog)
         self.tbl_KNBK.cellDoubleClicked.connect(self.open_fixed_path_csv_dialog)
@@ -140,109 +142,58 @@ class KNBK_Table(QWidget):
         self.tbl_KNBK.removeCellWidget(row, 0)
         self.tbl_KNBK.resizeRowsToContents()
 
-        self.file_key = text
-        self.add_image(row=row)
-        self.tbl_KNBK.viewport().update()
+        self.add_image(text, row=row)
 
-    def add_image(self, mode="dynamic", static_path=None, row=None):
-        if mode == "static" and static_path:
-            image_path = static_path
-        elif mode == "dynamic":
-            file_name = self.get_file_name()
-            if file_name:
-                image_path = file_name[1]
-            else:
+    def add_image(self, file_key="", image_path=None, row=None):
+        if not image_path:
+            name = self.get_file_name(file_key)
+            if name is None:
                 return
-        else:
-            print("Incorrect mode or missing static path")
-            return
+            image_path = IMAGE_PATH / name[1]
 
-        if not os.path.exists(image_path):
-            print(f"Image file does not exist: {image_path}")
-            return
-
-        pixmap = QPixmap(image_path)
-        new_label = QLabel(self)
-        new_label.setPixmap(pixmap)
-        new_label.setFixedWidth(67)
-        new_label.setScaledContents(True)
-        new_label.show()
-
-        image_height = pixmap.height()
-        total_height = self.current_y - image_height
-
-        if total_height < 0:
-
-            self.move_images_to_scroll_area()
-
-            new_label.setParent(self.image_container)
-            self.image_container_layout.insertWidget(0 if row is None else len(self.labels) - row, new_label)
-            self.scroll_area.show()
-        else:
-            if row is None:
-                new_label.move(1445, self.current_y - image_height)
-            else:
-                image_total_height = sum(label.height() for label in self.labels[:row])
-                new_label.move(1445, self.max_height - image_total_height - image_height)
-                for label in self.labels[row:]:
-                    label.move(1445, self.max_height - image_total_height - image_height - label.height())
-
-        self.current_y -= image_height
+        label = QLabel()
+        pixmap = QPixmap(str(image_path))
+        label.setPixmap(pixmap)
+        label.setFixedWidth(67)
+        label.setScaledContents(True)
         if row is None:
-            self.labels.append(new_label)
+            row = 1
+            self.labels.append(label)
         else:
-            self.labels.insert(row, new_label)
+            self.labels.insert(row, label)
+            row = self.image_container_layout.count() - row
 
-    def move_images_to_scroll_area(self):
-        if not self.scroll_area.isVisible():
+        self.image_container_layout.insertWidget(row, label, alignment=Qt.AlignmentFlag.AlignBottom)
 
-            for label in self.labels[::-1]:
-                label.setParent(self.image_container)
 
-                self.image_container_layout.addWidget(label)
-            self.scroll_area.show()
+    def remove_image(self, table_index):
+        label_to_remove = self.labels.pop(table_index)
+        self.image_container_layout.removeWidget(label_to_remove)
+        label_to_remove.deleteLater()
 
-    def move_images_back_to_page(self):
-        if self.scroll_area.isVisible():
-            self.current_y = self.max_height
-            for label in self.labels:
-                self.image_container_layout.removeWidget(label)
-                label.setParent(self)
-                label.move(1445, self.current_y - label.pixmap().height())
-                label.show()
-                self.current_y -= label.pixmap().height()
-            if self.current_y >= 0:
-                self.scroll_area.hide()
+
+    def convert_table_index_to_image_index(self, table_index):
+        return (self.image_container_layout.count() - 1) - table_index
+
+    def put_up_image(self, index1):
+        index1 = self.convert_table_index_to_image_index(index1)
+
+        # Get the widgets at the specified indexes
+        item1 = self.image_container_layout.itemAt(index1)
+
+        # Swap the widgets
+        widget1 = item1.widget()
+        self.image_container_layout.removeWidget(widget1)
+        self.image_container_layout.insertWidget(index1 - 1, widget1)
 
     def delete_row_KNBK(self):
         row_count2_1 = self.tbl_KNBK.currentRow()
-        self.delete_image_KNBK(row_count=row_count2_1)
+        self.remove_image(row_count2_1)
         self.tbl_KNBK.removeRow(row_count2_1)
 
-    def delete_image_KNBK(self, row_count):
-        if row_count > 0:
-            if 0 <= row_count < len(self.labels):
-                label_to_remove = self.labels.pop(row_count)
-                if label_to_remove:
-                    if self.scroll_area.isVisible():
-                        self.image_container_layout.removeWidget(label_to_remove)
-                    else:
-                        self.current_y += label_to_remove.height()
-                    label_to_remove.deleteLater()
-
-            if not self.scroll_area.isVisible():
-                self.current_y = self.max_height
-                for label in self.labels:
-                    self.current_y -= label.height()
-                    label.move(1445, self.current_y)
-
-            # Проверяем, нужно ли переместить изображения обратно на страницу
-            total_height = sum(label.height() for label in self.labels)
-            if total_height <= self.max_height and self.scroll_area.isVisible():
-                self.move_images_back_to_page()
 
     def load_table(self):
-        dialog = CsvTableDialog(path1 + 'КНБК.csv', load_table=True, initial_sort_value_KNBK=None,
+        dialog = CsvTableDialog(str(CSV_PATH / 'КНБК.csv'), load_table=True, initial_sort_value_KNBK=None,
                                 sort_value_casing_srings=self.sort_key, parent=self)
         dialog.data_selected.connect(self.update_table_data_list_2)
         dialog.exec()
@@ -252,6 +203,7 @@ class KNBK_Table(QWidget):
         if current_row > 1:
             self.swap_rows(current_row, current_row - 1)
             self.tbl_KNBK.setCurrentCell(current_row - 1, 0)
+            self.put_up_image(current_row - 1)
             self.update_labels_after_swap(current_row, current_row - 1)
 
     def row_down(self):
@@ -259,6 +211,7 @@ class KNBK_Table(QWidget):
         if (current_row < self.tbl_KNBK.rowCount() - 1) and current_row > 0:
             self.swap_rows(current_row, current_row + 1)
             self.tbl_KNBK.setCurrentCell(current_row + 1, 0)
+            self.put_up_image(current_row)
             self.update_labels_after_swap(current_row, current_row + 1)
 
     def swap_rows(self, row1, row2):
@@ -270,63 +223,33 @@ class KNBK_Table(QWidget):
             if item2:
                 self.tbl_KNBK.setItem(row1, column, item2)
 
-        if self.scroll_area.isVisible():
-            self.swap_images_in_scroll_area(row1, row2)
-        else:
-            self.swap_images_in_labels(row1, row2)
-
-    def swap_images_in_scroll_area(self, row1, row2):
-        label1 = self.labels[row1]
-        label2 = self.labels[row2]
-        idx1 = self.image_container_layout.indexOf(label1)
-        idx2 = self.image_container_layout.indexOf(label2)
-        self.image_container_layout.insertWidget(idx1, label2)
-        self.image_container_layout.insertWidget(idx2, label1)
-
-    def swap_images_in_labels(self, row1, row2):
-        label1 = self.labels[row1]
-        label2 = self.labels[row2]
-        if label1 and label2:
-            # Получаем текущие координаты и высоты для обеих меток
-            y1 = label1.y()
-            h1 = label1.height()
-            y2 = label2.y()
-            h2 = label2.height()
-
-            if row2 < row1:  # Move up
-                label1.move(label1.x(), y2 - h1 + h2)
-                label2.move(label2.x(), y2 - h1)
-            else:  # Move down
-                label1.move(label1.x(), y2)
-                label2.move(label2.x(), y1 - h2 + h1)
 
     def update_labels_after_swap(self, row1, row2):
         self.labels[row1], self.labels[row2] = self.labels[row2], self.labels[row1]
 
-    def get_file_name(self):
+
+
+    def get_file_name(self, file_key):
         files = {
-            "ВЗД": [path1 + "ВЗД.csv", path3 + "ВЗД.png"],
-            "РУС": [path1 + "РУС.csv", path3 + "РУС.png"],
-            "Бурильные трубы": [path1 + "Бурильные трубы.csv", path3 + "Бурильные трубы.png"],
-            "Переводник": [path1 + "Переводник.csv", path3 + "Переводник.png"],
-            "Предохранительный переводник": [path1 + "Предохранительный переводник.csv",
-                                             path3 + "Предохранительный переводник.png"],
-            "Обратный клапан": [path1 + "Обратный клапан.csv", path3 + "Обратный клапан.png"],
-            "Ясс": [path1 + "Ясс.csv", path3 + "Ясс.png"],
-            "Калибратор спиральный": [path1 + "Калибратор спиральный.csv", path3 + "Калибратор спиральный.png"],
-            "УБТ": [path1 + "УБТ.csv", path3 + "УБТ.png"],
-            "Телеметрия": [path1 + "Телеметрия.csv", path3 + "Телеметрия.png"]
+            "ВЗД": ["ВЗД.csv", "ВЗД.png"],
+            "РУС": ["РУС.csv", "РУС.png"],
+            "Бурильные трубы": ["Бурильные трубы.csv", "Бурильные трубы.png"],
+            "Переводник": ["Переводник.csv", "Переводник.png"],
+            "Предохранительный переводник": ["Предохранительный переводник.csv",
+                                             "Предохранительный переводник.png"],
+            "Обратный клапан": ["Обратный клапан.csv", "Обратный клапан.png"],
+            "Ясс": ["Ясс.csv", "Ясс.png"],
+            "Калибратор спиральный": ["Калибратор спиральный.csv", "Калибратор спиральный.png"],
+            "УБТ": ["УБТ.csv", "УБТ.png"],
+            "Телеметрия": ["Телеметрия.csv", "Телеметрия.png"]
         }
 
-        if self.file_key in files:
-            return files[self.file_key]
-        else:
-            return None
+        return files.get(file_key)
 
     def open_csv_table_dialog(self, row, column):
         try:
             if column == 1 and row != 0:
-                file_name = self.get_file_name()
+                file_name = self.get_file_name("")
                 if file_name:
                     self.current_file_path = file_name[0]
 
@@ -348,7 +271,7 @@ class KNBK_Table(QWidget):
 
     def open_fixed_path_csv_dialog(self, row, column):
         if column == 1 and row == 0:
-            fixed_file_path = path1 + "Долото.csv"
+            fixed_file_path = str(CSV_PATH / "Долото.csv")
             self.current_file_path = fixed_file_path
             dialog = CsvTableDialog(fixed_file_path, load_table=False, initial_sort_value_KNBK=None,
                                     sort_value_casing_srings=self.sort_key, parent=self)
@@ -503,7 +426,7 @@ class KNBK_Table(QWidget):
                 self.tbl_KNBK.setItem(newRow, column, newItem)
 
     def write_csv(self, data):
-        fixed_file_path = path1 + "КНБК.csv"
+        fixed_file_path = str(CSV_PATH / "КНБК.csv")
         try:
             with open(fixed_file_path, 'a', newline='', encoding='utf-8') as f:
                 f.write('\n' + data)
@@ -593,7 +516,7 @@ class KNBK_Table(QWidget):
         self.tbl_KNBK.clearContents()
         self.tbl_KNBK.setRowCount(len(data))
 
-        self.add_image(mode="static", static_path=path3 + 'Долото.png')
+        self.add_image(image_path=str(IMAGE_PATH / 'Долото.png'))
 
         for row_index, row_data in enumerate(data):
             for col_index, value in enumerate(row_data):
@@ -602,21 +525,13 @@ class KNBK_Table(QWidget):
                 item = QTableWidgetItem(value)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.tbl_KNBK.setItem(row_index, col_index, item)
-            self.file_key = self.tbl_KNBK.item(row_index, 0).text()
-            self.add_image()
+            file_key = self.tbl_KNBK.item(row_index, 0).text()
+            self.add_image(file_key)
 
     def clear_images(self):
-        if self.scroll_area.isVisible():
-            for label in self.labels:
-                self.image_container_layout.removeWidget(label)
-                label.deleteLater()
-        else:
-            for label in self.labels:
-                label.deleteLater()
-
-        self.labels.clear()
-        self.current_y = self.max_height
-        self.scroll_area.hide()
+        for label in self.labels:
+            self.image_container_layout.removeWidget(label)
+            label.deleteLater()
 
     def restore_initial_state(self):
         item_0_0_KNBK = QTableWidgetItem("Долото")
@@ -637,7 +552,32 @@ class KNBK_Table(QWidget):
     def add_QCombobox_cell_clicked(self, row, column):
         try:
             if row > 0 and column == 0:
-                self.delete_image_KNBK(row_count=row)
+                self.remove_image(row)
                 self.add_QCombobox(row_count=row, column=column)
         except Exception as e:
             print(f"Произошла ошибка: {e}")
+
+
+class TestKNBKTable(QMainWindow):
+    """ТЕСТОВЫЙ КЛАСС, ЧТОБЫ ЗАПУСКАЛАСЬ KNBK_Table"""
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    def initUI(self):
+        ex = KNBK_Table(parent=self)
+        self.setCentralWidget(ex)
+
+    def add_page_2(self):
+        pass
+
+    def delete_page(self):
+        pass
+
+
+# Тестирование KNBK
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    widget = TestKNBKTable()
+    widget.show()
+    sys.exit(app.exec())

@@ -96,8 +96,8 @@ class UpdateTableCommand(QUndoCommand):
                 item = QTableWidgetItem(value)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.knbk_table_instance.tbl_KNBK.setItem(row_index, col_index, item)
-            self.knbk_table_instance.file_key = self.knbk_table_instance.tbl_KNBK.item(row_index, 0).text()
-            self.knbk_table_instance.add_image()
+            file_key = self.knbk_table_instance.tbl_KNBK.item(row_index, 0).text()
+            self.knbk_table_instance.add_image(file_key)
 
         # Восстановление начального состояния
         self.knbk_table_instance.restore_initial_state()
