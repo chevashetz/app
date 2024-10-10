@@ -158,9 +158,6 @@ class KNBK_Table(QWidget):
 
         self.labels[row] = label
 
-        # if row is None:
-        #     insert_row = 1
-        # else:
         insert_row = self.image_container_layout.count() - sorted(list(self.labels.keys())).index(row)
 
         self.image_container_layout.insertWidget(insert_row, label, alignment=Qt.AlignmentFlag.AlignBottom)
@@ -224,7 +221,7 @@ class KNBK_Table(QWidget):
     def get_file_name(self, file_key):
         files = {
             "ВЗД": ["ВЗД.csv", "ВЗД.png"],
-            "РУС": ["РУС.csv", None],
+            "РУС": ["РУС.csv", "ВЗД.png"],
             "Бурильные трубы": ["Бурильные трубы.csv", "Бурильные трубы.png"],
             "Переводник": ["Переводник.csv", "Переводник.png"],
             "Предохранительный переводник": ["Предохранительный переводник.csv",
@@ -495,8 +492,6 @@ class KNBK_Table(QWidget):
                     row_data.append(item.text())
                 old_data.append(row_data)
             self.undo_stack.push(UpdateTableCommand(self, old_data, data))
-
-            self.update_table_widget(data)
             self.set_label(f"КНБК - {self.tbl_KNBK.item(0, 4).text()} мм")
 
         except Exception as e:
@@ -518,7 +513,7 @@ class KNBK_Table(QWidget):
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.tbl_KNBK.setItem(row_index, col_index, item)
             file_key = self.tbl_KNBK.item(row_index, 0).text()
-            self.add_image(file_key)
+            self.add_image(file_key, row=row_index)
 
     def clear_images(self):
         for label in self.labels.values():
