@@ -15,6 +15,7 @@ from components.tables import Tables
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
+
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -29,7 +30,7 @@ class MainWindow(QMainWindow):
         self.tables = None
 
         # Start loading from "Месторождения"
-        #self.load_project_structure(fields_path, self.fields_item)
+        # self.load_project_structure(fields_path, self.fields_item)
 
         print("app.ui loaded successfully")
 
@@ -40,8 +41,11 @@ class MainWindow(QMainWindow):
         self.tree_widget.setHeaderLabels(["Наименование"])
 
         self.project_item = QTreeWidgetItem(self.tree_widget, ["Проект"])
+        self.default_project_item = QTreeWidgetItem(self.tree_widget, ["Проекты по-умолчанию"])
         self.fields_item = QTreeWidgetItem(self.project_item, ["Месторождения"])
         self.new_field_item = QTreeWidgetItem(self.fields_item, ["+"])
+
+        self.expand_items(self.project_item)
 
         self.tree_widget.itemClicked.connect(self.on_item_clicked_tree)
 
@@ -150,7 +154,7 @@ class MainWindow(QMainWindow):
             self.redo_stack.clear()
             print(f"Элемент удален: {item.text(0)}")
 
-    def on_item_clicked_tree(self, item, column):
+    def on_item_clicked_tree(self, item: QTreeWidgetItem, column):
         if item.parent() is None:
             return
         elif item.text(0) == "+":
@@ -173,7 +177,9 @@ class MainWindow(QMainWindow):
                 if dialog.exec() == QDialog.DialogCode.Accepted:
                     item_name = dialog.getText().strip()
                     if item_name:
-                        self.create_new_item(parent_item, item_name, child_name)
+                        self.create_new_item(parent_item, item_name, child_name,
+                                             insert_index=parent_item.indexOfChild(item),
+                                             create_table=(parent_item.text(0) == "Стволы"))
 
         elif item.text(0) in {"Месторождения", "Кусты", "Скважины", "Стволы"}:
             # Expand or collapse the branch
@@ -190,31 +196,18 @@ class MainWindow(QMainWindow):
             # Handle clicks on other items if necessary
             pass
 
-    def create_new_item(self, parent_item, name, child_text=None):
+    def create_new_item(self, parent_item, name, child_text=None, insert_index=0, create_table=False):
         """Generic method to create a new item and associated folder."""
         new_item = QTreeWidgetItem([name])
+        parent_item.insertChild(insert_index, new_item)
 
+        # Do not add '+' if there is no child category (i.e., at the 'Ствол' level)
         if child_text:
             child_item = QTreeWidgetItem(new_item, [child_text])
             self.add_plus_button(child_item)
-            # Expand the child item
-            child_item.setExpanded(True)
-        # Do not add '+' if there is no child category (i.e., at the 'Ствол' level)
+            self.expand_items(new_item)
 
-        plus_item = None
-        for i in range(parent_item.childCount()):
-            if parent_item.child(i).text(0) == "+":
-                plus_item = parent_item.child(i)
-                break
-
-        if plus_item:
-            parent_item.insertChild(parent_item.indexOfChild(plus_item), new_item)
-        else:
-            parent_item.addChild(new_item)
-
-        self.expand_items(new_item)
-
-        if parent_item.text(0) == "Стволы":
+        if create_table:
             self.create_tables(name)
 
     def create_project_folders(self, item, path: Path):
@@ -317,7 +310,8 @@ class MainWindow(QMainWindow):
     def create_project(self):
         project_name, ok = QInputDialog.getText(self, "Проект", "Введите название:")
         if ok and project_name.strip():
-            self.create_tables(project_name.strip())
+            self.create_new_item(self.default_project_item, project_name.strip(), create_table=True)
+            self.default_project_item.setExpanded(True)
 
     def save_project(self, name):
         file_path = QFileDialog.getExistingDirectory(self, "Сохранить проект", "")

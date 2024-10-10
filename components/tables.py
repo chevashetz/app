@@ -1104,6 +1104,7 @@ class Tables(QWidget):
             initial_page.sort_key = sort_key_0
 
     def add_page(self, text, sort_key=None):
+        """Кнопка Сформировать КНБК по колоннам"""
         if self.stackedWidget is None:
             return
 
@@ -1117,6 +1118,7 @@ class Tables(QWidget):
         self.stackedWidget.setCurrentWidget(new_page)
 
     def add_page_2(self):
+        """Кнопка Добавить КНБК"""
         if self.stackedWidget is None:
             return
         num_pages = self.stackedWidget.count()
@@ -1343,16 +1345,14 @@ class Tables(QWidget):
             try:
                 self.export_to_csv(self.tbl_profile, file_path / "Профиль.csv")
                 self.export_to_csv(self.tbl_stratigraphy, file_path / "Стратиграфия.csv")
-                # self.export_to_csv(self.tbl_pressure, file_path / "Давления.csv")
+                self.export_to_csv(self.tbl_pressure, file_path / "Давления.csv")
                 self.export_to_csv(self.tbl_casing_strings, file_path / "Обсадные колонны.csv")
                 self.export_to_csv(self.tbl_drilling_fluids, file_path / "Буровые растворы.csv")
 
-                # Сохраняем несколько файлов KNBK (например, "КНБК1.csv", "КНБК2.csv")
-                for i in range(0, 10):  # Предположим, у вас максимум 10 таблиц KNBK
+                # Сохраняем несколько файлов KNBK (например, "КНБК_1.csv", "КНБК_2.csv")
+                for i in range(self.stackedWidget.count() - 5):  # Предположим, у вас максимум 10 таблиц KNBK
                     widget = self.stackedWidget.widget(i + 4)  # получаем виджет
-                    if hasattr(widget, 'tbl_KNBK'):  # проверяем, есть ли таблица tbl_KNBK
-                        tbl_knbk = widget.tbl_KNBK
-                        self.export_to_csv(tbl_knbk, file_path / f"КНБК{i}.csv")
+                    self.export_to_csv(widget.tbl_KNBK, file_path / f"КНБК_{i + 1}.csv")
 
                 QMessageBox.information(self, "Сохранение завершено", f"Данные успешно сохранены в {file_path}")
             except Exception as e:
@@ -1370,16 +1370,14 @@ class Tables(QWidget):
 
                 # Загрузка нескольких таблиц KNBK (например, "КНБК1.csv", "КНБК2.csv")
                 i = 0
-                while (file_path / f"КНБК{i}.csv").exists():
-                    print(f"Файл КНБК{i}.csv найден. Добавляем страницу.")  # Отладочная информация
+                filename = f"КНБК_{i + 1}.csv"
+                while (file_path / filename).exists():
+                    print(f"Файл {filename} найден. Добавляем страницу.")  # Отладочная информация
 
                     # Загружаем данные в таблицу на новой странице
                     knbk_page = self.stackedWidget.widget(4 + i)  # Получаем страницу
-                    if hasattr(knbk_page, 'tbl_KNBK'):  # Проверяем, есть ли таблица tbl_KNBK
-                        self.import_from_csv(knbk_page.tbl_KNBK, file_path / f"КНБК{i}.csv")
-                        print(f"Данные из КНБК{i}.csv загружены.")  # Отладочная информация
-                    else:
-                        print(f"Таблица KNBK{i} не найдена на странице.")  # Отладочная информация
+                    self.import_from_csv(knbk_page.tbl_KNBK, file_path / filename)
+                    print(f"Данные из {filename} загружены.")  # Отладочная информация
                     i += 1
 
                 QMessageBox.information(self, "Импорт завершен", f"Данные успешно загружены из {file_path}")
@@ -1398,12 +1396,19 @@ class Tables(QWidget):
 
             # Записываем заголовки
             headers = []
-            for column in range(table.columnCount()):
-                headers.append(table.horizontalHeaderItem(column).text())
+            start_row = 0 # С какого ряда начинать запись
+            if table.horizontalHeader() is not None:
+                for column in range(table.columnCount()):
+                    headers.append(table.horizontalHeaderItem(column).text())
+            else:  # Если заголовки написаны (Таблица Давления)
+                for column in range(table.columnCount()):
+                    headers.append(table.item(row=1, column=column).text())  # СРАБОТАЕТ ТОЛЬКО ДЛЯ ДАВЛЕНИЯ
+                start_row = 2
+
             writer.writerow(headers)
 
             # Записываем данные
-            for row in range(table.rowCount()):
+            for row in range(start_row, table.rowCount()):
                 row_data = []
                 for column in range(table.columnCount()):
                     item = table.item(row, column)
