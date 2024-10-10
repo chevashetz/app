@@ -1364,7 +1364,7 @@ class Tables(QWidget):
                 # Загрузка данных для основной таблицы
                 self.import_from_csv(self.tbl_profile, file_path / "Профиль.csv")
                 self.import_from_csv(self.tbl_stratigraphy, file_path / "Стратиграфия.csv")
-                # self.import_from_csv(self.tbl_pressure, file_path / "Давления.csv")
+                self.import_from_csv(self.tbl_pressure, file_path / "Давления.csv")
                 self.import_from_csv(self.tbl_casing_strings, file_path / "Обсадные колонны.csv")
                 self.import_from_csv(self.tbl_drilling_fluids, file_path / "Буровые растворы.csv")
 
@@ -1379,12 +1379,13 @@ class Tables(QWidget):
                     self.import_from_csv(knbk_page.tbl_KNBK, file_path / filename)
                     print(f"Данные из {filename} загружены.")  # Отладочная информация
                     i += 1
+                    filename = f"КНБК_{i + 1}.csv"
 
                 QMessageBox.information(self, "Импорт завершен", f"Данные успешно загружены из {file_path}")
             except Exception as e:
                 QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить данные: {str(e)}")
 
-    def export_to_csv(self, table, file_path):
+    def export_to_csv(self, table: QTableWidget, file_path):
         if not table:
             return
 
@@ -1397,12 +1398,12 @@ class Tables(QWidget):
             # Записываем заголовки
             headers = []
             start_row = 0 # С какого ряда начинать запись
-            if table.horizontalHeader() is not None:
+            if table.horizontalHeaderItem(0) is not None:
                 for column in range(table.columnCount()):
                     headers.append(table.horizontalHeaderItem(column).text())
             else:  # Если заголовки написаны (Таблица Давления)
-                for column in range(table.columnCount()):
-                    headers.append(table.item(row=1, column=column).text())  # СРАБОТАЕТ ТОЛЬКО ДЛЯ ДАВЛЕНИЯ
+                for column in range(1, table.columnCount()):
+                    headers.append(table.item(1, column).text())  # СРАБОТАЕТ ТОЛЬКО ДЛЯ ДАВЛЕНИЯ
                 start_row = 2
 
             writer.writerow(headers)
@@ -1427,18 +1428,22 @@ class Tables(QWidget):
 
         with open(file_path, 'r', encoding='utf-8') as stream:
             reader = csv.reader(stream)
+            start = 2
 
             # Читаем заголовки
             headers = next(reader)
-            table.setColumnCount(len(headers))
-            table.setHorizontalHeaderLabels(headers)
 
-            # Читаем данные
-            table.setRowCount(0)
+            if table is not self.tbl_pressure:
+                table.setColumnCount(len(headers))
+                table.setHorizontalHeaderLabels(headers)
+                # Читаем данные
+                table.setRowCount(0)
+                start = 0
+
             for row_data in reader:
                 row = table.rowCount()
                 table.insertRow(row)
-                for column, data in enumerate(row_data):
+                for column, data in enumerate(row_data, start=start):
                     item = QTableWidgetItem(data)
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     table.setItem(row, column, item)

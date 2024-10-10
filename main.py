@@ -42,10 +42,12 @@ class MainWindow(QMainWindow):
 
         self.project_item = QTreeWidgetItem(self.tree_widget, ["Проект"])
         self.default_project_item = QTreeWidgetItem(self.tree_widget, ["Проекты по-умолчанию"])
+        QTreeWidgetItem(self.default_project_item, ["+"])
         self.fields_item = QTreeWidgetItem(self.project_item, ["Месторождения"])
-        self.new_field_item = QTreeWidgetItem(self.fields_item, ["+"])
+        QTreeWidgetItem(self.fields_item, ["+"])
 
         self.expand_items(self.project_item)
+        self.expand_items(self.default_project_item)
 
         self.tree_widget.itemClicked.connect(self.on_item_clicked_tree)
 
@@ -164,7 +166,8 @@ class MainWindow(QMainWindow):
                 "Месторождения": ("Месторождение", "Кусты", FieldDialog),
                 "Кусты": ("Куст", "Скважины", CustDialog),
                 "Скважины": ("Скважину", "Стволы", WellDialog),
-                "Стволы": ("Ствол", None, WellboreDialog)
+                "Стволы": ("Ствол", None, WellboreDialog),
+                "Проекты по-умолчанию": ("Проект по-умолчанию", None, FieldDialog)
             }
 
             if item.text(0) == "+" and parent_text in item_mapping:
@@ -177,9 +180,12 @@ class MainWindow(QMainWindow):
                 if dialog.exec() == QDialog.DialogCode.Accepted:
                     item_name = dialog.getText().strip()
                     if item_name:
-                        self.create_new_item(parent_item, item_name, child_name,
-                                             insert_index=parent_item.indexOfChild(item),
-                                             create_table=(parent_item.text(0) == "Стволы"))
+                        insert_index = parent_item.indexOfChild(item)
+                        if parent_item.text(0) == "Стволы" or parent_item.text(0) == "Проекты по-умолчанию":
+                            self.create_table_item(parent_item, item_name, insert_index)
+                        else:
+                            self.create_new_folder(parent_item, item_name, child_name,
+                                               insert_index=parent_item.indexOfChild(item))
 
         elif item.text(0) in {"Месторождения", "Кусты", "Скважины", "Стволы"}:
             # Expand or collapse the branch
@@ -190,13 +196,11 @@ class MainWindow(QMainWindow):
             self.tables = self.wellbores.get(name)
             if self.tables:
                 self.set_current_tab()
-            else:
-                self.create_tables(name)
         else:
             # Handle clicks on other items if necessary
             pass
 
-    def create_new_item(self, parent_item, name, child_text=None, insert_index=0, create_table=False):
+    def create_new_folder(self, parent_item, name, child_text=None, insert_index=0):
         """Generic method to create a new item and associated folder."""
         new_item = QTreeWidgetItem([name])
         parent_item.insertChild(insert_index, new_item)
@@ -207,8 +211,21 @@ class MainWindow(QMainWindow):
             self.add_plus_button(child_item)
             self.expand_items(new_item)
 
-        if create_table:
-            self.create_tables(name)
+    def create_table_item(self, parent_item, name: str, insert_index=0):
+        # Контроль повторяющихся названий
+        i = 0
+        new_name = name
+        while True:
+            if new_name in self.wellbores:
+                i += 1
+                new_name = f'{name}({i})'
+            else:
+                break
+
+        new_item = QTreeWidgetItem([new_name])
+        parent_item.insertChild(insert_index, new_item)
+        self.create_tables(new_name, parent_item)
+
 
     def create_project_folders(self, item, path: Path):
         """Creates folders corresponding to the item in the project structure."""
@@ -247,6 +264,7 @@ class MainWindow(QMainWindow):
 
         # Список для хранения последних путей
         last_paths = []
+        last_parent_items = []
 
         # Флаг для определения наличия поддиректорий
         has_subfolders = False
@@ -260,12 +278,15 @@ class MainWindow(QMainWindow):
                 folder_item = QTreeWidgetItem([subpath.name])
                 parent_item.addChild(folder_item)
 
+                last_paths, last_parent_items = self.load_project_folders(folder_item, subpath)
                 # Рекурсивно собираем подпапки
-                last_paths.extend(self.load_project_folders(folder_item, subpath))
+                # last_paths.extend(last_paths)
+                # last_parent_items.extend(last_parent_items)
 
         # Если папка не содержит поддиректорий, возвращаем её полный путь
         if not has_subfolders:
             last_paths.append(str(path))
+            last_parent_items.append(parent_item)
 
         # Добавляем "+" если текст элемента совпадает с маркером
         if parent_item.text(0) in markers:
@@ -276,33 +297,39 @@ class MainWindow(QMainWindow):
         self.expand_items(parent_item)
 
         # Возвращаем список последних путей
-        return last_paths
+        return (last_paths, last_parent_items)
 
     def open_file_all(self):
         file_path = QFileDialog.getExistingDirectory(self, "Открыть проект", "")
         if file_path:
             file_path = Path(file_path)
-            # Очищаем дерево перед загрузкой нового проекта
-            self.tree_widget.clear()
-            # Создаем корневой элемент для проекта
-            project_item = QTreeWidgetItem([file_path.name])
-            self.tree_widget.addTopLevelItem(project_item)
-            # Загружаем структуру папок в дерево и получаем последние пути
-            last_paths = self.load_project_folders(project_item, file_path)
-            # Загружаем таблицы для всех последних папок
-            for path in last_paths:
-                table_name = Path(path).name  # Используем имя папки как имя таблицы
-                self.create_tables(table_name)  # Создаем таблицу для каждого пути
-                self.tables.load_all(Path(path))  # Загружаем данные из каждого последнего пути
+            if file_path.name == 'Проект':
+                # Очищаем дерево перед загрузкой нового проекта
+                self.tree_widget.clear()
+                # Создаем корневой элемент для проекта
+                project_item = QTreeWidgetItem([file_path.name])
+                self.tree_widget.addTopLevelItem(project_item)
+                # Загружаем структуру папок в дерево и получаем последние пути
+                last_paths, last_parent_items = self.load_project_folders(project_item, file_path)
+                # Загружаем таблицы для всех последних папок
+                for path, last_parent_item in zip(last_paths, last_parent_items):
+                    table_name = Path(path).name  # Используем имя папки как имя таблицы
+                    self.create_tables(table_name, last_parent_item)  # Создаем таблицу для каждого пути
+                    self.tables.load_all(Path(path))  # Загружаем данные из каждого последнего пути
+            elif file_path.name == 'Проект по-умолчанию':
+                path = next(file_path.iterdir())
+                self.create_tables(path.name, self.default_project_item)
+                self.tables.load_all(Path(path))
 
-    def create_tables(self, name):
+
+    def create_tables(self, name, parent):
         self.tables = Tables(self)
         self.wellbores[name] = self.tables
         self.tab_widget.addTab(self.tables, name)
         self.set_current_tab()
 
         self.save_file_action.setDisabled(False)
-        self.save_file_action.triggered.connect(lambda _: self.save_project(name))
+        self.save_file_action.triggered.connect(lambda _: self.save_project(name, parent))
 
         self.print_action.setDisabled(False)
         self.print_action.triggered.connect(self.tables.print_report)
@@ -310,14 +337,19 @@ class MainWindow(QMainWindow):
     def create_project(self):
         project_name, ok = QInputDialog.getText(self, "Проект", "Введите название:")
         if ok and project_name.strip():
-            self.create_new_item(self.default_project_item, project_name.strip(), create_table=True)
+            self.create_table_item(self.default_project_item, project_name.strip(), self.default_project_item.childCount() - 1)
             self.default_project_item.setExpanded(True)
 
-    def save_project(self, name):
+    def save_project(self, name, parent: QTreeWidgetItem):
         file_path = QFileDialog.getExistingDirectory(self, "Сохранить проект", "")
         if file_path:
             file_path = Path(file_path)
-            self.create_project_folders(self.project_item, file_path)
+            if parent.text(0) == 'Ствол':
+                self.create_project_folders(self.project_item, file_path)
+            else:
+                file_path = file_path / "Проект по-умолчанию"
+                file_path.mkdir(parents=True, exist_ok=True)
+                self.wellbores[name].save_all(name, file_path)
 
 
 if __name__ == "__main__":
