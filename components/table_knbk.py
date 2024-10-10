@@ -6,7 +6,8 @@ from PyQt6 import uic
 from PyQt6.QtCore import Qt, QStringListModel
 from PyQt6.QtGui import QAction, QUndoStack, QPixmap
 from PyQt6.QtWidgets import QWidget, QScrollArea, QVBoxLayout, QUndoView, QLabel, QTableWidget, QPushButton, \
-    QTableWidgetItem, QComboBox, QListView, QLineEdit, QMenu, QStyledItemDelegate, QApplication, QMainWindow
+    QTableWidgetItem, QComboBox, QListView, QLineEdit, QMenu, QStyledItemDelegate, QApplication, QMainWindow, \
+    QHeaderView
 
 from components.dialogs import CsvTableDialog
 from config import IMAGE_PATH, CSV_PATH, BASE_DIR
@@ -73,17 +74,18 @@ class KNBK_Table(QWidget):
         self.btn_add_page.clicked.connect(self.parentWidget().add_page_2)
         self.btn_delete_page.clicked.connect(self.parentWidget().delete_page)
 
-        self.set_column_width(0, 150)
-        self.set_column_width(1, 150)
-        self.set_column_width(2, 150)
-        self.set_column_width(3, 150)
-        self.set_column_width(4, 170)
-        self.set_column_width(5, 100)
-        self.set_column_width(6, 80)
-        self.set_column_width(7, 110)
-        self.set_column_width(8, 80)
-        self.set_column_width(9, 60)
-        self.set_column_width(10, 60)
+        header = self.tbl_KNBK.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(7, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(8, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(9, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(10, QHeaderView.ResizeMode.ResizeToContents)
 
     def set_column_width(self, column, width):
         self.tbl_KNBK.setColumnWidth(column, width)
