@@ -1223,8 +1223,8 @@ class Tables(QWidget):
 
             self.export_page(workbook, self.tbl_profile, "Профиль", resources_dir, self.graphicsView_profile)
             self.export_page(workbook, self.tbl_stratigraphy, "Стратиграфия", resources_dir)
-            self.export_page(workbook, self.tbl_pressure, "Давления", resources_dir, self.graphicsView_pressure,
-                             self.graphicsView_gradient_pressure)
+            self.export_page(workbook, self.tbl_pressure, "Давления", resources_dir, self.graphics,
+                             self.graphics)
             self.export_page(workbook, self.tbl_casing_strings, "Обсадные колонны", resources_dir,
                              self.graphicsView_casing_strings)
             self.export_page(workbook, self.tbl_drilling_fluids, "Буровые растворы", resources_dir)
