@@ -58,6 +58,10 @@ class MainWindow(QMainWindow):
 
         self.tree_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree_widget.customContextMenuRequested.connect(self.open_context_menu)
+        self.tree_widget.setDragEnabled(True)
+        self.tree_widget.setAcceptDrops(True)
+        self.tree_widget.setDragDropMode(QTreeWidget.DragDropMode.InternalMove)
+        #self.tl_br = self.findChild(QTool)
 
         self.showMaximized()
 
@@ -70,6 +74,9 @@ class MainWindow(QMainWindow):
         self.print_action.setDisabled(True)
         self.create_action = self.findChild(QAction, 'create_action')
         self.create_action.triggered.connect(self.create_project)
+        self.run_action = self.findChild(QAction, 'run_action')
+        self.run_action.triggered.connect(self.run_project)
+
 
     def open_context_menu(self, position):
         item = self.tree_widget.itemAt(position)
@@ -155,6 +162,8 @@ class MainWindow(QMainWindow):
             parent.removeChild(item)
             self.redo_stack.clear()
             print(f"Элемент удален: {item.text(0)}")
+    def run_project(self):
+        print(123)
 
     def on_item_clicked_tree(self, item: QTreeWidgetItem, column):
         if item.parent() is None:

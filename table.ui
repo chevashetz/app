@@ -120,7 +120,7 @@
         </column>
         <column>
          <property name="text">
-          <string>Диаметр максимальный(мм)</string>
+          <string>Диаметр макс.(мм)</string>
          </property>
         </column>
         <column>
