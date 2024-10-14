@@ -68,7 +68,7 @@ class ComboHeader(QHeaderView):
 class Tables(QWidget):
     def __init__(self, parent=None):
         super(Tables, self).__init__(parent)
-        uic.loadUi(BASE_DIR / 'tables.ui', self)
+        uic.loadUi(BASE_DIR / 'tables.ui', self, package='components')
         self.undo_stack = QUndoStack(self)
         self.undo_view = QUndoView(self.undo_stack)
         self.file_paths = {}

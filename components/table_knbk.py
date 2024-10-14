@@ -24,7 +24,7 @@ class CenteredItemDelegate(QStyledItemDelegate):
 class KNBK_Table(QWidget):
     def __init__(self, sort_key=None, parent=None):
         super().__init__(parent)
-        uic.loadUi(BASE_DIR / 'table.ui', self)
+        uic.loadUi(BASE_DIR / 'table.ui', self, package='components')
 
         self.sort_key = sort_key
         self.setup_ui()

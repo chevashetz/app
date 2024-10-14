@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        uic.loadUi('app.ui', self)
+        uic.loadUi('app.ui', self,  package='components')
 
         self.setup_ui()
         self.setup_actions()

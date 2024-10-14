@@ -1180,7 +1180,7 @@
   <customwidget>
    <class>AdaptiveTable</class>
    <extends>QTableWidget</extends>
-   <header>adaptive_table.h</header>
+   <header>components.adaptive_table</header>
   </customwidget>
  </customwidgets>
  <resources/>
