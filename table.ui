@@ -54,7 +54,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QTableWidget" name="table_KNBK">
+       <widget class="AdaptiveTable" name="table_KNBK">
         <property name="sortingEnabled">
          <bool>false</bool>
         </property>
@@ -383,6 +383,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>AdaptiveTable</class>
+   <extends>QTableWidget</extends>
+   <header>adaptive_table.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

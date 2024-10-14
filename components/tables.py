@@ -22,13 +22,13 @@ from PyQt6.QtWidgets import (QApplication, QLineEdit, QPushButton, QHeaderView,
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
+from components.adaptive_table import AdaptiveTable
 from components.comands import PasteCommand
 from components.db import DatabaseManager
 from components.dialogs import DualInputDialog
 from components.shading_drawer import ShadingDrawer
 from components.table_knbk import KNBK_Table
 from config import path2, BASE_DIR
-
 
 
 class ComboHeader(QHeaderView):
@@ -84,11 +84,15 @@ class Tables(QWidget):
         self.stackedWidget.setCurrentIndex(0)
         self.stackedWidget.insertWidget(4, KNBK_Table(parent=self))
 
-        self.tbl_profile: QTableWidget = self.findChild(QTableWidget, 'tableWidget_profile')
-        self.tbl_stratigraphy: QTableWidget = self.findChild(QTableWidget, 'tableWidget_stratigraphy')
-        self.tbl_casing_strings: QTableWidget = self.findChild(QTableWidget, 'tableWidget_casing_strings')
-        self.tbl_drilling_fluids: QTableWidget = self.findChild(QTableWidget, 'tableWidget_drilling_fluids')
-        self.tbl_pressure: QTableWidget = self.findChild(QTableWidget, 'tableWidget_pressure')
+        self.tbl_profile: AdaptiveTable = self.findChild(QTableWidget, 'tableWidget_profile')
+        self.tbl_profile.calculate_min_column_widths_by_header()
+        self.tbl_stratigraphy: AdaptiveTable = self.findChild(QTableWidget, 'tableWidget_stratigraphy')
+        self.tbl_stratigraphy.calculate_min_column_widths_by_header()
+        self.tbl_casing_strings: AdaptiveTable = self.findChild(QTableWidget, 'tableWidget_casing_strings')
+        self.tbl_casing_strings.calculate_min_column_widths_by_header()
+        self.tbl_drilling_fluids: AdaptiveTable = self.findChild(QTableWidget, 'tableWidget_drilling_fluids')
+        self.tbl_drilling_fluids.calculate_min_column_widths_by_header()
+        self.tbl_pressure: AdaptiveTable = self.findChild(QTableWidget, 'tableWidget_pressure')
 
         self.tbl_profile.itemChanged.connect(self.center_text_in_item)
         self.tbl_pressure.itemChanged.connect(self.center_text_in_item)
@@ -172,8 +176,8 @@ class Tables(QWidget):
         self.btn_delete_row_pressure.clicked.connect(self.delete_row_pressure)
         self.btn_load_profile.clicked.connect(self.open_file)
 
-        self.tbl_profile.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.tbl_stratigraphy.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        # self.tbl_profile.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        # self.tbl_stratigraphy.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
         header = self.tbl_casing_strings.horizontalHeader()
 
@@ -215,88 +219,45 @@ class Tables(QWidget):
         self.addAction(self.save_action)
         self.save_action.triggered.connect(self.save_to_db)
 
-        self.merge_columns_1(0, 1, 3)
-        self.merge_columns_2(0, 4, 7)
-        self.merge_columns_3(0, 8, 11)
-        self.set_column_width(0, 28)
-        self.set_column_width(1, 130)
+        self.merge_columns(0, 1, 3, text="Интервал")
+        self.merge_columns(0, 4, 7, text="Давление, кгс/см^2")
+        self.merge_columns(0, 8, 11, text="Градиент давления, кгс/см^2/м")
+        # self.tbl_pressure.setColumnWidth(0, 28)
+        # self.tbl_pressure.setColumnWidth(1, 130)
 
-        cells_data = [
-            (1, 1, "Индекс стратиграфического подразделения"),
-            (1, 2, "От (верт.) ,м"),
-            (1, 3, "До (верт.) ,м"),
-            (1, 4, "Пласт. в начале интервала"),
-            (1, 5, "Пласт. в конце интервала"),
-            (1, 6, "Гидроразр. в начале интервала"),
-            (1, 7, "Гидроразр. в конце интервала"),
-            (1, 8, "Пласт. в начале интервала"),
-            (1, 9, "Пласт. в конце интервала"),
-            (1, 10, "Гидроразр. в начале интервала"),
-            (1, 11, "Гидроразр. в конце интервала"),
+        headers = [
+            "Индекс\nстратиграфического\nподразделения",
+            "От\n(верт.),\n м",
+            "До\n(верт.),\n м",
+            "Пласт.\nв начале\nинтервала",
+            "Пласт.\nв конце\nинтервала",
+            "Гидроразр.\nв начале\nинтервала",
+            "Гидроразр.\nв конце\nинтервала",
+            "Пласт.\n в начале\nинтервала",
+            "Пласт.\n в конце\nинтервала",
+            "Гидроразр.\nв начале\nинтервала",
+            "Гидроразр.\nв конце\nинтервала",
         ]
-        self.insert_text_in_cells(cells_data)
+
+        for col, text in enumerate(headers, start=1):
+            item = QTableWidgetItem(text)
+            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.tbl_pressure.setItem(1, col, item)
+
+        self.tbl_pressure.calculate_min_column_widths(row=1)
+
         self.tbl_pressure.resizeRowsToContents()
         self.init_graphics_views()
         self.disable_editing_for_rows()
         self.graphicsView_casing_strings.setBackgroundBrush(Qt.GlobalColor.white)
         self.graphicsView_profile.setBackgroundBrush(Qt.GlobalColor.white)
 
-    def set_column_width(self, column, width):
-        self.tbl_pressure.setColumnWidth(column, width)
-
-    def merge_columns_1(self, row, start_col, end_col):
-        text = "Интервал"
-        for col in range(start_col, end_col + 1):
-            item = self.tbl_pressure.takeItem(row, col)
-            if item:
-                text += item.text() + " "
-
+    def merge_columns(self, row, start_col, end_col, text):
         merged_item = QTableWidgetItem(text.strip())
         merged_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         self.tbl_pressure.setItem(row, start_col, merged_item)
 
         self.tbl_pressure.setSpan(row, start_col, 1, end_col - start_col + 1)
-
-        for col in range(start_col + 1, end_col + 1):
-            self.tbl_pressure.setItem(row, col, QTableWidgetItem(""))
-
-    def merge_columns_2(self, row, start_col, end_col):
-        text = "Давление, кгс/см^2"
-        for col in range(start_col, end_col + 1):
-            item = self.tbl_pressure.takeItem(row, col)
-            if item:
-                text += item.text() + " "
-
-        merged_item = QTableWidgetItem(text.strip())
-        merged_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.tbl_pressure.setItem(row, start_col, merged_item)
-
-        self.tbl_pressure.setSpan(row, start_col, 1, end_col - start_col + 1)
-
-        for col in range(start_col + 1, end_col + 1):
-            self.tbl_pressure.setItem(row, col, QTableWidgetItem(""))
-
-    def merge_columns_3(self, row, start_col, end_col):
-        text = "Градиент давления, кгс/см^2/м"
-        for col in range(start_col, end_col + 1):
-            item = self.tbl_pressure.takeItem(row, col)
-            if item:
-                text += item.text() + " "
-
-        merged_item = QTableWidgetItem(text.strip())
-        merged_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.tbl_pressure.setItem(row, start_col, merged_item)
-
-        self.tbl_pressure.setSpan(row, start_col, 1, end_col - start_col + 1)
-
-        for col in range(start_col + 1, end_col + 1):
-            self.tbl_pressure.setItem(row, col, QTableWidgetItem(""))
-
-    def insert_text_in_cells(self, cells_data):
-        for row, col, text in cells_data:
-            item = QTableWidgetItem(text)
-            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.tbl_pressure.setItem(row, col, item)
 
     def create_context_menu(self, pos, table):
         context_menu = QMenu(self)
@@ -392,9 +353,10 @@ class Tables(QWidget):
         self.tbl_profile.setHorizontalHeader(QHeaderView(Qt.Orientation.Horizontal))
 
         self.tbl_profile.setHorizontalHeaderLabels(headers)
+        self.tbl_profile.calculate_min_column_widths_by_header()
         self.tbl_profile.horizontalHeader().setVisible(True)
         self.tbl_profile.horizontalHeader().repaint()
-        self.tbl_profile.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        # self.tbl_profile.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.graphicsView_profile.setScene(QGraphicsScene())
 
     def add_row_stratigraphy(self):
@@ -680,7 +642,6 @@ class Tables(QWidget):
 
         self.graphics_layout.addWidget(self.canvas_pressure, stretch=23)
         self.graphics_layout.addWidget(self.canvas_gradient, stretch=9)
-
 
     def set_canvas(self, canvas: FigureCanvas, title: str, x_label: str):
         axes = canvas.figure.add_subplot(111)
@@ -1129,17 +1090,12 @@ class Tables(QWidget):
         self.stackedWidget.setCurrentWidget(new_page)
 
     def delete_page(self):
-        if self.stackedWidget is None:
-            return
-
         current_index = self.stackedWidget.currentIndex()
         num_pages = self.stackedWidget.count()
 
         if num_pages > 6:
             widget_to_remove = self.stackedWidget.widget(current_index)
             self.stackedWidget.removeWidget(widget_to_remove)
-
-            widget_to_remove.setParent(None)
             widget_to_remove.deleteLater()
 
             new_index = min(current_index, self.stackedWidget.count() - 1)
@@ -1396,7 +1352,7 @@ class Tables(QWidget):
 
             # Записываем заголовки
             headers = []
-            start_row = 0 # С какого ряда начинать запись
+            start_row = 0  # С какого ряда начинать запись
             if table.horizontalHeaderItem(0) is not None:
                 for column in range(table.columnCount()):
                     headers.append(table.horizontalHeaderItem(column).text())

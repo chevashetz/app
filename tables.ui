@@ -109,7 +109,7 @@
               <number>0</number>
              </property>
              <item>
-              <widget class="QTableWidget" name="tableWidget_profile">
+              <widget class="AdaptiveTable" name="tableWidget_profile">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                  <horstretch>1</horstretch>
@@ -477,7 +477,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QTableWidget" name="tableWidget_stratigraphy">
+        <widget class="AdaptiveTable" name="tableWidget_stratigraphy">
          <property name="rowCount">
           <number>1</number>
          </property>
@@ -603,7 +603,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QTableWidget" name="tableWidget_pressure">
+        <widget class="AdaptiveTable" name="tableWidget_pressure">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -777,7 +777,7 @@
            <number>0</number>
           </property>
           <item>
-           <widget class="QTableWidget" name="tableWidget_casing_strings">
+           <widget class="AdaptiveTable" name="tableWidget_casing_strings">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
               <horstretch>7</horstretch>
@@ -939,7 +939,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QTableWidget" name="tableWidget_drilling_fluids">
+        <widget class="AdaptiveTable" name="tableWidget_drilling_fluids">
          <property name="rowCount">
           <number>1</number>
          </property>
@@ -1176,6 +1176,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>AdaptiveTable</class>
+   <extends>QTableWidget</extends>
+   <header>adaptive_table.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

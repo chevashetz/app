@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import QWidget, QScrollArea, QVBoxLayout, QUndoView, QLabel
     QTableWidgetItem, QComboBox, QListView, QLineEdit, QMenu, QStyledItemDelegate, QApplication, QMainWindow, \
     QHeaderView
 
+from components.adaptive_table import AdaptiveTable
 from components.dialogs import CsvTableDialog
 from config import IMAGE_PATH, CSV_PATH, BASE_DIR
 from components.comands import UpdateTableCommand
@@ -29,10 +30,6 @@ class KNBK_Table(QWidget):
         self.setup_ui()
         self.labels = OrderedDict()
 
-        header = self.tbl_KNBK.horizontalHeaderItem(0)
-        if header is not None:
-            header.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-
         self.add_image(image_path=IMAGE_PATH / 'Долото.png')
 
     def setup_ui(self):
@@ -46,7 +43,8 @@ class KNBK_Table(QWidget):
 
 
         self.label.setVisible(False)
-        self.tbl_KNBK: QTableWidget = self.findChild(QTableWidget, 'table_KNBK')
+        self.tbl_KNBK: AdaptiveTable = self.findChild(QTableWidget, 'table_KNBK')
+        self.tbl_KNBK.calculate_min_column_widths_by_header()
         self.tbl_KNBK.itemChanged.connect(self.update_label)
         self.tbl_KNBK.itemChanged.connect(self.center_text_in_item)
 
@@ -73,19 +71,6 @@ class KNBK_Table(QWidget):
         self.btn_row_down.clicked.connect(self.row_down)
         self.btn_add_page.clicked.connect(self.parentWidget().add_page_2)
         self.btn_delete_page.clicked.connect(self.parentWidget().delete_page)
-
-        header = self.tbl_KNBK.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(7, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(8, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(9, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(10, QHeaderView.ResizeMode.ResizeToContents)
 
     def set_column_width(self, column, width):
         self.tbl_KNBK.setColumnWidth(column, width)
@@ -156,6 +141,7 @@ class KNBK_Table(QWidget):
         pixmap = QPixmap(str(image_path))
         label.setPixmap(pixmap)
         label.setFixedWidth(67)
+        label.setFixedHeight(int(pixmap.height() * 67 / pixmap.width()))
         label.setScaledContents(True)
 
         self.labels[row] = label
