@@ -68,7 +68,7 @@
       <number>0</number>
      </property>
      <item>
-      <widget class="QTreeWidget" name="treeWidget">
+      <widget class="ProjectTree" name="treeWidget">
        <property name="minimumSize">
         <size>
          <width>250</width>
@@ -78,11 +78,6 @@
        <property name="toolTip">
         <string/>
        </property>
-       <column>
-        <property name="text">
-         <string notr="true">1</string>
-        </property>
-       </column>
       </widget>
      </item>
     </layout>
@@ -192,7 +187,7 @@
   <action name="run_action">
    <property name="icon">
     <iconset>
-     <normaloff>images/start.png</normaloff>images/start.png</iconset>
+     <normaloff>images/icons/start.png</normaloff>images/icons/start.png</iconset>
    </property>
    <property name="text">
     <string>Запуск расчетов</string>
@@ -205,6 +200,13 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ProjectTree</class>
+   <extends>QTreeWidget</extends>
+   <header>components.project_tree</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

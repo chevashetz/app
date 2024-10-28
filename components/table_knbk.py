@@ -3,7 +3,7 @@ import sys
 from collections import OrderedDict
 
 from PyQt6 import uic
-from PyQt6.QtCore import Qt, QStringListModel
+from PyQt6.QtCore import Qt, QStringListModel, pyqtSignal
 from PyQt6.QtGui import QAction, QUndoStack, QPixmap
 from PyQt6.QtWidgets import QWidget, QScrollArea, QVBoxLayout, QUndoView, QLabel, QTableWidget, QPushButton, \
     QTableWidgetItem, QComboBox, QListView, QLineEdit, QMenu, QStyledItemDelegate, QApplication, QMainWindow, \
@@ -22,6 +22,9 @@ class CenteredItemDelegate(QStyledItemDelegate):
 
 
 class KNBK_Table(QWidget):
+    add_page = pyqtSignal()
+    delete_page = pyqtSignal()
+
     def __init__(self, sort_key=None, parent=None):
         super().__init__(parent)
         uic.loadUi(BASE_DIR / 'table.ui', self, package='components')
@@ -43,7 +46,7 @@ class KNBK_Table(QWidget):
 
 
         self.label.setVisible(False)
-        self.tbl_KNBK: AdaptiveTable = self.findChild(QTableWidget, 'table_KNBK')
+        self.tbl_KNBK: AdaptiveTable = self.findChild(AdaptiveTable, 'table_KNBK')
         self.tbl_KNBK.calculate_min_column_widths_by_header()
         self.tbl_KNBK.itemChanged.connect(self.update_label)
         self.tbl_KNBK.itemChanged.connect(self.center_text_in_item)
@@ -69,8 +72,8 @@ class KNBK_Table(QWidget):
         self.btn_load_table.clicked.connect(self.load_table)
         self.btn_row_up.clicked.connect(self.row_up)
         self.btn_row_down.clicked.connect(self.row_down)
-        self.btn_add_page.clicked.connect(self.parentWidget().add_page_2)
-        self.btn_delete_page.clicked.connect(self.parentWidget().delete_page)
+        self.btn_add_page.clicked.connect(lambda: self.add_page.emit())
+        self.btn_delete_page.clicked.connect(lambda: self.delete_page.emit())
 
     def set_column_width(self, column, width):
         self.tbl_KNBK.setColumnWidth(column, width)
@@ -542,12 +545,6 @@ class TestKNBKTable(QMainWindow):
     def initUI(self):
         ex = KNBK_Table(parent=self)
         self.setCentralWidget(ex)
-
-    def add_page_2(self):
-        pass
-
-    def delete_page(self):
-        pass
 
 
 # Тестирование KNBK

@@ -28,7 +28,7 @@ from components.db import DatabaseManager
 from components.dialogs import DualInputDialog
 from components.shading_drawer import ShadingDrawer
 from components.table_knbk import KNBK_Table
-from config import path2, BASE_DIR
+from config import DB_PATH, BASE_DIR
 
 
 class ComboHeader(QHeaderView):
@@ -82,17 +82,22 @@ class Tables(QWidget):
     def setup_ui(self):
         self.stackedWidget: QStackedWidget = self.findChild(QStackedWidget, 'stackedWidget')
         self.stackedWidget.setCurrentIndex(0)
-        self.stackedWidget.insertWidget(4, KNBK_Table(parent=self))
 
-        self.tbl_profile: AdaptiveTable = self.findChild(QTableWidget, 'tableWidget_profile')
+        knbk_table = KNBK_Table(parent=self)
+        knbk_table.add_page.connect(self.add_page_2)
+        knbk_table.delete_page.connect(self.delete_page)
+
+        self.stackedWidget.insertWidget(4, knbk_table)
+
+        self.tbl_profile: AdaptiveTable = self.findChild(AdaptiveTable, 'tableWidget_profile')
         self.tbl_profile.calculate_min_column_widths_by_header()
-        self.tbl_stratigraphy: AdaptiveTable = self.findChild(QTableWidget, 'tableWidget_stratigraphy')
+        self.tbl_stratigraphy: AdaptiveTable = self.findChild(AdaptiveTable, 'tableWidget_stratigraphy')
         self.tbl_stratigraphy.calculate_min_column_widths_by_header()
-        self.tbl_casing_strings: AdaptiveTable = self.findChild(QTableWidget, 'tableWidget_casing_strings')
+        self.tbl_casing_strings: AdaptiveTable = self.findChild(AdaptiveTable, 'tableWidget_casing_strings')
         self.tbl_casing_strings.calculate_min_column_widths_by_header()
-        self.tbl_drilling_fluids: AdaptiveTable = self.findChild(QTableWidget, 'tableWidget_drilling_fluids')
+        self.tbl_drilling_fluids: AdaptiveTable = self.findChild(AdaptiveTable, 'tableWidget_drilling_fluids')
         self.tbl_drilling_fluids.calculate_min_column_widths_by_header()
-        self.tbl_pressure: AdaptiveTable = self.findChild(QTableWidget, 'tableWidget_pressure')
+        self.tbl_pressure: AdaptiveTable = self.findChild(AdaptiveTable, 'tableWidget_pressure')
 
         self.tbl_profile.itemChanged.connect(self.center_text_in_item)
         self.tbl_pressure.itemChanged.connect(self.center_text_in_item)
@@ -1073,6 +1078,10 @@ class Tables(QWidget):
         insert_index = num_pages - 1
 
         new_page = KNBK_Table(sort_key=sort_key, parent=self)
+
+        new_page.add_page.connect(self.add_page_2)
+        new_page.delete_page.connect(self.delete_page)
+
         new_page.set_label(text)
         new_page.sort_key = sort_key
         self.stackedWidget.insertWidget(insert_index, new_page)
@@ -1085,7 +1094,11 @@ class Tables(QWidget):
         num_pages = self.stackedWidget.count()
         insert_index = num_pages - 1
         print(f"Current number of pages: {num_pages}, Inserting at index: {insert_index}")
+
         new_page = KNBK_Table(parent=self)
+        new_page.add_page.connect(self.add_page_2)
+        new_page.delete_page.connect(self.delete_page)
+
         self.stackedWidget.insertWidget(insert_index, new_page)
         self.stackedWidget.setCurrentWidget(new_page)
 
@@ -1120,7 +1133,7 @@ class Tables(QWidget):
 
         if ok and stratigraphy_name.strip():
             database = QSqlDatabase.addDatabase("QSQLITE")
-            database.setDatabaseName(path2 + "stratigraphy.db")
+            database.setDatabaseName(str(DB_PATH / "stratigraphy.db"))
             if not database.open():
                 QMessageBox.critical(self, "Ошибка", "Не удалось открыть файл базы данных.")
                 return
@@ -1252,7 +1265,7 @@ class Tables(QWidget):
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
 
     def open_db(self):
-        db_file = path2 + "stratigraphy.db"
+        db_file = str(DB_PATH / "stratigraphy.db")
         self.db_manager = DatabaseManager(db_file)
         if not self.db_manager.open_database():
             return
