@@ -13,7 +13,6 @@ from components.dialogs import FieldDialog, CustDialog, WellDialog, WellboreDial
 from config import ICONS_PATH
 
 
-
 @dataclass
 class ItemType:
     name: str = ""
@@ -83,7 +82,6 @@ class ProjectTree(QTreeWidget):
 
         self.dialogs = {type: dialog for type, dialog in
                         zip(ItemTypes.dialog_types(), (FieldDialog, CustDialog, WellDialog, WellboreDialog,))}
-        self.unique_names = {type: set() for type in ItemTypes.user_create_types()}
 
         self.setup_tree()
         self.setup_actions()
@@ -114,9 +112,9 @@ class ProjectTree(QTreeWidget):
 
         # Нажатие enter клавиши
         shortcut = QShortcut(QtCore.Qt.Key.Key_Return, self,
-                            context=QtCore.Qt.ShortcutContext.WidgetShortcut)
+                             context=QtCore.Qt.ShortcutContext.WidgetShortcut)
         # noinspection PyTypeChecker
-        shortcut.activated.connect(lambda : self.on_item_clicked_tree(item, 0) if (item:=self.currentItem()) else None)
+        shortcut.activated.connect(lambda: self.on_item_clicked_tree(item, 0) if (item := self.currentItem()) else None)
 
     def some_function(self):
         item = self.selectedItems()[0]
@@ -143,48 +141,6 @@ class ProjectTree(QTreeWidget):
             child = item.child(i)
             self.expand_items(child)
 
-    def get_item_level(self, item) -> int:
-        """
-        Получает уровень элемента в дереве.
-        Корневые элементы имеют уровень 1.
-
-        Args:
-            item: QTreeWidgetItem - элемент, уровень которого нужно определить
-
-        Returns:
-            int - уровень элемента (начиная с 1)
-        """
-        level = 1
-        parent = item.parent()
-
-        while parent is not None:
-            level += 1
-            parent = parent.parent()
-
-        return level
-
-    def get_items_at_level(self, level: int) -> list[ProjectItem]:
-        """Получает все элементы на указанном уровне дерева"""
-        if level < 1:
-            raise ValueError("Уровень должен быть положительным числом")
-
-        result = []
-
-        def process_item(item: ProjectItem, current_level: int):
-            if current_level == level:
-                result.append(item)
-                return
-
-            for child_idx in range(item.childCount()):
-                child = item.child(child_idx)
-                process_item(child, current_level + 1)
-
-        for i in range(self.topLevelItemCount()):
-            root_item = self.topLevelItem(i)
-            process_item(root_item, 1)
-
-        return result
-
     def dragMoveEvent(self, event):
         # noinspection PyTypeChecker
         item: ProjectItem = self.itemAt(event.position().toPoint())
@@ -208,9 +164,16 @@ class ProjectTree(QTreeWidget):
             if item is None or item == self.root or item.item_type.is_wellbores():
                 parent = item or self.root
                 old_parent = dragged_item.parent() or self.root
-                old_parent.removeChild(dragged_item)
-                parent.insertChild(parent.childCount() - 1, dragged_item)
-                self.append_undo_stack(('move', dragged_item, {'parent': old_parent}))
+                if parent is not old_parent:
+                    move_params = {'parent': old_parent}
+                    # Если в новой папке такое имя таблицы существует - переименовать
+                    neighbors = self.get_all_children(parent)
+                    if (name := dragged_item.text(0)) in [item.text(0) for item in neighbors]:
+                        dragged_item.setText(0, self.get_unique_name(name, dragged_item.item_type, neighbors))
+                        move_params['name'] = name
+                    old_parent.removeChild(dragged_item)
+                    parent.insertChild(parent.childCount() - 1, dragged_item)
+                    self.append_undo_stack(('move', dragged_item, move_params))
             event.accept()
         else:
             event.ignore()
@@ -258,8 +221,7 @@ class ProjectTree(QTreeWidget):
                 if dialog.exec() == QDialog.DialogCode.Accepted:
                     item_name = dialog.getText().strip()
                     if item_name:
-                        parent_level = self.get_item_level(parent_item)
-                        item_name = self.get_unique_name(item_name, child_type, parent_level + 1)
+                        item_name = self.get_unique_name(item_name, child_type, self.get_all_children(parent_item))
                         new_item = ProjectItem(item_name, item_type=child_type)
                         parent_item.insertChild(parent_item.childCount() - 1, new_item)
                         if parent_type == ItemTypes.wellbores:
@@ -277,34 +239,37 @@ class ProjectTree(QTreeWidget):
         project_name, ok = QInputDialog.getText(self, "Проект", "Введите название:")
         if ok and project_name.strip():
             table_type = ItemTypes.tables
-            project_name = self.get_unique_name(project_name.strip(), table_type, 1)
+            project_name = self.get_unique_name(project_name.strip(), table_type, self.get_all_children(self.root))
 
             new_item = ProjectItem(project_name, item_type=table_type)
             self.root.insertChild(self.root.childCount() - 1, new_item)
             self.append_undo_stack(('create', new_item, {'parent': self.root}))
             self.table_created.emit(project_name)
 
-    def get_unique_name(self, name: str, item_type: ItemTypes, item_level: int) -> str:
+    def get_unique_name(self, name: str, item_type: ItemTypes, children: list[ProjectItem]) -> str:
         # Контроль повторяющихся названий
         i = 0
         new_name = name
-        item_names = [item.text(0) for item in self.get_items_at_level(item_level) if item.item_type == item_type]
+        item_names = [item.text(0) for item in children if item.item_type == item_type]
         while True:
             if new_name in item_names:
                 i += 1
                 new_name = f'{name}({i})'
             else:
                 break
-        self.unique_names[item_type].add(new_name)
         return new_name
+
+    @staticmethod
+    def get_all_children(parent):
+        return [parent.child(child_idx) for child_idx in range(parent.childCount())]
 
     def edit_item(self, item: ProjectItem):
         old_text = item.text(0)
         new_text, ok = QInputDialog.getText(self, "Редактирование элемента",
                                             "Введите новое имя:", text=old_text)
         new_text = new_text.strip()
-        if ok and new_text:
-            item.setText(0, self.get_unique_name(new_text.strip(), item.item_type, self.get_item_level(item)))
+        if ok and new_text and new_text != old_text:
+            item.setText(0, self.get_unique_name(new_text.strip(), item.item_type, self.get_all_children(item.parent())))
             self.append_undo_stack(('rename', item, {'text': old_text}))
 
     def delete_item(self, item):
@@ -338,6 +303,9 @@ class ProjectTree(QTreeWidget):
             old_parent.removeChild(item)
             new_parent.insertChild(new_parent.childCount() - 1, item)
             last_action[2]['parent'] = old_parent
+            if name := params.get('name'):  # Если при переносе было переименованние
+                params['name'] = item.text(0)
+                item.setText(0, name)
         elif action_type == 'delete':
             parent: ProjectItem = params.get('parent')
             parent.insertChild(parent.childCount() - 1, item)
