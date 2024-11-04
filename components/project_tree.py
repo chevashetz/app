@@ -3,11 +3,13 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 
 from PyQt6 import QtCore
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QIcon, QAction, QKeySequence, QShortcut
-from PyQt6.QtWidgets import QApplication, QMainWindow, QTreeWidget, QTreeWidgetItem, QMenu, QDialog, QInputDialog
+from PyQt6.QtWidgets import QApplication, QMainWindow, QTreeWidget, QTreeWidgetItem, QMenu, QDialog, QInputDialog, \
+    QMessageBox
 
 from components.dialogs import FieldDialog, CustDialog, WellDialog, WellboreDialog
 from config import ICONS_PATH
@@ -33,7 +35,7 @@ class ItemTypes(Enum):
     graph = ItemType(icon_path=str(ICONS_PATH / "graph"))
     plus = ItemType(icon_path=str(ICONS_PATH / "plus"))
 
-    def is_draggable(self):
+    def is_tables(self):
         return self == ItemTypes.tables
 
     def is_wellbores(self):
@@ -43,6 +45,9 @@ class ItemTypes(Enum):
         return self not in {ItemTypes.project, ItemTypes.fields, ItemTypes.custs,
                             ItemTypes.wells, ItemTypes.wellbores, ItemTypes.plus}
 
+    def is_savable(self):
+        return self not in {ItemTypes.plus}
+
     @staticmethod
     def dialog_types():
         return ItemTypes.fields, ItemTypes.custs, ItemTypes.wells, ItemTypes.wellbores
@@ -50,6 +55,12 @@ class ItemTypes(Enum):
     @staticmethod
     def user_create_types():
         return ItemTypes.field, ItemTypes.cust, ItemTypes.well, ItemTypes.tables
+
+    @staticmethod
+    def item_by_name(name):
+        for i in ItemTypes:
+            if i.name == name:
+                return i
 
     def next_value(self) -> ItemTypes:
         item_types = list(ItemTypes)
@@ -67,12 +78,15 @@ class ProjectItem(QTreeWidgetItem):
 
         super().__init__(parent, [name])
         self.item_type: ItemTypes = item_type
+        self.tab = None
         icon = QIcon(self.item_type.value.icon_path)
         self.setIcon(0, icon)
 
 
 class ProjectTree(QTreeWidget):
-    table_created = pyqtSignal(str)
+    table_created = pyqtSignal(ProjectItem, str)
+    table_deleted = pyqtSignal(ProjectItem)
+    table_renamed = pyqtSignal(ProjectItem, str)
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -147,7 +161,7 @@ class ProjectTree(QTreeWidget):
         # noinspection PyTypeChecker
         dragged_item: ProjectItem = self.currentItem()
 
-        if dragged_item and dragged_item.item_type.is_draggable():
+        if dragged_item and dragged_item.item_type.is_tables():
             if item is None or item == self.root or (item and item.item_type.is_wellbores()):
                 event.accept()
                 return
@@ -160,7 +174,7 @@ class ProjectTree(QTreeWidget):
         # noinspection PyTypeChecker
         dragged_item: ProjectItem = self.currentItem()
 
-        if dragged_item and dragged_item.item_type.is_draggable():
+        if dragged_item and dragged_item.item_type.is_tables():
             if item is None or item == self.root or item.item_type.is_wellbores():
                 parent = item or self.root
                 old_parent = dragged_item.parent() or self.root
@@ -224,8 +238,8 @@ class ProjectTree(QTreeWidget):
                         item_name = self.get_unique_name(item_name, child_type, self.get_all_children(parent_item))
                         new_item = ProjectItem(item_name, item_type=child_type)
                         parent_item.insertChild(parent_item.childCount() - 1, new_item)
-                        if parent_type == ItemTypes.wellbores:
-                            self.table_created.emit(item_name)
+                        if child_type == ItemTypes.tables:
+                            self.table_created.emit(new_item, item_name)
                         else:
                             folder_type = child_type.next_value()
                             folder = ProjectItem(parent=new_item, item_type=folder_type)
@@ -238,13 +252,16 @@ class ProjectTree(QTreeWidget):
     def create_fast_project(self):
         project_name, ok = QInputDialog.getText(self, "Проект", "Введите название:")
         if ok and project_name.strip():
-            table_type = ItemTypes.tables
-            project_name = self.get_unique_name(project_name.strip(), table_type, self.get_all_children(self.root))
+            self.create_fast_project_item(project_name)
 
-            new_item = ProjectItem(project_name, item_type=table_type)
-            self.root.insertChild(self.root.childCount() - 1, new_item)
-            self.append_undo_stack(('create', new_item, {'parent': self.root}))
-            self.table_created.emit(project_name)
+    def create_fast_project_item(self, project_name):
+        project_name = self.get_unique_name(project_name.strip(), ItemTypes.tables,
+                                            self.get_all_children(self.root))
+        new_item = ProjectItem(project_name, item_type=ItemTypes.tables)
+        self.root.insertChild(self.root.childCount() - 1, new_item)
+        self.append_undo_stack(('create', new_item, {'parent': self.root}))
+        self.table_created.emit(new_item, project_name)
+        return new_item
 
     def get_unique_name(self, name: str, item_type: ItemTypes, children: list[ProjectItem]) -> str:
         # Контроль повторяющихся названий
@@ -269,13 +286,17 @@ class ProjectTree(QTreeWidget):
                                             "Введите новое имя:", text=old_text)
         new_text = new_text.strip()
         if ok and new_text and new_text != old_text:
-            item.setText(0, self.get_unique_name(new_text.strip(), item.item_type, self.get_all_children(item.parent())))
+            item.setText(0, self.get_unique_name(new_text.strip(), item.item_type,
+                                                 self.get_all_children(item.parent() or self.root)))
+            self.table_renamed.emit(item, new_text)
             self.append_undo_stack(('rename', item, {'text': old_text}))
 
     def delete_item(self, item):
         parent = (item.parent() or self.root)
         parent.removeChild(item)
-        self.append_undo_stack(('create', item, {'parent': parent}))
+        if item.item_type == ItemTypes.tables:
+            self.table_deleted.emit(item)
+        self.append_undo_stack(('delete', item, {'parent': parent}))
 
     def append_undo_stack(self, last_action):
         self.undo_stack.append(last_action)
@@ -285,17 +306,21 @@ class ProjectTree(QTreeWidget):
     def undo_redo_last_action(self, out_stack: list, in_stack: list):
         if not out_stack:
             return
-        last_action = out_stack.pop()
+        last_action: tuple[str, ProjectItem, dict] = out_stack.pop()
         action_type, item, params = last_action
 
         if action_type == 'create':
             parent: ProjectItem = params.get('parent')
             parent.removeChild(item)
+            if item.item_type == ItemTypes.tables:
+                self.table_deleted.emit(item)
             last_action = ('delete', item, {'parent': parent})
         elif action_type == 'rename':
             old_text: str = params.get('text')
             new_text: str = item.text(0)
             item.setText(0, old_text)
+            if item.item_type == ItemTypes.tables:
+                self.table_renamed.emit(item, old_text)
             last_action[2]['text'] = new_text
         elif action_type == 'move':
             old_parent = item.parent() or self.root
@@ -309,6 +334,8 @@ class ProjectTree(QTreeWidget):
         elif action_type == 'delete':
             parent: ProjectItem = params.get('parent')
             parent.insertChild(parent.childCount() - 1, item)
+            if item.item_type == ItemTypes.tables:
+                self.table_created.emit(item, item.text(0))
             self.expand_items(item)
             last_action = ('create', item, {'parent': parent})
 
@@ -316,6 +343,54 @@ class ProjectTree(QTreeWidget):
 
         self.undo_action.setEnabled(bool(self.undo_stack))
         self.redo_action.setEnabled(bool(self.redo_stack))
+
+    def load_project_folders(self, parent_item, path: Path):
+        if parent_item:
+            for path in path.iterdir():
+                child_type = parent_item.item_type.next_value()
+                item_name = path.name
+                new_item = ProjectItem(item_name, item_type=child_type)
+                parent_item.insertChild(parent_item.childCount() - 1, new_item)
+                if child_type == ItemTypes.tables:
+                    self.table_created.emit(new_item, item_name)
+                    if check_correct_files(path):
+                        new_item.tab.tables.load_all(path)
+                else:
+                    if not child_type.is_editable():
+                        ProjectItem(parent=new_item)  # plus sign inside
+                    self.load_project_folders(new_item, path)
+
+
+    def load_project(self, file_path: Path):
+        if file_path.name == 'Проект' and (file_path / 'Месторождения').exists():
+            # Очищаем дерево перед загрузкой нового проекта
+            self.project.removeChild(self.fields)
+            self.append_undo_stack(('remove', self.fields, {'parent': self.project}))
+            # Создаем корневой элемент для проекта
+            self.fields = ProjectItem(parent=self.project, item_type=ItemTypes.fields)
+            ProjectItem(parent=self.fields)
+            # Загружаем структуру папок в дерево и получаем последние пути
+            self.load_project_folders(self.fields, file_path / 'Месторождения')
+            self.expand_items(self.project)
+
+            self.append_undo_stack(('create', self.fields, {'parent': self.project}))
+        else:
+            if check_correct_files(file_path):
+                new_item = self.create_fast_project_item(file_path.name)
+                new_item.tab.tables.load_all(file_path)
+            else:
+                dlg = QMessageBox(self)
+                dlg.setWindowTitle("Проект не найден!")
+                dlg.setText("В этой папке проекта не найдено")
+                dlg.exec()
+
+
+def check_correct_files(file_path: Path):
+    list_files = set(list(file_path.iterdir()))
+    if {file.name for file in list_files} <= {'Буровые растворы.csv', 'Давления.csv', 'КНБК_1.csv',
+                                              'Обсадные колонны.csv', 'Профиль.csv', 'Стратиграфия.csv'}:
+        return True
+    return False
 
 
 class MainWindow(QMainWindow):
