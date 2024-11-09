@@ -347,21 +347,6 @@ class Tables(QWidget):
 
     def clear_table(self):
         self.tbl_profile.clearContents()
-
-        headers = ["Глубина по стволу (м)", "Зенитный угол (град)", "Азимут (град)", "Азимут маг(град)",
-                   "Азимут дир(град)", "Глубина по верт(м)"]
-
-        current_column_count = self.tbl_profile.columnCount()
-        if current_column_count != len(headers):
-            self.tbl_profile.setColumnCount(len(headers))
-
-        self.tbl_profile.setHorizontalHeader(QHeaderView(Qt.Orientation.Horizontal))
-
-        self.tbl_profile.setHorizontalHeaderLabels(headers)
-        self.tbl_profile.calculate_min_column_widths_by_header()
-        self.tbl_profile.horizontalHeader().setVisible(True)
-        self.tbl_profile.horizontalHeader().repaint()
-        # self.tbl_profile.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.graphicsView_profile.setScene(QGraphicsScene())
 
     def add_row_stratigraphy(self):

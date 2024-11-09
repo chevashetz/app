@@ -6,7 +6,7 @@ from PyQt6 import uic
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QMenu, QDockWidget, QTreeWidgetItem, QFileDialog, QTabWidget, QWidget, QDialog,
-    QMessageBox
+    QMessageBox, QVBoxLayout
 )
 
 from components.project_tree import ProjectTree, ProjectItem
@@ -18,7 +18,10 @@ class TablesTab(QWidget):
     """Таб с таблицей"""
     def __init__(self, project_item: ProjectItem, name: str, parent=None):
         super().__init__(parent)
+        layout = QVBoxLayout()
+        self.setLayout(layout)
         self.tables = Tables(self)
+        layout.addWidget(self.tables)
         self.name = name
         self.project_item: ProjectItem = project_item
         self.is_saved = False
