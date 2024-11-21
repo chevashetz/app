@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
     QMessageBox, QVBoxLayout
 )
 
-from components.project_tree import ProjectTree, ProjectItem
+from components.project_tree import ProjectTree, ProjectItem, ItemTypes
 from components.tables import Tables
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -73,8 +73,10 @@ class MainWindow(QMainWindow):
         self.tree_widget.table_created.connect(self.create_tables)
         self.tree_widget.table_renamed.connect(self.rename_tables)
         self.tree_widget.table_deleted.connect(self.delete_tables)
+        self.tree_widget.table_clicked.connect(self.set_tables_tab)
 
         self.tab_widget: QTabWidget = self.findChild(QTabWidget, 'tabWidget')
+        self.tab_widget.tabCloseRequested.connect(lambda index: self.tab_widget.removeTab(index))
 
         self.view_menu = self.findChild(QMenu, 'view_menu')
         self.dock_widget = self.findChild(QDockWidget, 'project_dockWidget')
@@ -127,6 +129,13 @@ class MainWindow(QMainWindow):
         tab: TablesTab = project_item.tab
         index = self.tab_widget.indexOf(tab)
         self.tab_widget.removeTab(index)
+
+    def set_tables_tab(self, project_item: ProjectItem):
+        tab = project_item.tab
+        index = self.tab_widget.indexOf(tab)
+        if index == -1:
+            self.tab_widget.addTab(tab, tab.name)
+        self.tab_widget.setCurrentWidget(tab)
 
     def save_project(self):
         file_path = QFileDialog.getExistingDirectory(self, "Сохранить проект", "")

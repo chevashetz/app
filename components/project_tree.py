@@ -42,6 +42,10 @@ class ItemTypes(Enum):
         return self == ItemTypes.wellbores
 
     def is_editable(self):
+        return self not in {ItemTypes.fields, ItemTypes.custs,
+                            ItemTypes.wells, ItemTypes.wellbores, ItemTypes.plus}
+
+    def is_deletable(self):
         return self not in {ItemTypes.project, ItemTypes.fields, ItemTypes.custs,
                             ItemTypes.wells, ItemTypes.wellbores, ItemTypes.plus}
 
@@ -78,7 +82,7 @@ class ProjectItem(QTreeWidgetItem):
 
         super().__init__(parent, [name])
         self.item_type: ItemTypes = item_type
-        self.tab = None
+        self.tab: "TablesTab" = None
         icon = QIcon(self.item_type.value.icon_path)
         self.setIcon(0, icon)
 
@@ -87,6 +91,7 @@ class ProjectTree(QTreeWidget):
     table_created = pyqtSignal(ProjectItem, str)
     table_deleted = pyqtSignal(ProjectItem)
     table_renamed = pyqtSignal(ProjectItem, str)
+    table_clicked = pyqtSignal(ProjectItem)
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -111,7 +116,7 @@ class ProjectTree(QTreeWidget):
         self.root = self.invisibleRootItem()
 
         # Создаем элемент "Project"
-        self.project = ProjectItem(parent=self.root, item_type=ItemTypes.project)
+        self.project = ProjectItem("Новый проект", parent=self.root, item_type=ItemTypes.project)
         ProjectItem(parent=self.root)
         self.fields = ProjectItem(parent=self.project, item_type=ItemTypes.fields)
         ProjectItem(parent=self.fields)
@@ -130,10 +135,6 @@ class ProjectTree(QTreeWidget):
         # noinspection PyTypeChecker
         shortcut.activated.connect(lambda: self.on_item_clicked_tree(item, 0) if (item := self.currentItem()) else None)
 
-    def some_function(self):
-        item = self.selectedItems()[0]
-        if item is not None:
-            self.on_item_clicked_tree(item, 0)
 
     def setup_actions(self):
         self.undo_action = QAction("Отменить последнее действие", self)
@@ -204,7 +205,7 @@ class ProjectTree(QTreeWidget):
 
             delete_action = QAction("Удалить", self)
             delete_action.triggered.connect(lambda: self.delete_item(item))
-            delete_action.setEnabled(item.item_type.is_editable())
+            delete_action.setEnabled(item.item_type.is_deletable())
 
             menu.addAction(edit_action)
             menu.addAction(delete_action)
@@ -248,6 +249,8 @@ class ProjectTree(QTreeWidget):
 
                             self.expand_items(new_item)
                         self.append_undo_stack(('create', new_item, {'parent': parent_item}))
+        elif item.item_type is ItemTypes.tables:
+            self.table_clicked.emit(item)
 
     def create_fast_project(self):
         project_name, ok = QInputDialog.getText(self, "Проект", "Введите название:")
@@ -280,6 +283,25 @@ class ProjectTree(QTreeWidget):
     def get_all_children(parent):
         return [parent.child(child_idx) for child_idx in range(parent.childCount())]
 
+    @staticmethod
+    def find_leaves(item: ProjectItem):
+        """
+        Рекурсивно находит и возвращает список всех листьев для данного QTreeWidgetItem.
+
+        :param item: QTreeWidgetItem, для которого ищутся листья.
+        :return: Список объектов QTreeWidgetItem, которые являются листьями.
+        """
+        leaves = []
+        if item.childCount() == 0 and item.item_type is ItemTypes.tables:
+            # Если у узла нет потомков, он является листом
+            leaves.append(item)
+        else:
+            # Если есть потомки, рекурсивно ищем листья у каждого
+            for i in range(item.childCount()):
+                child = item.child(i)
+                leaves.extend(ProjectTree.find_leaves(child))
+        return leaves
+
     def edit_item(self, item: ProjectItem):
         old_text = item.text(0)
         new_text, ok = QInputDialog.getText(self, "Редактирование элемента",
@@ -288,14 +310,16 @@ class ProjectTree(QTreeWidget):
         if ok and new_text and new_text != old_text:
             item.setText(0, self.get_unique_name(new_text.strip(), item.item_type,
                                                  self.get_all_children(item.parent() or self.root)))
-            self.table_renamed.emit(item, new_text)
+            if item.item_type == ItemTypes.tables:
+                self.table_renamed.emit(item, new_text)
             self.append_undo_stack(('rename', item, {'text': old_text}))
 
     def delete_item(self, item):
+        child_tables = ProjectTree.find_leaves(item)
         parent = (item.parent() or self.root)
         parent.removeChild(item)
-        if item.item_type == ItemTypes.tables:
-            self.table_deleted.emit(item)
+        for table in child_tables:
+            self.table_deleted.emit(table)
         self.append_undo_stack(('delete', item, {'parent': parent}))
 
     def append_undo_stack(self, last_action):
@@ -349,28 +373,29 @@ class ProjectTree(QTreeWidget):
             for path in path.iterdir():
                 child_type = parent_item.item_type.next_value()
                 item_name = path.name
-                new_item = ProjectItem(item_name, item_type=child_type)
-                parent_item.insertChild(parent_item.childCount() - 1, new_item)
+                new_item = ProjectItem(item_name, parent=parent_item, item_type=child_type)
                 if child_type == ItemTypes.tables:
                     self.table_created.emit(new_item, item_name)
                     if check_correct_files(path):
                         new_item.tab.tables.load_all(path)
                 else:
+                    self.load_project_folders(new_item, path)
                     if not child_type.is_editable():
                         ProjectItem(parent=new_item)  # plus sign inside
-                    self.load_project_folders(new_item, path)
+
 
 
     def load_project(self, file_path: Path):
-        if file_path.name == 'Проект' and (file_path / 'Месторождения').exists():
+        if (file_path / 'Месторождения').exists():
             # Очищаем дерево перед загрузкой нового проекта
-            self.project.removeChild(self.fields)
-            self.append_undo_stack(('remove', self.fields, {'parent': self.project}))
+            self.root.removeChild(self.project)
+            self.append_undo_stack(('remove', self.project, {'parent': self.root}))
             # Создаем корневой элемент для проекта
-            self.fields = ProjectItem(parent=self.project, item_type=ItemTypes.fields)
-            ProjectItem(parent=self.fields)
+            self.project = ProjectItem(file_path.name, item_type=ItemTypes.project)
+            self.root.insertChild(0, self.project)
+
             # Загружаем структуру папок в дерево и получаем последние пути
-            self.load_project_folders(self.fields, file_path / 'Месторождения')
+            self.load_project_folders(self.project, file_path)
             self.expand_items(self.project)
 
             self.append_undo_stack(('create', self.fields, {'parent': self.project}))
