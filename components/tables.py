@@ -36,7 +36,7 @@ class ComboHeader(QHeaderView):
 
     def __init__(self, parent=None):
         super(ComboHeader, self).__init__(Qt.Orientation.Horizontal, parent)
-        self.setStretchLastSection(True)
+        #self.setStretchLastSection(True)
         self.combobox = QComboBox(self)
         self.combobox.addItems(["Азимут (град)", "Азимут маг(град)", "Азимут дир(град)"])
         self.combobox.setStyleSheet("QComboBox { text-align: center; }")
@@ -185,10 +185,10 @@ class Tables(QWidget):
         # self.tbl_stratigraphy.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
         header = self.tbl_casing_strings.horizontalHeader()
-
+        '''
         for column in range(self.tbl_casing_strings.columnCount() - 1):
             header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
-
+        '''
         header.setSectionResizeMode(self.tbl_casing_strings.columnCount() - 1, QHeaderView.ResizeMode.Stretch)
 
         self.tbl_drilling_fluids.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -604,7 +604,7 @@ class Tables(QWidget):
         return selected_data
 
     def plot_graph(self, data):
-        fig = Figure(figsize=(5, 5))
+        fig = Figure(figsize=(4.5, 4.5))
         ax = fig.add_subplot(111, projection='3d')
         ax.plot(data[:, 0], data[:, 1], data[:, 2], marker='o', linewidth=0.25)
         ax.set_xlim([min(data[:, 0]), max(data[:, 0])])

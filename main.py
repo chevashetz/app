@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 
 from PyQt6 import uic
+from PyQt6.QtCore import QUrl
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QMenu, QDockWidget, QTreeWidgetItem, QFileDialog, QTabWidget, QWidget, QDialog,
@@ -11,6 +12,8 @@ from PyQt6.QtWidgets import (
 
 from components.project_tree import ProjectTree, ProjectItem, ItemTypes
 from components.tables import Tables
+from components.results import Results
+
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -101,15 +104,75 @@ class MainWindow(QMainWindow):
         self.toggle_dock_act = self.dock_widget.toggleViewAction()
         self.view_menu.addAction(self.toggle_dock_act)
 
-    def run_project(self):
-        print("Запуск расчетов...")
+    def start_response(self):
+        """Начать сетевой запрос"""
+        self.run_action.setEnabled(False)
+
+        # Создаем URL и request
+        url = QUrl("http://localhost:8000/calculate/")
+        request = QNetworkRequest(url)
+        request.setHeader(
+            QNetworkRequest.KnownHeaders.ContentTypeHeader,
+            "application/json"
+        )
+
+        # Подготавливаем данные для отправки
+        data = {
+            "name": "",
+            "depth_from": 0,
+            "depth_to": 0,
+            "transport_model": "Bingam",
+            "density": 0,
+            "viscosity": 0,
+            "dns": 0
+        }
+
+        # Конвертируем данные в JSON и затем в QByteArray
+        json_data = json.dumps(data).encode('utf-8')
+
+        # Отправляем POST запрос
+        self.network_manager.post(request, json_data)
+
+    def handle_response(self, reply: QNetworkReply):
+        """Обработка ответа от сервера"""
+        try:
+            if reply.error() == QNetworkReply.NetworkError.NoError:
+                # Читаем данные из ответа
+                data = reply.readAll().data().decode('utf-8')
+                # Парсим JSON
+                result = json.loads(data)
+                # Показываем результат
+                self.create_results(result, "Результаты расчёта")
+                QMessageBox.information(
+                    self,
+                    "Результат",
+                    json.dumps(result, indent=2, ensure_ascii=False)
+                )
+            else:
+                error_message = f"Ошибка запроса: {reply.errorString()}"
+                QMessageBox.critical(self, "Ошибка", error_message)
+
+        except json.JSONDecodeError as e:
+            QMessageBox.critical(
+                self,
+                "Ошибка",
+                f"Ошибка парсинга JSON: {str(e)}"
+            )
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Ошибка",
+                f"Неизвестная ошибка: {str(e)}"
+            )
+        finally:
+            self.run_action.setEnabled(True)
+            reply.deleteLater()  # Очищаем память
 
     def open_file(self):
         file_path = QFileDialog.getExistingDirectory(self, "Открыть проект", "")
         if file_path:
             file_path = Path(file_path)
             self.tree_widget.load_project(file_path)
-
 
     def create_tables(self, project_item, name):
         tables_tab = TablesTab(project_item, name, self)
@@ -118,6 +181,12 @@ class MainWindow(QMainWindow):
 
         self.save_file_action.setEnabled(True)
         self.print_action.setEnabled(True)
+
+    def create_results(self, calculation_item, name):
+        calculation_tables_tab = TablesTab(calculation_item, name, self)
+        self.tab_widget.addTab(calculation_tables_tab, name)
+
+
 
     def rename_tables(self, project_item: ProjectItem, name):
         tab: TablesTab = project_item.tab
