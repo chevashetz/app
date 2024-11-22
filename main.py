@@ -1,3 +1,4 @@
+import json
 import logging
 import sys
 from pathlib import Path
@@ -5,57 +6,16 @@ from pathlib import Path
 from PyQt6 import uic
 from PyQt6.QtCore import QUrl
 from PyQt6.QtGui import QAction
+from PyQt6.QtNetwork import QNetworkRequest, QNetworkReply, QNetworkAccessManager
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QMenu, QDockWidget, QTreeWidgetItem, QFileDialog, QTabWidget, QWidget, QDialog,
-    QMessageBox, QVBoxLayout
+    QApplication, QMainWindow, QMenu, QDockWidget, QFileDialog, QTabWidget, QMessageBox
 )
 
-from components.project_tree import ProjectTree, ProjectItem, ItemTypes
+from components.project_tree import ProjectTree, ProjectItem
 from components.tables import Tables
-from components.results import Results
-
+from components.tabs import TablesTab, ResultsTab
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
-
-class TablesTab(QWidget):
-    """Таб с таблицей"""
-    def __init__(self, project_item: ProjectItem, name: str, parent=None):
-        super().__init__(parent)
-        layout = QVBoxLayout()
-        self.setLayout(layout)
-        self.tables = Tables(self)
-        layout.addWidget(self.tables)
-        self.name = name
-        self.project_item: ProjectItem = project_item
-        self.is_saved = False
-
-        self.project_item.tab = self
-
-    def save_tables(self, file_path: Path):
-        parent = self.project_item.parent()
-        if parent is None:
-            # Сохранить как быстрый проект
-            self.tables.save_all(self.name, file_path)
-        else:
-            # Сохранить как полноценный проект
-            while parent.parent() is not None: # получаем самую верхнеуровневую папку проекта
-                parent = parent.parent()
-            self.create_project_folders(parent, file_path)
-
-    def create_project_folders(self, item: ProjectItem, path: Path):
-        """Creates folders corresponding to the item in the project structure."""
-        if item:
-            text = item.text(0).strip()
-            path = path / text
-            child_count = item.childCount()
-            for i in range(child_count):
-                child: ProjectItem = item.child(i)
-                if child.item_type.is_savable():
-                    if child.item_type.is_tables():
-                        self.tables.save_all(self.name, path)
-                    else:
-                        self.create_project_folders(child, path)
-            path.mkdir(parents=True, exist_ok=True)  # создать папку
 
 
 class MainWindow(QMainWindow):
@@ -68,6 +28,12 @@ class MainWindow(QMainWindow):
 
         self.wellbores: dict[str, Tables] = {}
         self.tables = None
+
+        # Создаем менеджер сетевых запросов
+        self.network_manager = QNetworkAccessManager()
+        self.network_manager.finished.connect(self.handle_response)
+
+        self.reply_to_tab = {}  # Словарь для хранения связи reply -> current_tab
 
         print("app.ui loaded successfully")
 
@@ -99,12 +65,14 @@ class MainWindow(QMainWindow):
         self.create_action = self.findChild(QAction, 'create_action')
         self.create_action.triggered.connect(self.tree_widget.create_fast_project)
         self.run_action = self.findChild(QAction, 'run_action')
-        self.run_action.triggered.connect(self.run_project)
+        self.run_action.triggered.connect(self.start_response)
 
         self.toggle_dock_act = self.dock_widget.toggleViewAction()
         self.view_menu.addAction(self.toggle_dock_act)
 
     def start_response(self):
+        current_tab: TablesTab = self.tab_widget.currentWidget()
+
         """Начать сетевой запрос"""
         self.run_action.setEnabled(False)
 
@@ -116,38 +84,48 @@ class MainWindow(QMainWindow):
             "application/json"
         )
 
+        if current_tab is None:
+            return
+
+        results_tab = None  # изначально результатов нет
+        # TODO: цикл
         # Подготавливаем данные для отправки
-        data = {
-            "name": "",
-            "depth_from": 0,
-            "depth_to": 0,
-            "transport_model": "Bingam",
-            "density": 0,
-            "viscosity": 0,
-            "dns": 0
-        }
+        for i in range(1):
+            data = {
+                "name": "",
+                "depth_from": current_tab.content.tbl_drilling_fluids.item(i, 0).text(),
+                "depth_to": 0,
+                "transport_model": "Bingam",
+                "density": 0,
+                "viscosity": 0,
+                "dns": 0
+            }
 
-        # Конвертируем данные в JSON и затем в QByteArray
-        json_data = json.dumps(data).encode('utf-8')
+            # Конвертируем данные в JSON и затем в QByteArray
+            json_data = json.dumps(data).encode('utf-8')
 
-        # Отправляем POST запрос
-        self.network_manager.post(request, json_data)
+            # Отправляем POST запрос
+            reply = self.network_manager.post(request, json_data)
+
+            # Связываем reply с current_tab
+            self.reply_to_tab[reply] = current_tab
+
 
     def handle_response(self, reply: QNetworkReply):
         """Обработка ответа от сервера"""
         try:
+            current_tab: TablesTab | None = self.reply_to_tab.pop(reply, None)  # Извлекаем current_tab
+            if current_tab is None:
+                QMessageBox.critical(self, "Результат", "Проект был не найден или удален")
+                return
+
             if reply.error() == QNetworkReply.NetworkError.NoError:
                 # Читаем данные из ответа
                 data = reply.readAll().data().decode('utf-8')
                 # Парсим JSON
                 result = json.loads(data)
                 # Показываем результат
-                self.create_results(result, "Результаты расчёта")
-                QMessageBox.information(
-                    self,
-                    "Результат",
-                    json.dumps(result, indent=2, ensure_ascii=False)
-                )
+                self.create_results(result, current_tab)
             else:
                 error_message = f"Ошибка запроса: {reply.errorString()}"
                 QMessageBox.critical(self, "Ошибка", error_message)
@@ -175,16 +153,25 @@ class MainWindow(QMainWindow):
             self.tree_widget.load_project(file_path)
 
     def create_tables(self, project_item, name):
-        tables_tab = TablesTab(project_item, name, self)
+        tables_tab = TablesTab(project_item, name)
         self.tab_widget.addTab(tables_tab, name)
         self.tab_widget.setCurrentWidget(tables_tab)
 
         self.save_file_action.setEnabled(True)
         self.print_action.setEnabled(True)
 
-    def create_results(self, calculation_item, name):
-        calculation_tables_tab = TablesTab(calculation_item, name, self)
-        self.tab_widget.addTab(calculation_tables_tab, name)
+    def create_results(self, data: dict, current_tab: TablesTab):
+        name = f"{current_tab.name}_результаты"
+
+        results_tab: ResultsTab | None = current_tab.get_results_tab()
+
+        if results_tab is None:  # когда еще не создали вкладку под результаты
+            result_project_item = self.tree_widget.create_results(current_tab.project_item, name)
+            results_tab = ResultsTab(result_project_item, current_tab.name)
+            self.tab_widget.addTab(results_tab, name)
+            self.current_processing_results[name] = results_tab
+
+        results_tab.add_new_data(data)
 
 
 
@@ -216,7 +203,7 @@ class MainWindow(QMainWindow):
 
     def print_report(self):
         current_tab: TablesTab = self.tab_widget.currentWidget()
-        current_tab.tables.print_report()
+        current_tab.content.print_report()
 
 
 if __name__ == "__main__":

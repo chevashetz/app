@@ -31,8 +31,7 @@ class ItemTypes(Enum):
     well = ItemType("Скважина", str(ICONS_PATH / "well"))
     wellbores = ItemType("Стволы", str(ICONS_PATH / "wellbore"))
     tables = ItemType("Ствол", str(ICONS_PATH / "table"))
-
-    graph = ItemType(icon_path=str(ICONS_PATH / "graph"))
+    results = ItemType(icon_path=str(ICONS_PATH / "graph"))
     plus = ItemType(icon_path=str(ICONS_PATH / "plus"))
 
     def is_tables(self):
@@ -82,7 +81,7 @@ class ProjectItem(QTreeWidgetItem):
 
         super().__init__(parent, [name])
         self.item_type: ItemTypes = item_type
-        self.tab: "TablesTab" = None
+        self.tab = None  # TablesTab or ResultsTab
         icon = QIcon(self.item_type.value.icon_path)
         self.setIcon(0, icon)
 
@@ -377,7 +376,7 @@ class ProjectTree(QTreeWidget):
                 if child_type == ItemTypes.tables:
                     self.table_created.emit(new_item, item_name)
                     if check_correct_files(path):
-                        new_item.tab.tables.load_all(path)
+                        new_item.tab.content.load_all(path)
                 else:
                     self.load_project_folders(new_item, path)
                     if not child_type.is_editable():
@@ -402,13 +401,15 @@ class ProjectTree(QTreeWidget):
         else:
             if check_correct_files(file_path):
                 new_item = self.create_fast_project_item(file_path.name)
-                new_item.tab.tables.load_all(file_path)
+                new_item.tab.content.load_all(file_path)
             else:
                 dlg = QMessageBox(self)
                 dlg.setWindowTitle("Проект не найден!")
                 dlg.setText("В этой папке проекта не найдено")
                 dlg.exec()
 
+    def create_results(self, project_item: ProjectItem, name: str) -> ProjectItem:
+        return ProjectItem(name, item_type=ItemTypes.results, parent=project_item)
 
 def check_correct_files(file_path: Path):
     list_files = set(list(file_path.iterdir()))
