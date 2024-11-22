@@ -5,3 +5,5 @@ resources
 /test/
 /test_data/
 /msh_scripts/
+
+!/test/mock_server.py

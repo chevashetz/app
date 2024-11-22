@@ -5,7 +5,7 @@ from pathlib import Path
 
 from PyQt6 import uic
 from PyQt6.QtCore import QUrl
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtNetwork import QNetworkRequest, QNetworkReply, QNetworkAccessManager
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QMenu, QDockWidget, QFileDialog, QTabWidget, QMessageBox
@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
 from components.project_tree import ProjectTree, ProjectItem
 from components.tables import Tables
 from components.tabs import TablesTab, ResultsTab
+from config import SERVER_URL
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -21,7 +22,7 @@ logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        uic.loadUi('app.ui', self,  package='components')
+        uic.loadUi('app.ui', self, package='components')
 
         self.setup_ui()
         self.setup_actions()
@@ -32,10 +33,20 @@ class MainWindow(QMainWindow):
         # Создаем менеджер сетевых запросов
         self.network_manager = QNetworkAccessManager()
         self.network_manager.finished.connect(self.handle_response)
+        self.tab_widget.currentChanged.connect(self.update_run_action_state)
+        self.tab_widget.tabCloseRequested.connect(self.update_run_action_state)
 
         self.reply_to_tab = {}  # Словарь для хранения связи reply -> current_tab
 
-        print("app.ui loaded successfully")
+        self.update_run_action_state()
+
+    def update_run_action_state(self):
+        current_tab = self.tab_widget.currentWidget()
+        enabled = current_tab is not None and hasattr(current_tab, 'processing') and not current_tab.processing
+        self.run_action.setEnabled(enabled)
+        # start_icon = current_tab is None or not hasattr(current_tab, 'processing') or (hasattr(current_tab, 'processing') and not current_tab.processing)
+        # self.run_action.setIcon(QIcon('images/icons/start.png' if start_icon else 'images/icons/stop.png'))
+
 
     def setup_ui(self):
         self.tree_widget: ProjectTree = self.findChild(ProjectTree, 'treeWidget')
@@ -64,7 +75,7 @@ class MainWindow(QMainWindow):
         self.print_action.triggered.connect(self.print_report)
         self.create_action = self.findChild(QAction, 'create_action')
         self.create_action.triggered.connect(self.tree_widget.create_fast_project)
-        self.run_action = self.findChild(QAction, 'run_action')
+        self.run_action: QAction = self.findChild(QAction, 'run_action')
         self.run_action.triggered.connect(self.start_response)
 
         self.toggle_dock_act = self.dock_widget.toggleViewAction()
@@ -72,28 +83,25 @@ class MainWindow(QMainWindow):
 
     def start_response(self):
         current_tab: TablesTab = self.tab_widget.currentWidget()
+        current_tab.processing = True
+        self.update_run_action_state()
 
         """Начать сетевой запрос"""
-        self.run_action.setEnabled(False)
 
         # Создаем URL и request
-        url = QUrl("http://localhost:8000/calculate/")
+        url = QUrl(SERVER_URL)
         request = QNetworkRequest(url)
         request.setHeader(
             QNetworkRequest.KnownHeaders.ContentTypeHeader,
             "application/json"
         )
 
-        if current_tab is None:
-            return
-
-        results_tab = None  # изначально результатов нет
         # TODO: цикл
         # Подготавливаем данные для отправки
-        for i in range(1):
+        for i in range(5):
             data = {
                 "name": "",
-                "depth_from": current_tab.content.tbl_drilling_fluids.item(i, 0).text(),
+                "depth_from": 0, # current_tab.content.tbl_drilling_fluids.item(i, 0).text(),
                 "depth_to": 0,
                 "transport_model": "Bingam",
                 "density": 0,
@@ -110,12 +118,11 @@ class MainWindow(QMainWindow):
             # Связываем reply с current_tab
             self.reply_to_tab[reply] = current_tab
 
-
     def handle_response(self, reply: QNetworkReply):
         """Обработка ответа от сервера"""
         try:
-            current_tab: TablesTab | None = self.reply_to_tab.pop(reply, None)  # Извлекаем current_tab
-            if current_tab is None:
+            request_tab: TablesTab | None = self.reply_to_tab.pop(reply, None)  # Извлекаем current_tab
+            if request_tab is None:
                 QMessageBox.critical(self, "Результат", "Проект был не найден или удален")
                 return
 
@@ -125,7 +132,7 @@ class MainWindow(QMainWindow):
                 # Парсим JSON
                 result = json.loads(data)
                 # Показываем результат
-                self.create_results(result, current_tab)
+                self.create_results(result, request_tab)
             else:
                 error_message = f"Ошибка запроса: {reply.errorString()}"
                 QMessageBox.critical(self, "Ошибка", error_message)
@@ -136,14 +143,17 @@ class MainWindow(QMainWindow):
                 "Ошибка",
                 f"Ошибка парсинга JSON: {str(e)}"
             )
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Ошибка",
-                f"Неизвестная ошибка: {str(e)}"
-            )
+        # except Exception as e:
+        #     QMessageBox.critical(
+        #         self,
+        #         "Ошибка",
+        #         f"Неизвестная ошибка: {str(e)}"
+        #     )
         finally:
-            self.run_action.setEnabled(True)
+            if request_tab.name not in self.reply_to_tab:
+                request_tab.processing = False
+            if request_tab is self.tab_widget.currentWidget():
+                self.update_run_action_state()
             reply.deleteLater()  # Очищаем память
 
     def open_file(self):
@@ -157,6 +167,8 @@ class MainWindow(QMainWindow):
         self.tab_widget.addTab(tables_tab, name)
         self.tab_widget.setCurrentWidget(tables_tab)
 
+        self.update_run_action_state()
+
         self.save_file_action.setEnabled(True)
         self.print_action.setEnabled(True)
 
@@ -169,11 +181,8 @@ class MainWindow(QMainWindow):
             result_project_item = self.tree_widget.create_results(current_tab.project_item, name)
             results_tab = ResultsTab(result_project_item, current_tab.name)
             self.tab_widget.addTab(results_tab, name)
-            self.current_processing_results[name] = results_tab
 
         results_tab.add_new_data(data)
-
-
 
     def rename_tables(self, project_item: ProjectItem, name):
         tab: TablesTab = project_item.tab

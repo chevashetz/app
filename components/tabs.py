@@ -7,8 +7,29 @@ from components.results import Results
 from components.tables import Tables
 
 
+class ResultsTab(QWidget):
+    """Таб с результатами"""
+
+    def __init__(self, project_item: ProjectItem, name: str):
+        super().__init__()
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        self.content = Results(self)
+        layout.addWidget(self.content)
+        self.name = name
+        self.project_item: ProjectItem = project_item
+        self.is_saved = False
+
+        self.project_item.tab = self
+
+    def add_new_data(self, data: dict):
+        """Перезаписать и добавить новую дату"""
+        print(data)
+
+
 class TablesTab(QWidget):
     """Таб с таблицей"""
+
     def __init__(self, project_item: ProjectItem, name: str):
         super().__init__()
         layout = QVBoxLayout()
@@ -17,9 +38,10 @@ class TablesTab(QWidget):
         layout.addWidget(self.content)
         self.name = name
         self.project_item: ProjectItem = project_item
-        self.is_saved = False
-
         self.project_item.tab = self
+
+        self.is_saved = False  # Сохранены изменения
+        self.processing = False  # На вкладке ведутся расчеты?
 
     def save_tables(self, file_path: Path):
         parent = self.project_item.parent()
@@ -28,14 +50,14 @@ class TablesTab(QWidget):
             self.content.save_all(self.name, file_path)
         else:
             # Сохранить как полноценный проект
-            while parent.parent() is not None: # получаем самую верхнеуровневую папку проекта
+            while parent.parent() is not None:  # получаем самую верхнеуровневую папку проекта
                 parent = parent.parent()
             self.create_project_folders(parent, file_path)
 
-    def get_results_tab(self) -> None | "ResultsTab":
+    def get_results_tab(self) -> None | ResultsTab:
         """Получить результат у таблицы, вернуть None если его нету"""
         child: ProjectItem | None = self.project_item.child(0)
-        return child or child.tab  # вернет None или ResultsTab
+        return child and child.tab  # вернет None или ResultsTab
 
 
     def create_project_folders(self, item: ProjectItem, path: Path):
@@ -52,22 +74,3 @@ class TablesTab(QWidget):
                     else:
                         self.create_project_folders(child, path)
             path.mkdir(parents=True, exist_ok=True)  # создать папку
-
-
-class ResultsTab(QWidget):
-    """Таб с результатами"""
-    def __init__(self, project_item: ProjectItem, name: str):
-        super().__init__()
-        layout = QVBoxLayout()
-        self.setLayout(layout)
-        self.content = Results(self)
-        layout.addWidget(self.content)
-        self.name = name
-        self.project_item: ProjectItem = project_item
-        self.is_saved = False
-
-        self.project_item.tab = self
-
-    def add_new_data(self, data: dict):
-        """Перезаписать и добавить новую дату"""
-        print(data)

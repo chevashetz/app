@@ -3,6 +3,8 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent  # Путь к главной папке приложения
 
+SERVER_URL = "http://localhost:8000/calculate/"
+
 CSV_PATH = BASE_DIR / "сsv_files/"
 IMAGE_PATH = BASE_DIR / "images"
 ICONS_PATH = IMAGE_PATH / "icons"
