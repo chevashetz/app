@@ -408,8 +408,10 @@ class ProjectTree(QTreeWidget):
                 dlg.setText("В этой папке проекта не найдено")
                 dlg.exec()
 
-    def create_results(self, project_item: ProjectItem, name: str) -> ProjectItem:
-        return ProjectItem(name, item_type=ItemTypes.results, parent=project_item)
+    def create_results(self, table_item: ProjectItem, name: str) -> ProjectItem:
+        new_item = ProjectItem(name, item_type=ItemTypes.results, parent=table_item)
+        self.expand_items(table_item)
+        return new_item
 
 def check_correct_files(file_path: Path):
     list_files = set(list(file_path.iterdir()))

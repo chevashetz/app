@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
 import random
@@ -40,6 +42,8 @@ async def calculate(request: FluidCalculationRequest):
         "flow_regime": random.choice(["ламинарный", "турбулентный"]),
         "effective_viscosity": round(random.uniform(10, 30), 2)
     }
+
+    await asyncio.sleep(random.randint(1, 3))  # эмуляция расчетов
 
     # Формируем полный ответ
     response = FluidCalculationResponse(

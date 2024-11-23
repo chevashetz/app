@@ -8,13 +8,15 @@ from PyQt6.QtCore import QUrl
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtNetwork import QNetworkRequest, QNetworkReply, QNetworkAccessManager
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QMenu, QDockWidget, QFileDialog, QTabWidget, QMessageBox
+    QApplication, QMainWindow, QMenu, QDockWidget, QFileDialog, QTabWidget, QMessageBox, QStatusBar, QProgressBar,
+    QLabel
 )
 
 from components.project_tree import ProjectTree, ProjectItem
 from components.tables import Tables
 from components.tabs import TablesTab, ResultsTab
 from config import SERVER_URL
+from utils import extract_number, countFilledRows
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -33,20 +35,12 @@ class MainWindow(QMainWindow):
         # Создаем менеджер сетевых запросов
         self.network_manager = QNetworkAccessManager()
         self.network_manager.finished.connect(self.handle_response)
-        self.tab_widget.currentChanged.connect(self.update_run_action_state)
-        self.tab_widget.tabCloseRequested.connect(self.update_run_action_state)
+        self.tab_widget.currentChanged.connect(self.update_run_state)
+        self.tab_widget.tabCloseRequested.connect(self.update_run_state)
 
         self.reply_to_tab = {}  # Словарь для хранения связи reply -> current_tab
 
-        self.update_run_action_state()
-
-    def update_run_action_state(self):
-        current_tab = self.tab_widget.currentWidget()
-        enabled = current_tab is not None and hasattr(current_tab, 'processing') and not current_tab.processing
-        self.run_action.setEnabled(enabled)
-        # start_icon = current_tab is None or not hasattr(current_tab, 'processing') or (hasattr(current_tab, 'processing') and not current_tab.processing)
-        # self.run_action.setIcon(QIcon('images/icons/start.png' if start_icon else 'images/icons/stop.png'))
-
+        self.update_run_state()
 
     def setup_ui(self):
         self.tree_widget: ProjectTree = self.findChild(ProjectTree, 'treeWidget')
@@ -60,6 +54,17 @@ class MainWindow(QMainWindow):
 
         self.view_menu = self.findChild(QMenu, 'view_menu')
         self.dock_widget = self.findChild(QDockWidget, 'project_dockWidget')
+
+        self.status_bar: QStatusBar = self.findChild(QStatusBar, "statusbar")
+        self.setStatusBar(self.status_bar)
+        self.result_progress = QProgressBar()
+        self.result_progress_label = QLabel()
+
+        self.status_bar.addWidget(self.result_progress_label)
+        self.status_bar.addWidget(self.result_progress)
+
+        self.result_progress.setVisible(False)
+        self.result_progress_label.setVisible(False)
 
         self.showMaximized()
 
@@ -81,10 +86,35 @@ class MainWindow(QMainWindow):
         self.toggle_dock_act = self.dock_widget.toggleViewAction()
         self.view_menu.addAction(self.toggle_dock_act)
 
+    def update_run_state(self):
+        current_tab = self.tab_widget.currentWidget()
+        enabled = current_tab is not None and hasattr(current_tab, 'processing') and not current_tab.processing
+        self.run_action.setEnabled(enabled)
+
+        if current_tab is not None:
+            if current_tab.total_tasks != 0:
+                self.result_progress.setValue(int(100 * current_tab.executed_tasks / current_tab.total_tasks))
+                self.result_progress_label.setText(f"Выполнение задач... ({current_tab.executed_tasks}/{current_tab.total_tasks})")
+                self.result_progress.setVisible(True)
+                self.result_progress_label.setVisible(True)
+            else:
+                self.result_progress.setVisible(False)
+                self.result_progress_label.setVisible(False)
+
     def start_response(self):
         current_tab: TablesTab = self.tab_widget.currentWidget()
         current_tab.processing = True
-        self.update_run_action_state()
+
+        fluids = current_tab.content.tbl_drilling_fluids
+        tasks = countFilledRows(fluids)
+
+        if tasks == 0:
+            QMessageBox.critical(self, "Ошибка", "Нет данных")
+            return
+
+        current_tab.total_tasks = tasks
+
+        self.update_run_state()
 
         """Начать сетевой запрос"""
 
@@ -96,27 +126,28 @@ class MainWindow(QMainWindow):
             "application/json"
         )
 
-        # TODO: цикл
         # Подготавливаем данные для отправки
-        for i in range(5):
-            data = {
-                "name": "",
-                "depth_from": 0, # current_tab.content.tbl_drilling_fluids.item(i, 0).text(),
-                "depth_to": 0,
-                "transport_model": "Bingam",
-                "density": 0,
-                "viscosity": 0,
-                "dns": 0
-            }
+        for i in range(fluids.rowCount()):
+            try:
+                data = {
+                    "name": fluids.item(i, 0).text(),
+                    "depth_from": extract_number(fluids.item(i, 1).text()),
+                    "depth_to": extract_number(fluids.item(i, 2).text()),
+                    "transport_model": "Bingam",
+                    "density": extract_number(fluids.item(i, 3).text()),
+                    "viscosity": extract_number(fluids.item(i, 4).text()),
+                    "dns": extract_number(fluids.item(i, 5).text())
+                }
+                # Конвертируем данные в JSON и затем в QByteArray
+                json_data = json.dumps(data).encode('utf-8')
 
-            # Конвертируем данные в JSON и затем в QByteArray
-            json_data = json.dumps(data).encode('utf-8')
+                # Отправляем POST запрос
+                reply = self.network_manager.post(request, json_data)
 
-            # Отправляем POST запрос
-            reply = self.network_manager.post(request, json_data)
-
-            # Связываем reply с current_tab
-            self.reply_to_tab[reply] = current_tab
+                # Связываем reply с current_tab
+                self.reply_to_tab[reply] = current_tab
+            except ValueError:  # строка недозаполнена
+                continue
 
     def handle_response(self, reply: QNetworkReply):
         """Обработка ответа от сервера"""
@@ -125,6 +156,8 @@ class MainWindow(QMainWindow):
             if request_tab is None:
                 QMessageBox.critical(self, "Результат", "Проект был не найден или удален")
                 return
+
+            request_tab.executed_tasks += 1
 
             if reply.error() == QNetworkReply.NetworkError.NoError:
                 # Читаем данные из ответа
@@ -152,8 +185,17 @@ class MainWindow(QMainWindow):
         finally:
             if request_tab.name not in self.reply_to_tab:
                 request_tab.processing = False
+
             if request_tab is self.tab_widget.currentWidget():
-                self.update_run_action_state()
+                self.update_run_state()
+
+            if request_tab.name not in self.reply_to_tab:
+                result_tab = request_tab.get_results_tab()
+                request_tab.total_tasks = 0
+                request_tab.executed_tasks = 0
+                if result_tab is not None:
+                    result_tab.total_tasks = 0
+                    result_tab.executed_tasks = 0
             reply.deleteLater()  # Очищаем память
 
     def open_file(self):
@@ -167,7 +209,7 @@ class MainWindow(QMainWindow):
         self.tab_widget.addTab(tables_tab, name)
         self.tab_widget.setCurrentWidget(tables_tab)
 
-        self.update_run_action_state()
+        self.update_run_state()
 
         self.save_file_action.setEnabled(True)
         self.print_action.setEnabled(True)
@@ -180,9 +222,11 @@ class MainWindow(QMainWindow):
         if results_tab is None:  # когда еще не создали вкладку под результаты
             result_project_item = self.tree_widget.create_results(current_tab.project_item, name)
             results_tab = ResultsTab(result_project_item, current_tab.name)
+            results_tab.total_tasks = current_tab.total_tasks
             self.tab_widget.addTab(results_tab, name)
 
         results_tab.add_new_data(data)
+        results_tab.executed_tasks = current_tab.executed_tasks
 
     def rename_tables(self, project_item: ProjectItem, name):
         tab: TablesTab = project_item.tab

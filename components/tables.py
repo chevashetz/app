@@ -1,7 +1,6 @@
 import csv
 import logging
 import os
-import re
 import shutil
 import sys
 from pathlib import Path
@@ -29,6 +28,7 @@ from components.dialogs import DualInputDialog
 from components.shading_drawer import ShadingDrawer
 from components.table_knbk import KNBK_Table
 from config import DB_PATH, BASE_DIR
+from utils import extract_number
 
 
 class ComboHeader(QHeaderView):
@@ -417,9 +417,9 @@ class Tables(QWidget):
             data = []
             for r in range(self.tbl_profile.rowCount()):
                 if self.is_row_complete(r, [0, 1, 2], self.tbl_profile):
-                    L = self.extract_number(self.tbl_profile.item(r, 0).text())
-                    zenith_angle = np.radians(self.extract_number(self.tbl_profile.item(r, 1).text()))
-                    azimuth_angle = np.radians(self.extract_number(self.tbl_profile.item(r, 2).text()))
+                    L = extract_number(self.tbl_profile.item(r, 0).text())
+                    zenith_angle = np.radians(extract_number(self.tbl_profile.item(r, 1).text()))
+                    azimuth_angle = np.radians(extract_number(self.tbl_profile.item(r, 2).text()))
                     data.append([L, zenith_angle, azimuth_angle])
 
             data = np.array(data)
@@ -438,8 +438,8 @@ class Tables(QWidget):
         delta_y = selected_data[row][1]
         delta_x = selected_data[row][0]
         self.vertical_depth_and_vertical_deviation_on_item_changed(row, delta_z, delta_x, delta_y, start_column)
-        L_current = self.extract_number(self.tbl_profile.item(row, 0).text())
-        L_prev = self.extract_number(self.tbl_profile.item(row - 1 if row > 0 else row, 0).text())
+        L_current = extract_number(self.tbl_profile.item(row, 0).text())
+        L_prev = extract_number(self.tbl_profile.item(row - 1 if row > 0 else row, 0).text())
         delta_L = L_current - L_prev
         sum_proection = (delta_y ** 2 + delta_x ** 2) ** 0.5
         self.tbl_profile.setItem(row, start_column + 1, QTableWidgetItem(str(round(sum_proection, 2))))
@@ -449,7 +449,7 @@ class Tables(QWidget):
     def vertical_depth_and_vertical_deviation_on_item_changed(self, row, delta_z, delta_x, delta_y, start_column):
         item = self.tbl_profile.item(row, start_column)
         if item is not None:
-            delta_z_old = self.extract_number(item.text())
+            delta_z_old = extract_number(item.text())
         else:
             delta_z_old = 0  # Или другое значение по умолчанию
 
@@ -459,7 +459,7 @@ class Tables(QWidget):
         for row_i in range(row + 1, self.tbl_profile.rowCount()):
             item = self.tbl_profile.item(row_i, start_column)
             if item is not None:
-                old_value = self.extract_number(item.text())
+                old_value = extract_number(item.text())
                 self.tbl_profile.item(row_i, start_column).setText(str(round(old_value + delta_delta, 2)))
 
         # Аналогичная проверка для остальных вычислений
@@ -467,8 +467,8 @@ class Tables(QWidget):
         item_y = self.tbl_profile.item(row, start_column + 1)
 
         if item_x is not None and item_y is not None:
-            delta_x_old = self.extract_number(item_x.text())
-            delta_y_old = self.extract_number(item_y.text())
+            delta_x_old = extract_number(item_x.text())
+            delta_y_old = extract_number(item_y.text())
             delta_delta = delta_z - delta_z_old
             self.tbl_profile.setItem(row, start_column, QTableWidgetItem(str(round(delta_z, 2))))
 
@@ -677,10 +677,10 @@ class Tables(QWidget):
                     self.tbl_pressure.blockSignals(False)
 
             if column in [2, 3, 4, 5] and self.is_row_complete(row, [2, 3, 4, 5], self.tbl_pressure):
-                x_1 = self.extract_number(self.tbl_pressure.item(row, 2).text())
-                x_2 = self.extract_number(self.tbl_pressure.item(row, 3).text())
-                pressure_end = self.extract_number(self.tbl_pressure.item(row, 5).text())
-                pressure_start = self.extract_number(self.tbl_pressure.item(row, 4).text())
+                x_1 = extract_number(self.tbl_pressure.item(row, 2).text())
+                x_2 = extract_number(self.tbl_pressure.item(row, 3).text())
+                pressure_end = extract_number(self.tbl_pressure.item(row, 5).text())
+                pressure_start = extract_number(self.tbl_pressure.item(row, 4).text())
                 gradient = round((pressure_end - pressure_start) / (x_2 - x_1), 2)
                 self.tbl_pressure.blockSignals(True)
                 item_gradient_1 = QTableWidgetItem(str(gradient))
@@ -692,10 +692,10 @@ class Tables(QWidget):
                 self.tbl_pressure.blockSignals(False)
 
             if column in [2, 3, 6, 7] and self.is_row_complete(row, [2, 3, 6, 7], self.tbl_pressure):
-                x_1 = self.extract_number(self.tbl_pressure.item(row, 2).text())
-                x_2 = self.extract_number(self.tbl_pressure.item(row, 3).text())
-                pressure_end = self.extract_number(self.tbl_pressure.item(row, 7).text())
-                pressure_start = self.extract_number(self.tbl_pressure.item(row, 6).text())
+                x_1 = extract_number(self.tbl_pressure.item(row, 2).text())
+                x_2 = extract_number(self.tbl_pressure.item(row, 3).text())
+                pressure_end = extract_number(self.tbl_pressure.item(row, 7).text())
+                pressure_start = extract_number(self.tbl_pressure.item(row, 6).text())
                 gradient = round((pressure_end - pressure_start) / (x_2 - x_1), 2)
                 self.tbl_pressure.blockSignals(True)
                 item_gradient_1 = QTableWidgetItem(str(gradient))
@@ -707,10 +707,10 @@ class Tables(QWidget):
                 self.tbl_pressure.blockSignals(False)
 
             if column in [2, 3, 8, 9] and self.is_row_complete(row, [2, 3, 8, 9], self.tbl_pressure):
-                x_1 = self.extract_number(self.tbl_pressure.item(row, 2).text())
-                x_2 = self.extract_number(self.tbl_pressure.item(row, 3).text())
-                gradient = self.extract_number(self.tbl_pressure.item(row, 8).text())
-                pressure_start = self.extract_number(self.tbl_pressure.item(row, 4).text())
+                x_1 = extract_number(self.tbl_pressure.item(row, 2).text())
+                x_2 = extract_number(self.tbl_pressure.item(row, 3).text())
+                gradient = extract_number(self.tbl_pressure.item(row, 8).text())
+                pressure_start = extract_number(self.tbl_pressure.item(row, 4).text())
                 pressure_end = round(gradient * (x_2 - x_1) + pressure_start, 2)
                 self.tbl_pressure.blockSignals(True)
                 item_pressure_end = QTableWidgetItem(str(pressure_end))
@@ -719,10 +719,10 @@ class Tables(QWidget):
                 self.tbl_pressure.blockSignals(False)
 
             if column in [2, 3, 10, 11] and self.is_row_complete(row, [2, 3, 10, 11], self.tbl_pressure):
-                x_1 = self.extract_number(self.tbl_pressure.item(row, 2).text())
-                x_2 = self.extract_number(self.tbl_pressure.item(row, 3).text())
-                gradient = self.extract_number(self.tbl_pressure.item(row, 10).text())
-                pressure_start = self.extract_number(self.tbl_pressure.item(row, 6).text())
+                x_1 = extract_number(self.tbl_pressure.item(row, 2).text())
+                x_2 = extract_number(self.tbl_pressure.item(row, 3).text())
+                gradient = extract_number(self.tbl_pressure.item(row, 10).text())
+                pressure_start = extract_number(self.tbl_pressure.item(row, 6).text())
                 pressure_end = round(gradient * (x_2 - x_1) + pressure_start, 2)
                 self.tbl_pressure.blockSignals(True)
                 item_pressure_end = QTableWidgetItem(str(pressure_end))
@@ -831,10 +831,10 @@ class Tables(QWidget):
                     if "до устья" in text:
                         profile_item = self.tbl_profile.item(0, 0)
                         if profile_item:
-                            new_text = str(self.extract_number(self.tbl_casing_strings.item(row, 1).text()) - float(
+                            new_text = str(extract_number(self.tbl_casing_strings.item(row, 1).text()) - float(
                                 profile_item.text()))
                         elif self.tbl_casing_strings.item(row, 1).text():
-                            new_text = str(self.extract_number(self.tbl_casing_strings.item(row, 1).text()) - 0)
+                            new_text = str(extract_number(self.tbl_casing_strings.item(row, 1).text()) - 0)
                         else:
                             new_text = "0"
                         new_item = QTableWidgetItem(new_text)
@@ -849,17 +849,6 @@ class Tables(QWidget):
                     self.tbl_casing_strings.blockSignals(False)
 
         print(f"Updated row: {row}, column: {column}, text: {text}")
-
-    def extract_number(self, text):
-        text = text.replace(",", ".")
-        match = re.search(r'\d+\.\d+', text)
-        if match:
-            return float(match.group(0))
-        try:
-            return float(text)
-        except ValueError as ve:
-            print(f"Ошибка преобразования данных: {ve}")
-            return 0
 
     def draw_wellbore_diagram(self):
         scene = self.graphicsView_casing_strings.scene()
@@ -890,7 +879,7 @@ class Tables(QWidget):
             item = self.tbl_casing_strings.item(row, 1)
             if item is None or item.text() == "":
                 break
-            end = self.extract_number(
+            end = extract_number(
                 self.tbl_casing_strings.item(row, 1).text())
             if end > last_end:
                 total_height = end + 2 * vertical_padding
@@ -902,12 +891,12 @@ class Tables(QWidget):
             if not self.is_row_complete(row, [1, 2, 3, 4], self.tbl_casing_strings):
                 break
             scale_factor_y = view_height / total_height if total_height > 0 else 1
-            end = self.extract_number(
+            end = extract_number(
                 self.tbl_casing_strings.item(row, 1).text()) * scale_factor_y
-            length = self.extract_number(
+            length = extract_number(
                 self.tbl_casing_strings.item(row, 2).text()) * scale_factor_y  # Масштабируем длину
-            diameter_casing = self.extract_number(self.tbl_casing_strings.item(row, 3).text()) * scale_factor_x
-            diameter_hole = self.extract_number(self.tbl_casing_strings.item(row, 4).text()) * scale_factor_x
+            diameter_casing = extract_number(self.tbl_casing_strings.item(row, 3).text()) * scale_factor_x
+            diameter_hole = extract_number(self.tbl_casing_strings.item(row, 4).text()) * scale_factor_x
 
             lengths.append(length)
             diameter_offsets.append((last_diameter_hole - diameter_hole) / 2)
@@ -940,7 +929,7 @@ class Tables(QWidget):
                     fourth_value = fourth_column_item.text().strip().lower()
 
                     first_column_item = self.tbl_casing_strings.item(row, 1)
-                    first_value = self.extract_number(first_column_item.text()) if first_column_item else None
+                    first_value = extract_number(first_column_item.text()) if first_column_item else None
 
                     if first_value is not None:
                         if fourth_value not in grouped_rows:
@@ -963,7 +952,7 @@ class Tables(QWidget):
                       reverse=True)
 
             max_first_value = max(x[1] for x in rows)
-            sum_second_values = sum(self.extract_number(self.tbl_casing_strings.item(row, 2).text()) for row, _ in rows)
+            sum_second_values = sum(extract_number(self.tbl_casing_strings.item(row, 2).text()) for row, _ in rows)
 
             if group_index == 0:
                 depth_from = max_first_value - sum_second_values
@@ -1019,7 +1008,7 @@ class Tables(QWidget):
         for i in range(number_of_pages):
             item = self.tbl_casing_strings.item(i, 4)
             if item:
-                value = self.extract_number(item.text())
+                value = extract_number(item.text())
             else:
                 value = "unknown"
 

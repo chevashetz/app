@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QStatusBar, QProgressBar
 
 from components.project_tree import ProjectItem
 from components.results import Results
@@ -10,7 +10,7 @@ from components.tables import Tables
 class ResultsTab(QWidget):
     """Таб с результатами"""
 
-    def __init__(self, project_item: ProjectItem, name: str):
+    def __init__(self, project_item: ProjectItem, name: str) -> None:
         super().__init__()
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -21,6 +21,8 @@ class ResultsTab(QWidget):
         self.is_saved = False
 
         self.project_item.tab = self
+        self.executed_tasks = 0  # Количество выполненных задач
+        self.total_tasks = 0  # Общее количество задач
 
     def add_new_data(self, data: dict):
         """Перезаписать и добавить новую дату"""
@@ -42,6 +44,9 @@ class TablesTab(QWidget):
 
         self.is_saved = False  # Сохранены изменения
         self.processing = False  # На вкладке ведутся расчеты?
+
+        self.executed_tasks = 0  # Количество выполненных задач
+        self.total_tasks = 0  # Общее количество задач
 
     def save_tables(self, file_path: Path):
         parent = self.project_item.parent()
