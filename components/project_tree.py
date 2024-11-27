@@ -41,7 +41,7 @@ class ItemTypes(Enum):
         return self == ItemTypes.wellbores
 
     def is_editable(self):
-        return self not in {ItemTypes.fields, ItemTypes.custs,
+        return self not in {ItemTypes.fields, ItemTypes.custs, ItemTypes.results,
                             ItemTypes.wells, ItemTypes.wellbores, ItemTypes.plus}
 
     def is_deletable(self):
@@ -84,7 +84,6 @@ class ProjectItem(QTreeWidgetItem):
         self.tab = None  # TablesTab or ResultsTab
         icon = QIcon(self.item_type.value.icon_path)
         self.setIcon(0, icon)
-
 
 class ProjectTree(QTreeWidget):
     table_created = pyqtSignal(ProjectItem, str)
@@ -248,7 +247,7 @@ class ProjectTree(QTreeWidget):
 
                             self.expand_items(new_item)
                         self.append_undo_stack(('create', new_item, {'parent': parent_item}))
-        elif item.item_type is ItemTypes.tables:
+        elif item.item_type in {ItemTypes.tables, ItemTypes.results}:
             self.table_clicked.emit(item)
 
     def create_fast_project(self):
@@ -283,7 +282,7 @@ class ProjectTree(QTreeWidget):
         return [parent.child(child_idx) for child_idx in range(parent.childCount())]
 
     @staticmethod
-    def find_leaves(item: ProjectItem):
+    def find_all_tables(item: ProjectItem):
         """
         Рекурсивно находит и возвращает список всех листьев для данного QTreeWidgetItem.
 
@@ -291,14 +290,14 @@ class ProjectTree(QTreeWidget):
         :return: Список объектов QTreeWidgetItem, которые являются листьями.
         """
         leaves = []
-        if item.childCount() == 0 and item.item_type is ItemTypes.tables:
-            # Если у узла нет потомков, он является листом
+        if item.item_type is ItemTypes.tables or item.item_type is ItemTypes.results:
+            # Если узел - таблица
             leaves.append(item)
         else:
             # Если есть потомки, рекурсивно ищем листья у каждого
             for i in range(item.childCount()):
                 child = item.child(i)
-                leaves.extend(ProjectTree.find_leaves(child))
+                leaves.extend(ProjectTree.find_all_tables(child))
         return leaves
 
     def edit_item(self, item: ProjectItem):
@@ -307,14 +306,17 @@ class ProjectTree(QTreeWidget):
                                             "Введите новое имя:", text=old_text)
         new_text = new_text.strip()
         if ok and new_text and new_text != old_text:
-            item.setText(0, self.get_unique_name(new_text.strip(), item.item_type,
-                                                 self.get_all_children(item.parent() or self.root)))
+            new_name = self.get_unique_name(new_text.strip(), item.item_type,
+                                        self.get_all_children(item.parent() or self.root))
+            item.setText(0, new_name)
             if item.item_type == ItemTypes.tables:
-                self.table_renamed.emit(item, new_text)
+                if result_item := item.child(0):
+                    result_item.setText(0, get_name_for_results(new_name))
+                self.table_renamed.emit(item, new_name)
             self.append_undo_stack(('rename', item, {'text': old_text}))
 
     def delete_item(self, item):
-        child_tables = ProjectTree.find_leaves(item)
+        child_tables = ProjectTree.find_all_tables(item)
         parent = (item.parent() or self.root)
         parent.removeChild(item)
         for table in child_tables:
@@ -335,7 +337,7 @@ class ProjectTree(QTreeWidget):
         if action_type == 'create':
             parent: ProjectItem = params.get('parent')
             parent.removeChild(item)
-            if item.item_type == ItemTypes.tables:
+            if item.item_type in {ItemTypes.tables, ItemTypes.results}:
                 self.table_deleted.emit(item)
             last_action = ('delete', item, {'parent': parent})
         elif action_type == 'rename':
@@ -343,6 +345,8 @@ class ProjectTree(QTreeWidget):
             new_text: str = item.text(0)
             item.setText(0, old_text)
             if item.item_type == ItemTypes.tables:
+                if result_item := item.child(0):
+                    result_item.setText(0, old_text)
                 self.table_renamed.emit(item, old_text)
             last_action[2]['text'] = new_text
         elif action_type == 'move':
@@ -351,14 +355,17 @@ class ProjectTree(QTreeWidget):
             old_parent.removeChild(item)
             new_parent.insertChild(new_parent.childCount() - 1, item)
             last_action[2]['parent'] = old_parent
-            if name := params.get('name'):  # Если при переносе было переименованние
+            if name := params.get('name'):  # Если при переносе было переименование
                 params['name'] = item.text(0)
                 item.setText(0, name)
         elif action_type == 'delete':
             parent: ProjectItem = params.get('parent')
-            parent.insertChild(parent.childCount() - 1, item)
-            if item.item_type == ItemTypes.tables:
-                self.table_created.emit(item, item.text(0))
+            if item.item_type == ItemTypes.results:
+                parent.insertChild(0, item)
+            else:
+                parent.insertChild(parent.childCount() - 1, item)
+                if item.item_type == ItemTypes.tables:
+                    self.table_created.emit(item, item.text(0))
             self.expand_items(item)
             last_action = ('create', item, {'parent': parent})
 
@@ -410,6 +417,7 @@ class ProjectTree(QTreeWidget):
 
     def create_results(self, table_item: ProjectItem, name: str) -> ProjectItem:
         new_item = ProjectItem(name, item_type=ItemTypes.results, parent=table_item)
+        self.append_undo_stack(('create', new_item, {'parent': table_item}))
         self.expand_items(table_item)
         return new_item
 
@@ -420,6 +428,8 @@ def check_correct_files(file_path: Path):
         return True
     return False
 
+def get_name_for_results(name: str):
+    return f"{name}_результаты"
 
 class MainWindow(QMainWindow):
     def __init__(self):

@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QLabel
 )
 
-from components.project_tree import ProjectTree, ProjectItem
+from components.project_tree import ProjectTree, ProjectItem, get_name_for_results
 from components.tables import Tables
 from components.tabs import TablesTab, ResultsTab
 from config import SERVER_URL
@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
         self.tree_widget.table_created.connect(self.create_tables)
         self.tree_widget.table_renamed.connect(self.rename_tables)
         self.tree_widget.table_deleted.connect(self.delete_tables)
-        self.tree_widget.table_clicked.connect(self.set_tables_tab)
+        self.tree_widget.table_clicked.connect(self.set_tab)
 
         self.tab_widget: QTabWidget = self.findChild(QTabWidget, 'tabWidget')
         self.tab_widget.tabCloseRequested.connect(lambda index: self.tab_widget.removeTab(index))
@@ -83,6 +83,9 @@ class MainWindow(QMainWindow):
         self.run_action: QAction = self.findChild(QAction, 'run_action')
         self.run_action.triggered.connect(self.start_response)
 
+        self.stop_action: QAction = self.findChild(QAction, 'stop_action')
+        self.stop_action.triggered.connect(lambda _: print("Напиши функцию для меня"))
+
         self.toggle_dock_act = self.dock_widget.toggleViewAction()
         self.view_menu.addAction(self.toggle_dock_act)
 
@@ -90,6 +93,8 @@ class MainWindow(QMainWindow):
         current_tab = self.tab_widget.currentWidget()
         enabled = current_tab is not None and hasattr(current_tab, 'processing') and not current_tab.processing
         self.run_action.setEnabled(enabled)
+        enabled = current_tab is not None and hasattr(current_tab, 'processing') and current_tab.processing
+        self.stop_action.setEnabled(enabled)
 
         if current_tab is not None:
             if current_tab.total_tasks != 0:
@@ -215,7 +220,7 @@ class MainWindow(QMainWindow):
         self.print_action.setEnabled(True)
 
     def create_results(self, data: dict, current_tab: TablesTab):
-        name = f"{current_tab.name}_результаты"
+        name = get_name_for_results(current_tab.name)
 
         results_tab: ResultsTab | None = current_tab.get_results_tab()
 
@@ -234,12 +239,24 @@ class MainWindow(QMainWindow):
         index = self.tab_widget.indexOf(tab)
         self.tab_widget.setTabText(index, name)
 
+        if result_item := project_item.child(0):
+            result_tab: ResultsTab = result_item.tab
+            result_tab_name = get_name_for_results(name)
+            result_tab.name = result_tab_name
+            index = self.tab_widget.indexOf(result_tab)
+            self.tab_widget.setTabText(index, result_tab_name)
+
     def delete_tables(self, project_item: ProjectItem):
         tab: TablesTab = project_item.tab
         index = self.tab_widget.indexOf(tab)
         self.tab_widget.removeTab(index)
 
-    def set_tables_tab(self, project_item: ProjectItem):
+        if result_item := project_item.child(0):
+            result_tab: ResultsTab = result_item.tab
+            index = self.tab_widget.indexOf(result_tab)
+            self.tab_widget.removeTab(index)
+
+    def set_tab(self, project_item: ProjectItem):
         tab = project_item.tab
         index = self.tab_widget.indexOf(tab)
         if index == -1:
