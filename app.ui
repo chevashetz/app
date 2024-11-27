@@ -95,7 +95,7 @@
      <x>0</x>
      <y>0</y>
      <width>1680</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="file_menu">
@@ -114,9 +114,10 @@
    </widget>
    <widget class="QMenu" name="menu">
     <property name="title">
-     <string>Запуск</string>
+     <string>Расчеты</string>
     </property>
     <addaction name="run_action"/>
+    <addaction name="stop_action"/>
    </widget>
    <addaction name="file_menu"/>
    <addaction name="view_menu"/>
@@ -136,6 +137,7 @@
     <bool>false</bool>
    </attribute>
    <addaction name="run_action"/>
+   <addaction name="stop_action"/>
   </widget>
   <action name="open_file_action">
    <property name="text">
@@ -196,13 +198,25 @@
      <normaloff>images/icons/start.png</normaloff>images/icons/start.png</iconset>
    </property>
    <property name="text">
-    <string>Запуск расчетов</string>
+    <string>Запуск</string>
    </property>
    <property name="statusTip">
     <string>Запуск расчетов</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+R</string>
+   </property>
+  </action>
+  <action name="stop_action">
+   <property name="icon">
+    <iconset>
+     <normaloff>images/icons/stop.png</normaloff>images/icons/stop.png</iconset>
+   </property>
+   <property name="text">
+    <string>Остановка</string>
+   </property>
+   <property name="shortcut">
+    <string>Esc</string>
    </property>
   </action>
  </widget>
