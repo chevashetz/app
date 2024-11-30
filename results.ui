@@ -220,7 +220,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_2">
+           <widget class="QPushButton" name="pushButton_next_page">
             <property name="text">
              <string>Слудующий интервал </string>
             </property>
