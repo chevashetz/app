@@ -274,7 +274,7 @@ class WellDialog(QDialog):
         self.well_input.setPlaceholderText("")
 
         # Добавляем метки для каждого ввода (опционально)
-        self.well_label = QLabel("Ствол:", self)
+        self.well_label = QLabel("Скважина:", self)
 
 
         # Создаём кнопки "ОК" и "Отмена"
@@ -304,7 +304,7 @@ class CustDialog(QDialog):
         self.setWindowTitle("Ввод данных")
         # Создаём первый текстовый ввод
         self.cust_input = QLineEdit(self)
-        self.cust_input.setPlaceholderText("")
+        self.cust_input.setPlaceholderText("Введите название куста")
 
         # Добавляем метки для каждого ввода (опционально)
         self.cust_label = QLabel("Куст:", self)
@@ -337,7 +337,7 @@ class WellboreDialog(QDialog):
         self.setWindowTitle("Ввод данных")
         # Создаём первый текстовый ввод
         self.well_input = QLineEdit(self)
-        self.well_input.setPlaceholderText("")
+        self.well_input.setPlaceholderText("Введите название ствола")
 
         # Добавляем метки для каждого ввода (опционально)
         self.well_label = QLabel("Ствол:", self)
