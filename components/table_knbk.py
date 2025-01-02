@@ -24,7 +24,7 @@ class CenteredItemDelegate(QStyledItemDelegate):
 class KNBK_Table(QWidget):
     add_page = pyqtSignal()
     delete_page = pyqtSignal()
-
+    text = pyqtSignal(str)
     def __init__(self, sort_key=None, parent=None):
         super().__init__(parent)
         uic.loadUi(BASE_DIR / 'table_knbk.ui', self, package='components')
@@ -43,7 +43,6 @@ class KNBK_Table(QWidget):
         self.image_container = self.findChild(QWidget, 'image_container')
         self.scroll_area = self.findChild(QScrollArea, 'scroll_area')
         self.image_container_layout: QVBoxLayout = self.image_container.layout()
-
 
         self.label.setVisible(False)
         self.tbl_KNBK: AdaptiveTable = self.findChild(AdaptiveTable, 'table_KNBK')
@@ -89,7 +88,6 @@ class KNBK_Table(QWidget):
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.tbl_KNBK.setItem(new_row, column, item)
         self.tbl_KNBK.resizeRowsToContents()
-
 
     def add_QCombobox(self, row_count, column):
         combo1 = QComboBox()
@@ -153,7 +151,6 @@ class KNBK_Table(QWidget):
 
         self.image_container_layout.insertWidget(insert_row, label, alignment=Qt.AlignmentFlag.AlignBottom)
 
-
     def remove_image(self, table_index, reorder=False):
         if table_index in self.labels:
             label_to_remove = self.labels.pop(table_index)
@@ -170,7 +167,6 @@ class KNBK_Table(QWidget):
             if not isinstance(self.tbl_KNBK.cellWidget(current_row, 0), QComboBox):
                 self.remove_image(current_row, reorder=True)
             self.tbl_KNBK.removeRow(current_row)
-
 
     def load_table(self):
         dialog = CsvTableDialog(str(CSV_PATH / 'КНБК.csv'), load_table=True, initial_sort_value_KNBK=None,
@@ -523,6 +519,7 @@ class KNBK_Table(QWidget):
     def set_label(self, text):
         self.label.setVisible(True)
         self.label.setText(text)
+        self.text.emit(text)
 
     def center_text_in_item(self, item):
         item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -538,6 +535,7 @@ class KNBK_Table(QWidget):
 
 class TestKNBKTable(QMainWindow):
     """ТЕСТОВЫЙ КЛАСС, ЧТОБЫ ЗАПУСКАЛАСЬ KNBK_Table"""
+
     def __init__(self):
         super().__init__()
         self.initUI()

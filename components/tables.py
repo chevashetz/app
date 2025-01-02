@@ -27,6 +27,7 @@ from components.db import DatabaseManager
 from components.dialogs import DualInputDialog
 from components.shading_drawer import ShadingDrawer
 from components.table_knbk import KNBK_Table
+from components.table_doloto import Doloto_Table
 from config import DB_PATH, BASE_DIR
 from utils import extract_number
 
@@ -83,11 +84,18 @@ class Tables(QWidget):
         self.stackedWidget: QStackedWidget = self.findChild(QStackedWidget, 'stackedWidget')
         self.stackedWidget.setCurrentIndex(0)
 
-        knbk_table = KNBK_Table(parent=self)
-        knbk_table.add_page.connect(self.add_page_2)
-        knbk_table.delete_page.connect(self.delete_page)
+        self.knbk_table = KNBK_Table(parent=self)  # Создаём и сохраняем как атрибут
+        self.knbk_table.add_page.connect(self.add_page_2)
+        self.knbk_table.delete_page.connect(self.delete_page)
 
-        self.stackedWidget.insertWidget(4, knbk_table)
+        self.doloto_table = Doloto_Table(parent=self)  # Создаём и сохраняем как атрибут
+
+        # Добавление виджетов в `stackedWidget`
+        self.stackedWidget.insertWidget(4, self.knbk_table)
+        self.stackedWidget.insertWidget(5, self.doloto_table)
+
+        # Подключение сигналов
+        self.knbk_table.text.connect(self.doloto_table.set_label)
 
         self.tbl_profile: AdaptiveTable = self.findChild(AdaptiveTable, 'tableWidget_profile')
         self.tbl_profile.calculate_min_column_widths_by_header()
