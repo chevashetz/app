@@ -33,7 +33,10 @@ class Doloto_Table(QWidget):
 
     def setup_ui(self):
         self.tbl_nozzle: QTableWidget = self.findChild(QTableWidget, 'table_nozzle')
+        self.btn_clear_spinbox: QPushButton = self.findChild(QPushButton, 'pushButton_clear_nozzle')
         self.label: QLabel = self.findChild(QLabel, 'label')
+
+        self.btn_clear_spinbox.clicked.connect(self.clear_spinbox)
         self.label.setVisible(False)
 
     def set_label(self, text):
@@ -48,6 +51,12 @@ class Doloto_Table(QWidget):
             spin_box.setMaximum(100)
             self.tbl_nozzle.setCellWidget(row, 1, spin_box)
 
+    def clear_spinbox(self):
+        row_count = self.tbl_nozzle.rowCount()
+        for row in range(row_count):
+            spin_box = self.tbl_nozzle.cellWidget(row, 1)
+            if isinstance(spin_box, QSpinBox):
+                spin_box.setValue(0)
 
 class TestDolotoTable(QMainWindow):
     """ТЕСТОВЫЙ КЛАСС, ЧТОБЫ ЗАПУСКАЛАСЬ KNBK_Table"""

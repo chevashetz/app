@@ -37,7 +37,7 @@ class ComboHeader(QHeaderView):
 
     def __init__(self, parent=None):
         super(ComboHeader, self).__init__(Qt.Orientation.Horizontal, parent)
-        #self.setStretchLastSection(True)
+        # self.setStretchLastSection(True)
         self.combobox = QComboBox(self)
         self.combobox.addItems(["Азимут (град)", "Азимут маг(град)", "Азимут дир(град)"])
         self.combobox.setStyleSheet("QComboBox { text-align: center; }")
@@ -84,11 +84,14 @@ class Tables(QWidget):
         self.stackedWidget: QStackedWidget = self.findChild(QStackedWidget, 'stackedWidget')
         self.stackedWidget.setCurrentIndex(0)
 
-        self.knbk_table = KNBK_Table(parent=self)  # Создаём и сохраняем как атрибут
-        self.knbk_table.add_page.connect(self.add_page_2)
-        self.knbk_table.delete_page.connect(self.delete_page)
+        self.knbk_table = KNBK_Table(parent=self)
+        self.doloto_table = Doloto_Table(parent=self)
 
-        self.doloto_table = Doloto_Table(parent=self)  # Создаём и сохраняем как атрибут
+        self.knbk_table.add_page.connect(self.add_page_2)
+        self.doloto_table.add_page.connect(self.add_page_2)
+
+        self.knbk_table.delete_page.connect(self.delete_page)
+        self.doloto_table.delete_page.connect(self.delete_page)
 
         # Добавление виджетов в `stackedWidget`
         self.stackedWidget.insertWidget(4, self.knbk_table)
@@ -1069,6 +1072,15 @@ class Tables(QWidget):
         self.stackedWidget.insertWidget(insert_index, new_page)
         self.stackedWidget.setCurrentWidget(new_page)
 
+        new_page = Doloto_Table(parent=self)
+        new_page.add_page.connect(self.add_page_2)
+        new_page.delete_page.connect(self.delete_page)
+        new_page.set_label(text)
+
+        self.stackedWidget.insertWidget(insert_index + 1, new_page)
+        self.stackedWidget.setCurrentWidget(new_page)
+
+
     def add_page_2(self):
         """Кнопка Добавить КНБК"""
         if self.stackedWidget is None:
@@ -1084,11 +1096,18 @@ class Tables(QWidget):
         self.stackedWidget.insertWidget(insert_index, new_page)
         self.stackedWidget.setCurrentWidget(new_page)
 
+        new_page = Doloto_Table(parent=self)
+        new_page.add_page.connect(self.add_page_2)
+        new_page.delete_page.connect(self.delete_page)
+
+        self.stackedWidget.insertWidget(insert_index + 1, new_page)
+        self.stackedWidget.setCurrentWidget(new_page)
+
     def delete_page(self):
         current_index = self.stackedWidget.currentIndex()
         num_pages = self.stackedWidget.count()
 
-        if num_pages > 6:
+        if num_pages > 7:
             widget_to_remove = self.stackedWidget.widget(current_index)
             self.stackedWidget.removeWidget(widget_to_remove)
             widget_to_remove.deleteLater()
@@ -1298,11 +1317,15 @@ class Tables(QWidget):
                 self.export_to_csv(self.tbl_pressure, file_path / "Давления.csv")
                 self.export_to_csv(self.tbl_casing_strings, file_path / "Обсадные колонны.csv")
                 self.export_to_csv(self.tbl_drilling_fluids, file_path / "Буровые растворы.csv")
-
+                count = self.stackedWidget.count()
                 # Сохраняем несколько файлов KNBK (например, "КНБК_1.csv", "КНБК_2.csv")
-                for i in range(self.stackedWidget.count() - 5):  # Предположим, у вас максимум 10 таблиц KNBK
+
+                for i in range(count - 5):
                     widget = self.stackedWidget.widget(i + 4)  # получаем виджет
-                    self.export_to_csv(widget.tbl_KNBK, file_path / f"КНБК_{i + 1}.csv")
+                    if i % 2 == 0:
+                        self.export_to_csv(widget.tbl_KNBK, file_path / f"КНБК_{i // 2 + 1}.csv")
+                    else:
+                        self.export_to_csv(widget.tbl_nozzle, file_path / f"Параметры расчета {i // 2 + 1}.csv")
 
                 QMessageBox.information(self, "Сохранение завершено", f"Данные успешно сохранены в {file_path}")
             except Exception as e:

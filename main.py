@@ -6,7 +6,8 @@ from pathlib import Path
 from PyQt6 import uic
 from PyQt6.QtCore import QUrl
 from PyQt6.QtGui import QAction, QIcon
-from PyQt6.QtNetwork import QNetworkRequest, QNetworkReply, QNetworkAccessManager
+from PyQt6.QtNetwork import QNetworkRequest, QNetworkReply, QNetworkAccessManager, QAbstractSocket
+from PyQt6.QtWebSockets import QWebSocket
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QMenu, QDockWidget, QFileDialog, QTabWidget, QMessageBox, QStatusBar, QProgressBar,
     QLabel
@@ -14,9 +15,9 @@ from PyQt6.QtWidgets import (
 
 from components.project_tree import ProjectTree, ProjectItem, get_name_for_results
 from components.tables import Tables
-#from components.results import Results
+from components.results import Results
 from components.tabs import TablesTab, ResultsTab
-from config import SERVER_URL
+from config import WS_HOST, WS_PORT, WS_PORT, WS_ENDPOINT
 from utils import extract_number, countFilledRows
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -33,13 +34,13 @@ class MainWindow(QMainWindow):
         self.wellbores: dict[str, Tables] = {}
         self.tables = None
 
-        # Создаем менеджер сетевых запросов
-        self.network_manager = QNetworkAccessManager()
-        self.network_manager.finished.connect(self.handle_response)
+        self.ws = QWebSocket()
+        self.ws.textMessageReceived.connect(self.handle_response)
+
         self.tab_widget.currentChanged.connect(self.update_run_state)
         self.tab_widget.tabCloseRequested.connect(self.update_run_state)
 
-        self.reply_to_tab = {}  # Словарь для хранения связи reply -> current_tab
+        self.task_id_to_tab = {}  # Словарь для хранения связи task_id -> current_tab
 
         self.update_run_state()
 
@@ -66,7 +67,6 @@ class MainWindow(QMainWindow):
 
         self.result_progress.setVisible(False)
         self.result_progress_label.setVisible(False)
-
         self.showMaximized()
 
     def setup_actions(self):
@@ -99,13 +99,17 @@ class MainWindow(QMainWindow):
 
         if current_tab is not None:
             if current_tab.total_tasks != 0:
+
                 self.result_progress.setValue(int(100 * current_tab.executed_tasks / current_tab.total_tasks))
-                self.result_progress_label.setText(f"Выполнение задач... ({current_tab.executed_tasks}/{current_tab.total_tasks})")
+                self.result_progress_label.setText(
+                    f"Выполнение задач... ({current_tab.executed_tasks}/{current_tab.total_tasks})")
+
                 self.result_progress.setVisible(True)
                 self.result_progress_label.setVisible(True)
             else:
                 self.result_progress.setVisible(False)
                 self.result_progress_label.setVisible(False)
+
 
     def start_response(self):
         current_tab: TablesTab = self.tab_widget.currentWidget()
@@ -123,19 +127,12 @@ class MainWindow(QMainWindow):
         self.update_run_state()
 
         """Начать сетевой запрос"""
-
-        # Создаем URL и request
-        url = QUrl(SERVER_URL)
-        request = QNetworkRequest(url)
-        request.setHeader(
-            QNetworkRequest.KnownHeaders.ContentTypeHeader,
-            "application/json"
-        )
+        self.ws.open(QUrl(f"ws://{WS_HOST}:{WS_PORT}{WS_ENDPOINT}"))
 
         # Подготавливаем данные для отправки
         for i in range(fluids.rowCount()):
             try:
-                data = {
+                payload = {
                     "name": fluids.item(i, 0).text(),
                     "depth_from": extract_number(fluids.item(i, 1).text()),
                     "depth_to": extract_number(fluids.item(i, 2).text()),
@@ -144,21 +141,28 @@ class MainWindow(QMainWindow):
                     "viscosity": extract_number(fluids.item(i, 4).text()),
                     "dns": extract_number(fluids.item(i, 5).text())
                 }
-                # Конвертируем данные в JSON и затем в QByteArray
-                json_data = json.dumps(data).encode('utf-8')
+                message = {
+                    "action": "create",
+                    "payload": payload,
+                    "tab_name": "fluids"
+                }
+                self.ws.sendTextMessage(json.dumps(message))
 
-                # Отправляем POST запрос
-                reply = self.network_manager.post(request, json_data)
 
-                # Связываем reply с current_tab
-                self.reply_to_tab[reply] = current_tab
             except ValueError:  # строка недозаполнена
                 continue
 
-    def handle_response(self, reply: QNetworkReply):
+
+    def getTabByName(self, tab_name):
+        for i in range(self.tab_widget.count()):
+            if self.tab_widget.tabText(i) == tab_name:
+                return self.tab_widget.widget(i)
+        return None
+
+    def handle_response(self, message: str):
         """Обработка ответа от сервера"""
         try:
-            request_tab: TablesTab | None = self.reply_to_tab.pop(reply, None)  # Извлекаем current_tab
+            request_tab: TablesTab | None = self.task_id_to_tab.pop(reply, None)  # Извлекаем current_tab
             if request_tab is None:
                 QMessageBox.critical(self, "Результат", "Проект был не найден или удален")
                 return
@@ -189,20 +193,19 @@ class MainWindow(QMainWindow):
         #         f"Неизвестная ошибка: {str(e)}"
         #     )
         finally:
-            if request_tab.name not in self.reply_to_tab:
+            if request_tab.name not in self.task_id_to_tab:
                 request_tab.processing = False
 
             if request_tab is self.tab_widget.currentWidget():
                 self.update_run_state()
 
-            if request_tab.name not in self.reply_to_tab:
+            if request_tab.name not in self.task_id_to_tab:
                 result_tab = request_tab.get_results_tab()
                 request_tab.total_tasks = 0
                 request_tab.executed_tasks = 0
                 if result_tab is not None:
                     result_tab.total_tasks = 0
                     result_tab.executed_tasks = 0
-            reply.deleteLater()  # Очищаем память
 
     def open_file(self):
         file_path = QFileDialog.getExistingDirectory(self, "Открыть проект", "")
@@ -282,3 +285,5 @@ if __name__ == "__main__":
     main_window = MainWindow()
     main_window.show()
     sys.exit(app.exec())
+
+

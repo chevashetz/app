@@ -3,7 +3,9 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent  # Путь к главной папке приложения
 
-SERVER_URL = "http://localhost:8000/calculate/"
+WS_HOST = "localhost"
+WS_PORT = 8000
+WS_ENDPOINT = "/ws"
 
 CSV_PATH = BASE_DIR / "сsv_files"
 DRILLING_CSV_PATH = CSV_PATH / "drilling_fluid"

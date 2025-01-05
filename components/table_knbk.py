@@ -25,6 +25,7 @@ class KNBK_Table(QWidget):
     add_page = pyqtSignal()
     delete_page = pyqtSignal()
     text = pyqtSignal(str)
+
     def __init__(self, sort_key=None, parent=None):
         super().__init__(parent)
         uic.loadUi(BASE_DIR / 'table_knbk.ui', self, package='components')

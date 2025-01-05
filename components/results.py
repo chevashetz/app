@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QRa
     QStackedWidget, QButtonGroup
 from config import BASE_DIR
 
+
 class Results(QWidget):
     def __init__(self, parent=None):
         super(Results, self).__init__(parent)
@@ -19,11 +20,11 @@ class Results(QWidget):
         self.stackedWidget: QStackedWidget = self.findChild(QStackedWidget, 'stackedWidget')
         self.stackedWidget2: QStackedWidget = self.findChild(QStackedWidget, 'stackedWidget_2')
 
-        self.button_group.buttonClicked.connect(lambda btn: self.stackedWidget.setCurrentIndex(self.button_group.buttons().index(btn)))
+        self.button_group.buttonClicked.connect(
+            lambda btn: self.stackedWidget.setCurrentIndex(self.button_group.buttons().index(btn)))
         self.radio_btn_1.setChecked(True)
         self.stackedWidget.setCurrentIndex(0)
         self.stackedWidget2.currentChanged.connect(self.on_current_index_changed)
-
 
     def on_current_index_changed(self, index):
         total_pages = self.get_page_count()
@@ -38,6 +39,7 @@ class Results(QWidget):
         else:
             self.btn_go_to_next_page.setVisible(True)
 
+
 class ResultsTest(QMainWindow):
     """ТЕСТОВЫЙ КЛАСС, ЧТОБЫ ЗАПУСКАЛАСЬ Result_Tables"""
 
@@ -48,6 +50,7 @@ class ResultsTest(QMainWindow):
     def initUI(self):
         ex = Results()
         self.setCentralWidget(ex)
+
 
 # Тестирование tables
 if __name__ == '__main__':
