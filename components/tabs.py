@@ -1,3 +1,4 @@
+import uuid
 from pathlib import Path
 
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QStatusBar, QProgressBar

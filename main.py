@@ -1,48 +1,57 @@
 import json
 import logging
 import sys
+import uuid
+from enum import Enum
 from pathlib import Path
 
+import numpy as np
 from PyQt6 import uic
-from PyQt6.QtCore import QUrl
-from PyQt6.QtGui import QAction, QIcon
-from PyQt6.QtNetwork import QNetworkRequest, QNetworkReply, QNetworkAccessManager, QAbstractSocket
+from PyQt6.QtCore import QUrl, QObject, QTimer, QByteArray, pyqtSignal
+from PyQt6.QtGui import QAction
 from PyQt6.QtWebSockets import QWebSocket
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QMenu, QDockWidget, QFileDialog, QTabWidget, QMessageBox, QStatusBar, QProgressBar,
     QLabel
 )
-
 from components.project_tree import ProjectTree, ProjectItem, get_name_for_results
-from components.tables import Tables
 from components.results import Results
+from components.tables import Tables
 from components.tabs import TablesTab, ResultsTab
-from config import WS_HOST, WS_PORT, WS_PORT, WS_ENDPOINT
 from utils import extract_number, countFilledRows
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
+class TaskStatus(str, Enum):
+    CREATED = "created"
+    CANCELED = "canceled"
+    ERROR = "error"
+    COMPLETED = "completed"
+
+
 class MainWindow(QMainWindow):
+    file_received_signal = pyqtSignal(str)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         uic.loadUi('app.ui', self, package='components')
 
         self.setup_ui()
         self.setup_actions()
-
-        self.wellbores: dict[str, Tables] = {}
-        self.tables = None
-
+        self.results_widget = Results(self)
+        # У проекта свой вебсокет
         self.ws = QWebSocket()
         self.ws.textMessageReceived.connect(self.handle_response)
+        self.ws.binaryMessageReceived.connect(self.file_response)
+        self.ws.connected.connect(self.start_response)
 
         self.tab_widget.currentChanged.connect(self.update_run_state)
         self.tab_widget.tabCloseRequested.connect(self.update_run_state)
 
-        self.task_id_to_tab = {}  # Словарь для хранения связи task_id -> current_tab
-
+        self.project_id_to_project_item = {}
         self.update_run_state()
+        self.file_received_signal.connect(self.results_widget.on_file_received)
 
     def setup_ui(self):
         self.tree_widget: ProjectTree = self.findChild(ProjectTree, 'treeWidget')
@@ -82,7 +91,7 @@ class MainWindow(QMainWindow):
         self.create_action = self.findChild(QAction, 'create_action')
         self.create_action.triggered.connect(self.tree_widget.create_fast_project)
         self.run_action: QAction = self.findChild(QAction, 'run_action')
-        self.run_action.triggered.connect(self.start_response)
+        self.run_action.triggered.connect(self.connect_server)
 
         self.stop_action: QAction = self.findChild(QAction, 'stop_action')
         self.stop_action.triggered.connect(lambda _: print("Напиши функцию для меня"))
@@ -110,6 +119,9 @@ class MainWindow(QMainWindow):
                 self.result_progress.setVisible(False)
                 self.result_progress_label.setVisible(False)
 
+    def connect_server(self):
+        # Открываем соединение
+        self.ws.open(QUrl("ws://localhost:8000/ws"))
 
     def start_response(self):
         current_tab: TablesTab = self.tab_widget.currentWidget()
@@ -126,14 +138,14 @@ class MainWindow(QMainWindow):
 
         self.update_run_state()
 
-        """Начать сетевой запрос"""
-        self.ws.open(QUrl(f"ws://{WS_HOST}:{WS_PORT}{WS_ENDPOINT}"))
+        project_id = str(uuid.uuid4())
+        self.project_id_to_project_item[project_id] = current_tab.project_item
 
-        # Подготавливаем данные для отправки
+        # Подготовим список сообщений
         for i in range(fluids.rowCount()):
             try:
                 payload = {
-                    "name": fluids.item(i, 0).text(),
+                    "name": "str",  # fluids.item(i, 0).text(),
                     "depth_from": extract_number(fluids.item(i, 1).text()),
                     "depth_to": extract_number(fluids.item(i, 2).text()),
                     "transport_model": "Bingam",
@@ -144,41 +156,53 @@ class MainWindow(QMainWindow):
                 message = {
                     "action": "create",
                     "payload": payload,
-                    "tab_name": "fluids"
+                    "project_id": project_id
                 }
-                self.ws.sendTextMessage(json.dumps(message))
-
-
-            except ValueError:  # строка недозаполнена
+                json_msg = json.dumps(message)
+                self.ws.sendTextMessage(json_msg)
+            except ValueError:
                 continue
 
-
-    def getTabByName(self, tab_name):
-        for i in range(self.tab_widget.count()):
-            if self.tab_widget.tabText(i) == tab_name:
-                return self.tab_widget.widget(i)
-        return None
-
     def handle_response(self, message: str):
-        """Обработка ответа от сервера"""
+        """Обработка ответа от сервера через WebSocket"""
         try:
-            request_tab: TablesTab | None = self.task_id_to_tab.pop(reply, None)  # Извлекаем current_tab
-            if request_tab is None:
-                QMessageBox.critical(self, "Результат", "Проект был не найден или удален")
+            data = json.loads(message)
+            status = data.get('status')
+            result = data.get('result')
+            project_id = data.get('project_id')
+
+            if status == TaskStatus.CREATED:
                 return
 
-            request_tab.executed_tasks += 1
+            project_item: ProjectItem | None = self.project_id_to_project_item.get(project_id)
+            if project_item is None:
+                QMessageBox.critical(self, "Результат", "Проект был не найден или удален")
+                return
+            tab: TablesTab = project_item.tab
 
-            if reply.error() == QNetworkReply.NetworkError.NoError:
-                # Читаем данные из ответа
-                data = reply.readAll().data().decode('utf-8')
-                # Парсим JSON
-                result = json.loads(data)
-                # Показываем результат
-                self.create_results(result, request_tab)
-            else:
-                error_message = f"Ошибка запроса: {reply.errorString()}"
-                QMessageBox.critical(self, "Ошибка", error_message)
+            if status == TaskStatus.COMPLETED:
+                tab.executed_tasks += 1
+                self.create_results(data, tab)
+
+            elif status == TaskStatus.ERROR:
+                QMessageBox.critical(self, "Ошибка", f"Проект {tab.name}, ошибка: {result}")
+            elif status == TaskStatus.CANCELED:
+                QMessageBox.information(self, "Отмена", f"Task {project_id} был отменен.")
+
+            if tab.executed_tasks == tab.total_tasks:
+                tab.processing = False
+                self.project_id_to_project_item.pop(project_id)
+
+            if tab is self.tab_widget.currentWidget():
+                self.update_run_state()
+
+            if tab.executed_tasks == tab.total_tasks:
+                result_tab = tab.get_results_tab()
+                tab.total_tasks = 0
+                tab.executed_tasks = 0
+                if result_tab is not None:
+                    result_tab.total_tasks = 0
+                    result_tab.executed_tasks = 0
 
         except json.JSONDecodeError as e:
             QMessageBox.critical(
@@ -186,26 +210,29 @@ class MainWindow(QMainWindow):
                 "Ошибка",
                 f"Ошибка парсинга JSON: {str(e)}"
             )
-        # except Exception as e:
-        #     QMessageBox.critical(
-        #         self,
-        #         "Ошибка",
-        #         f"Неизвестная ошибка: {str(e)}"
-        #     )
-        finally:
-            if request_tab.name not in self.task_id_to_tab:
-                request_tab.processing = False
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Ошибка",
+                f"Неизвестная ошибка: {str(e)}"
+            )
 
-            if request_tab is self.tab_widget.currentWidget():
-                self.update_run_state()
+    def file_response(self, result_file: QByteArray):
+        """Обработка бинарного сообщения от сервера."""
+        try:
+            file_path = "result_file.txt"  # или .bin, если данные бинарные
+            with open(file_path, "wb") as f:
+                f.write(result_file)
+            logging.info(f"Binary file was received and saved as '{file_path}'")
 
-            if request_tab.name not in self.task_id_to_tab:
-                result_tab = request_tab.get_results_tab()
-                request_tab.total_tasks = 0
-                request_tab.executed_tasks = 0
-                if result_tab is not None:
-                    result_tab.total_tasks = 0
-                    result_tab.executed_tasks = 0
+            with open('result_file.txt', 'r', encoding='utf-8') as file:
+                data = file.read()
+
+            self.file_received_signal.emit(data)
+
+        except Exception as e:
+            logging.error(f"Failed to handle binary data: {str(e)}")
+            QMessageBox.critical(self, "Ошибка", f"Не удалось обработать бинарные данные: {str(e)}")
 
     def open_file(self):
         file_path = QFileDialog.getExistingDirectory(self, "Открыть проект", "")
@@ -279,11 +306,15 @@ class MainWindow(QMainWindow):
         current_tab: TablesTab = self.tab_widget.currentWidget()
         current_tab.content.print_report()
 
+    def open_file(self):
+        file_path = QFileDialog.getExistingDirectory(self, "Открыть проект", "")
+        if file_path:
+            file_path = Path(file_path)
+            self.tree_widget.load_project(file_path)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     main_window = MainWindow()
     main_window.show()
     sys.exit(app.exec())
-
-

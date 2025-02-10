@@ -1265,46 +1265,6 @@ class Tables(QWidget):
                 if item:
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
 
-    def open_db(self):
-        db_file = str(DB_PATH / "stratigraphy.db")
-        self.db_manager = DatabaseManager(db_file)
-        if not self.db_manager.open_database():
-            return
-
-        while True:
-
-            tables = self.db_manager.get_tables()
-            if not tables:
-                QMessageBox.warning(self, "Предупреждение", "В базе данных нет таблиц.")
-                self.db_manager.close_database()
-                return
-
-            if 'sqlite_sequence' in tables:
-                tables.remove('sqlite_sequence')
-
-            table_name, ok = QInputDialog.getItem(self, "Выбор таблицы", "Выберите таблицу для загрузки:", tables, 0,
-                                                  False)
-            if ok and table_name:
-                custom_headers = ["Название", "Индексация", "Верх(м)", "Низ(м)", "Коэффициент кавернозности",
-                                  "Плотность(г/см^3)"]
-
-                model = self.db_manager.preview_table(table_name, custom_headers, self)
-
-                if model:
-                    self.tbl_stratigraphy.setRowCount(0)
-                    self.tbl_stratigraphy.setColumnCount(model.columnCount() - 1)
-                    for row in range(model.rowCount()):
-                        self.tbl_stratigraphy.insertRow(row)
-                        for col in range(1, model.columnCount()):
-                            data = model.data(model.index(row, col))
-                            item = QTableWidgetItem(str(data))
-                            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                            self.tbl_stratigraphy.setItem(row, col - 1, item)
-                    break
-            else:
-                break
-
-        self.db_manager.close_database()
 
     def save_all(self, name, file_path):
         if file_path:
@@ -1420,6 +1380,48 @@ class Tables(QWidget):
                     item = QTableWidgetItem(data)
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     table.setItem(row, column, item)
+
+    def open_db(self):
+        db_file = str(DB_PATH / "stratigraphy.db")
+        self.db_manager = DatabaseManager(db_file)
+        if not self.db_manager.open_database():
+            return
+
+        while True:
+
+            tables = self.db_manager.get_tables()
+            if not tables:
+                QMessageBox.warning(self, "Предупреждение", "В базе данных нет таблиц.")
+                self.db_manager.close_database()
+                return
+
+            if 'sqlite_sequence' in tables:
+                tables.remove('sqlite_sequence')
+
+            table_name, ok = QInputDialog.getItem(self, "Выбор таблицы", "Выберите таблицу для загрузки:", tables, 0,
+                                                  False)
+            if ok and table_name:
+                custom_headers = ["Название", "Индексация", "Верх(м)", "Низ(м)", "Коэффициент кавернозности",
+                                  "Плотность(г/см^3)"]
+
+                model = self.db_manager.preview_table(table_name, custom_headers, self)
+
+                if model:
+                    self.tbl_stratigraphy.setRowCount(0)
+                    self.tbl_stratigraphy.setColumnCount(model.columnCount() - 1)
+                    for row in range(model.rowCount()):
+                        self.tbl_stratigraphy.insertRow(row)
+                        for col in range(1, model.columnCount()):
+                            data = model.data(model.index(row, col))
+                            item = QTableWidgetItem(str(data))
+                            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                            self.tbl_stratigraphy.setItem(row, col - 1, item)
+                    break
+            else:
+                break
+
+        self.db_manager.close_database()
+
 
 
 class TestTables(QMainWindow):

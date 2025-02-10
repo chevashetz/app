@@ -1,18 +1,12 @@
-import csv
 import sys
-from collections import OrderedDict
 
 from PyQt6 import uic
-from PyQt6.QtCore import Qt, QStringListModel, pyqtSignal
-from PyQt6.QtGui import QAction, QUndoStack, QPixmap
-from PyQt6.QtWidgets import QWidget, QScrollArea, QVBoxLayout, QUndoView, QLabel, QTableWidget, QPushButton, \
-    QTableWidgetItem, QComboBox, QListView, QLineEdit, QMenu, QStyledItemDelegate, QApplication, QMainWindow, \
-    QHeaderView, QSpinBox
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtWidgets import QWidget, QLabel, QTableWidget, QPushButton, \
+    QStyledItemDelegate, QApplication, QMainWindow, \
+    QSpinBox
 
-from components.adaptive_table import AdaptiveTable
-from components.dialogs import CsvTableDialog
-from config import IMAGE_PATH, CSV_PATH, BASE_DIR
-from components.comands import UpdateTableCommand
+from config import BASE_DIR
 
 
 class CenteredItemDelegate(QStyledItemDelegate):
@@ -25,7 +19,7 @@ class Doloto_Table(QWidget):
     add_page = pyqtSignal()
     delete_page = pyqtSignal()
 
-    def __init__(self, sort_key=None, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
         uic.loadUi(BASE_DIR / 'table_doloto.ui', self, package='components')
         self.setup_ui()
@@ -57,6 +51,7 @@ class Doloto_Table(QWidget):
             spin_box = self.tbl_nozzle.cellWidget(row, 1)
             if isinstance(spin_box, QSpinBox):
                 spin_box.setValue(0)
+
 
 class TestDolotoTable(QMainWindow):
     """ТЕСТОВЫЙ КЛАСС, ЧТОБЫ ЗАПУСКАЛАСЬ KNBK_Table"""
