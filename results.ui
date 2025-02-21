@@ -6,14 +6,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1208</width>
-    <height>939</height>
+    <width>1448</width>
+    <height>1148</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout">
+  <layout class="QVBoxLayout" name="verticalLayout_9">
    <item>
     <widget class="QSplitter" name="splitter">
      <property name="orientation">
@@ -42,7 +42,7 @@
        <item>
         <widget class="QStackedWidget" name="stackedWidget">
          <property name="currentIndex">
-          <number>1</number>
+          <number>0</number>
          </property>
          <widget class="QWidget" name="page">
           <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -176,40 +176,39 @@
      <widget class="QFrame" name="frame_2">
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
-        <widget class="QLabel" name="label">
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-       <item>
         <widget class="QStackedWidget" name="stackedWidget_2">
          <property name="currentIndex">
           <number>1</number>
          </property>
-         <widget class="QWidget" name="page_5">
-          <property name="enabled">
-           <bool>true</bool>
-          </property>
-          <layout class="QVBoxLayout" name="verticalLayout_8">
-           <item>
-            <widget class="QGraphicsView" name="graphicsView_5"/>
-           </item>
-           <item>
-            <widget class="QTableWidget" name="tableWidget_3"/>
+         <widget class="QWidget" name="page_interval_1">
+          <layout class="QVBoxLayout" name="verticalLayout_10">
+           <item alignment="Qt::AlignHCenter">
+            <widget class="QLabel" name="label_interval_1">
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+              </font>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>
-         <widget class="QWidget" name="page_6">
-          <property name="enabled">
-           <bool>true</bool>
-          </property>
-          <layout class="QVBoxLayout" name="verticalLayout_3">
-           <item>
-            <widget class="QGraphicsView" name="graphicsView_3"/>
-           </item>
-           <item>
-            <widget class="QTableWidget" name="tableWidget"/>
+         <widget class="QWidget" name="page_Interval_2">
+          <layout class="QVBoxLayout" name="verticalLayout_11">
+           <item alignment="Qt::AlignHCenter">
+            <widget class="QLabel" name="label_interval_2">
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+              </font>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>
@@ -219,7 +218,7 @@
         <widget class="QWidget" name="widget" native="true">
          <layout class="QHBoxLayout" name="horizontalLayout_6">
           <item>
-           <widget class="QPushButton" name="pushButton">
+           <widget class="QPushButton" name="pushButton_previous_page">
             <property name="text">
              <string>Предыдущий интервал</string>
             </property>
@@ -228,7 +227,7 @@
           <item>
            <widget class="QPushButton" name="pushButton_next_page">
             <property name="text">
-             <string>Слудующий интервал </string>
+             <string>Следующий интервал </string>
             </property>
            </widget>
           </item>

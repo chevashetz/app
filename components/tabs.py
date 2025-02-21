@@ -4,7 +4,7 @@ from pathlib import Path
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QStatusBar, QProgressBar
 
 from components.project_tree import ProjectItem
-from components.results import Results
+from components.results_main import Results
 from components.tables import Tables
 
 

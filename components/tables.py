@@ -626,7 +626,7 @@ class Tables(QWidget):
 
         scene = QGraphicsScene()
         canvas = FigureCanvas(fig)
-        # canvas.setGeometry(0, 0, 475, 615)
+        canvas.setGeometry(0, 0, 475, 615)
         scene.addWidget(canvas)
 
         self.graphicsView_profile.setScene(scene)
@@ -635,8 +635,8 @@ class Tables(QWidget):
         self.canvas_pressure = FigureCanvas(Figure(figsize=(7, 1.8)))
         self.canvas_gradient = FigureCanvas(Figure(figsize=(3.5, 1.8)))
 
-        self.canvas_pressure.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.canvas_gradient.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.canvas_pressure.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.canvas_gradient.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         self.set_canvas(self.canvas_pressure, "Давления", "Глубина по вертикали, м")
         self.set_canvas(self.canvas_gradient, "Градиент давления", "Градиент давления, кгс/см2/м")
@@ -654,6 +654,8 @@ class Tables(QWidget):
         axes.tick_params(axis='y', labelsize=8)
         axes.grid(True)
         canvas.figure.tight_layout()
+        # Сохраняем axes в объекте canvas для дальнейшего использования
+        canvas.axes = axes
 
     def on_item_changed_tbl_pressure(self, item):
         row = item.row()

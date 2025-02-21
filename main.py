@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import (
     QLabel
 )
 from components.project_tree import ProjectTree, ProjectItem, get_name_for_results
-from components.results import Results
+from components.results_main import Results
 from components.tables import Tables
 from components.tabs import TablesTab, ResultsTab
 from utils import extract_number, countFilledRows
