@@ -7,3 +7,4 @@ resources
 /msh_scripts/
 
 !/test/mock_server.py
+/results/

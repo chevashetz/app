@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1448</width>
-    <height>1148</height>
+    <width>1582</width>
+    <height>986</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -47,24 +47,15 @@
          <widget class="QWidget" name="page">
           <layout class="QVBoxLayout" name="verticalLayout_4">
            <item>
-            <widget class="QLabel" name="label_4">
-             <property name="text">
-              <string>ЭЦП на забое</string>
+            <widget class="QFrame" name="graphics">
+             <property name="frameShape">
+              <enum>QFrame::StyledPanel</enum>
              </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QGraphicsView" name="graphicsView"/>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_5">
-             <property name="text">
-              <string>ЭЦП в кольцевом пространстве </string>
+             <property name="frameShadow">
+              <enum>QFrame::Raised</enum>
              </property>
+             <layout class="QVBoxLayout" name="verticalLayout_3"/>
             </widget>
-           </item>
-           <item>
-            <widget class="QGraphicsView" name="graphicsView_2"/>
            </item>
           </layout>
          </widget>
@@ -178,33 +169,12 @@
        <item>
         <widget class="QStackedWidget" name="stackedWidget_2">
          <property name="currentIndex">
-          <number>1</number>
+          <number>0</number>
          </property>
          <widget class="QWidget" name="page_interval_1">
           <layout class="QVBoxLayout" name="verticalLayout_10">
-           <item alignment="Qt::AlignHCenter">
-            <widget class="QLabel" name="label_interval_1">
-             <property name="font">
-              <font>
-               <pointsize>12</pointsize>
-              </font>
-             </property>
-             <property name="text">
-              <string/>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-         <widget class="QWidget" name="page_Interval_2">
-          <layout class="QVBoxLayout" name="verticalLayout_11">
-           <item alignment="Qt::AlignHCenter">
-            <widget class="QLabel" name="label_interval_2">
-             <property name="font">
-              <font>
-               <pointsize>12</pointsize>
-              </font>
-             </property>
+           <item alignment="Qt::AlignHCenter|Qt::AlignTop">
+            <widget class="QLabel" name="label_title">
              <property name="text">
               <string/>
              </property>

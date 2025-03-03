@@ -16,8 +16,10 @@ from PyQt6.QtWidgets import (
 )
 from components.project_tree import ProjectTree, ProjectItem, get_name_for_results
 from components.results_main import Results
+from components.results_graphics import Results_graphics
 from components.tables import Tables
 from components.tabs import TablesTab, ResultsTab
+from config import RESULTS
 from utils import extract_number, countFilledRows
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -32,6 +34,7 @@ class TaskStatus(str, Enum):
 
 class MainWindow(QMainWindow):
     file_received_signal = pyqtSignal(str)
+    task_completed_signal = pyqtSignal(float, float)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -40,6 +43,7 @@ class MainWindow(QMainWindow):
         self.setup_ui()
         self.setup_actions()
         self.results_widget = Results(self)
+        self.results_graphics = Results_graphics(self)
         # У проекта свой вебсокет
         self.ws = QWebSocket()
         self.ws.textMessageReceived.connect(self.handle_response)
@@ -51,7 +55,10 @@ class MainWindow(QMainWindow):
 
         self.project_id_to_project_item = {}
         self.update_run_state()
-        self.file_received_signal.connect(self.results_widget.on_file_received)
+        self.file_received_signal.connect(self.results_graphics.on_file_received)
+        self.task_completed_signal.connect(self.results_widget.add_page_for_task)
+        #self.text_intervals_signal.connect(self.results_widget.set_label_intervals)
+        self.project_id_to_data = {}
 
     def setup_ui(self):
         self.tree_widget: ProjectTree = self.findChild(ProjectTree, 'treeWidget')
@@ -169,8 +176,9 @@ class MainWindow(QMainWindow):
             data = json.loads(message)
             status = data.get('status')
             result = data.get('result')
+            self.last_input_data = data.get('data')
             project_id = data.get('project_id')
-
+            self.last_project_item = project_id
             if status == TaskStatus.CREATED:
                 return
 
@@ -183,6 +191,9 @@ class MainWindow(QMainWindow):
             if status == TaskStatus.COMPLETED:
                 tab.executed_tasks += 1
                 self.create_results(data, tab)
+                depth_from = self.last_input_data.get('depth_from')
+                depth_to = self.last_input_data.get('depth_to')
+                self.task_completed_signal.emit(depth_from, depth_to)
 
             elif status == TaskStatus.ERROR:
                 QMessageBox.critical(self, "Ошибка", f"Проект {tab.name}, ошибка: {result}")
@@ -220,12 +231,14 @@ class MainWindow(QMainWindow):
     def file_response(self, result_file: QByteArray):
         """Обработка бинарного сообщения от сервера."""
         try:
-            file_path = "result_file.txt"  # или .bin, если данные бинарные
+            depth_from = self.last_input_data["depth_from"]
+            depth_to = self.last_input_data["depth_to"]
+            file_path = RESULTS / f"{self.last_project_item}{depth_from}{depth_to}.txt"  # или .bin, если данные бинарные
             with open(file_path, "wb") as f:
                 f.write(result_file)
             logging.info(f"Binary file was received and saved as '{file_path}'")
 
-            with open('result_file.txt', 'r', encoding='utf-8') as file:
+            with open(file_path, 'r', encoding='utf-8') as file:
                 data = file.read()
 
             self.file_received_signal.emit(data)

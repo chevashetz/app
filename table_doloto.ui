@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>862</width>
-    <height>698</height>
+    <width>1166</width>
+    <height>1089</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -54,35 +54,6 @@
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_2">
             <item>
-             <widget class="QFrame" name="frame_6">
-              <property name="frameShape">
-               <enum>QFrame::StyledPanel</enum>
-              </property>
-              <property name="frameShadow">
-               <enum>QFrame::Raised</enum>
-              </property>
-              <layout class="QHBoxLayout" name="horizontalLayout_4">
-               <item>
-                <widget class="QLabel" name="label_3">
-                 <property name="text">
-                  <string>TextLabel</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLabel" name="label_4">
-                 <property name="text">
-                  <string>TextLabel</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLineEdit" name="lineEdit_2"/>
-               </item>
-              </layout>
-             </widget>
-            </item>
-            <item>
              <widget class="QFrame" name="frame_5">
               <property name="frameShape">
                <enum>QFrame::StyledPanel</enum>
@@ -90,16 +61,16 @@
               <property name="frameShadow">
                <enum>QFrame::Raised</enum>
               </property>
-              <layout class="QHBoxLayout" name="horizontalLayout_3">
-               <item>
+              <layout class="QVBoxLayout" name="verticalLayout_5">
+               <item alignment="Qt::AlignHCenter">
                 <widget class="QLabel" name="label_2">
                  <property name="text">
-                  <string>TextLabel</string>
+                  <string>Буровые насосы</string>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="QLineEdit" name="lineEdit"/>
+                <widget class="QTableWidget" name="tableWidget_2"/>
                </item>
               </layout>
              </widget>
@@ -108,30 +79,62 @@
           </widget>
          </item>
          <item>
-          <widget class="QFrame" name="frame_4">
+          <widget class="QFrame" name="frame_7">
            <property name="frameShape">
             <enum>QFrame::StyledPanel</enum>
            </property>
            <property name="frameShadow">
             <enum>QFrame::Raised</enum>
            </property>
-           <layout class="QVBoxLayout" name="verticalLayout_3">
-            <item>
-             <widget class="QLabel" name="label_5">
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
+           <layout class="QVBoxLayout" name="verticalLayout_4">
+            <item alignment="Qt::AlignHCenter">
+             <widget class="QLabel" name="label_3">
               <property name="text">
-               <string>Долото / Насадки</string>
+               <string>Забойный двигатель </string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QTableWidget" name="table_nozzle">
+             <widget class="AdaptiveTable" name="table_vzd">
               <attribute name="horizontalHeaderVisible">
-               <bool>true</bool>
+               <bool>false</bool>
+              </attribute>
+              <attribute name="verticalHeaderVisible">
+               <bool>false</bool>
+              </attribute>
+              <row>
+               <property name="text">
+                <string>New Row</string>
+               </property>
+              </row>
+              <row>
+               <property name="text">
+                <string>New Row</string>
+               </property>
+              </row>
+              <column>
+               <property name="text">
+                <string>New Column</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>New Column</string>
+               </property>
+              </column>
+             </widget>
+            </item>
+            <item alignment="Qt::AlignHCenter">
+             <widget class="QLabel" name="label_12">
+              <property name="text">
+               <string>Бурение, СПО, шлам</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QTableWidget" name="tableWidget">
+              <attribute name="horizontalHeaderVisible">
+               <bool>false</bool>
               </attribute>
               <attribute name="verticalHeaderVisible">
                <bool>false</bool>
@@ -161,6 +164,90 @@
                 <string>5</string>
                </property>
               </row>
+              <column>
+               <property name="text">
+                <string>New Column</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>New Column</string>
+               </property>
+              </column>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QFrame" name="frame_4">
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_3">
+            <item alignment="Qt::AlignHCenter">
+             <widget class="QLabel" name="label_5">
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Долото / Насадки</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="AdaptiveTable" name="table_nozzle">
+              <attribute name="horizontalHeaderVisible">
+               <bool>true</bool>
+              </attribute>
+              <attribute name="verticalHeaderVisible">
+               <bool>false</bool>
+              </attribute>
+              <row>
+               <property name="text">
+                <string>1</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </row>
+              <row>
+               <property name="text">
+                <string>2</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </row>
+              <row>
+               <property name="text">
+                <string>3</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </row>
+              <row>
+               <property name="text">
+                <string>4</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </row>
+              <row>
+               <property name="text">
+                <string>5</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </row>
               <row>
                <property name="text">
                 <string>6</string>
@@ -180,27 +267,62 @@
                <property name="text">
                 <string>9</string>
                </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
               </row>
               <row>
                <property name="text">
                 <string>10</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </row>
+              <row>
+               <property name="text">
+                <string>New Row</string>
                </property>
               </row>
               <row>
                <property name="text">
                 <string>11</string>
                </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
               </row>
               <row>
                <property name="text">
                 <string>12</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
                </property>
               </row>
               <row>
                <property name="text">
                 <string>13</string>
                </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
               </row>
+              <row>
+               <property name="text">
+                <string>14</string>
+               </property>
+              </row>
+              <column>
+               <property name="text">
+                <string>Диаметр мм</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Количество</string>
+               </property>
+              </column>
               <column>
                <property name="text">
                 <string>Диаметр мм</string>
@@ -215,65 +337,237 @@
                <property name="text">
                 <string>6</string>
                </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
+              <item row="0" column="2">
+               <property name="text">
+                <string>14,3</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
               </item>
               <item row="1" column="0">
                <property name="text">
                 <string>7</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
+              <item row="1" column="2">
+               <property name="text">
+                <string>15</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
                </property>
               </item>
               <item row="2" column="0">
                <property name="text">
                 <string>7,1</string>
                </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
+              <item row="2" column="2">
+               <property name="text">
+                <string>15,9</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
               </item>
               <item row="3" column="0">
                <property name="text">
                 <string>8</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
+              <item row="3" column="2">
+               <property name="text">
+                <string>16</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
                </property>
               </item>
               <item row="4" column="0">
                <property name="text">
                 <string>8,7</string>
                </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
+              <item row="4" column="2">
+               <property name="text">
+                <string>17</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
               </item>
               <item row="5" column="0">
                <property name="text">
                 <string>9</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
+              <item row="5" column="2">
+               <property name="text">
+                <string>17,5</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
                </property>
               </item>
               <item row="6" column="0">
                <property name="text">
                 <string>9,5</string>
                </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
+              <item row="6" column="2">
+               <property name="text">
+                <string>18</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
               </item>
               <item row="7" column="0">
                <property name="text">
                 <string>10</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
+              <item row="7" column="2">
+               <property name="text">
+                <string>19</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
                </property>
               </item>
               <item row="8" column="0">
                <property name="text">
                 <string>10,3</string>
                </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
+              <item row="8" column="2">
+               <property name="text">
+                <string>19,1</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
               </item>
               <item row="9" column="0">
                <property name="text">
                 <string>11</string>
                </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
+              <item row="9" column="2">
+               <property name="text">
+                <string>20</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
               </item>
               <item row="10" column="0">
                <property name="text">
-                <string>12</string>
+                <string>11,1</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
+              <item row="10" column="2">
+               <property name="text">
+                <string>20,6</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
                </property>
               </item>
               <item row="11" column="0">
                <property name="text">
-                <string>12,7</string>
+                <string>12</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
+              <item row="11" column="2">
+               <property name="text">
+                <string>22,2</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
                </property>
               </item>
               <item row="12" column="0">
                <property name="text">
+                <string>12,7</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
+              <item row="12" column="2">
+               <property name="text">
+                <string>25,4</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
+              <item row="13" column="0">
+               <property name="text">
                 <string>13</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
+              <item row="13" column="2">
+               <property name="text">
+                <string>28,6</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
+              <item row="14" column="0">
+               <property name="text">
+                <string>14</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
+              <item row="14" column="2">
+               <property name="text">
+                <string/>
                </property>
               </item>
              </widget>
@@ -283,6 +577,123 @@
               <property name="text">
                <string>Обнулить насадки</string>
               </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QFrame" name="frame_8">
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_5">
+               <item>
+                <widget class="QLabel" name="label_6">
+                 <property name="text">
+                  <string>Диаметр центрального отверстия</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="lineEdit_3"/>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QFrame" name="frame_9">
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_6">
+               <item>
+                <widget class="QLabel" name="label_7">
+                 <property name="text">
+                  <string>Насадки</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="lineEdit_4"/>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QFrame" name="frame_10">
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_7">
+               <item>
+                <widget class="QLabel" name="label_8">
+                 <property name="text">
+                  <string>Суммарная площадь насадок, см^2</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="lineEdit_5"/>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QFrame" name="frame_11">
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_8">
+               <item>
+                <widget class="QLabel" name="label_9">
+                 <property name="text">
+                  <string>Коэффициент насадок долота</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="lineEdit_6"/>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item alignment="Qt::AlignHCenter">
+             <widget class="QLabel" name="label_11">
+              <property name="text">
+               <string>Аналитический расчет/ Входные данные</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QFrame" name="frame_12">
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_9">
+               <item>
+                <widget class="QLabel" name="label_10">
+                 <property name="text">
+                  <string>Потери давления, атм</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="lineEdit_7"/>
+               </item>
+              </layout>
              </widget>
             </item>
            </layout>
@@ -296,6 +707,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>AdaptiveTable</class>
+   <extends>QTableWidget</extends>
+   <header>components.adaptive_table</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

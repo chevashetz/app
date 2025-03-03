@@ -9,6 +9,7 @@ WS_ENDPOINT = "/ws"
 
 CSV_PATH = BASE_DIR / "сsv_files"
 DRILLING_CSV_PATH = CSV_PATH / "drilling_fluid"
+RESULTS = BASE_DIR / "results"
 
 IMAGE_PATH = BASE_DIR / "images"
 ICONS_PATH = IMAGE_PATH / "icons"

@@ -4,8 +4,9 @@ from PyQt6 import uic
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import QWidget, QLabel, QTableWidget, QPushButton, \
     QStyledItemDelegate, QApplication, QMainWindow, \
-    QSpinBox
+    QSpinBox, QTableWidgetItem
 
+from components.adaptive_table import AdaptiveTable
 from config import BASE_DIR
 
 
@@ -26,12 +27,17 @@ class Doloto_Table(QWidget):
         self.set_spin_box()
 
     def setup_ui(self):
-        self.tbl_nozzle: QTableWidget = self.findChild(QTableWidget, 'table_nozzle')
+        self.tbl_nozzle: AdaptiveTable = self.findChild(AdaptiveTable, 'table_nozzle')
+        self.tbl_vzd: AdaptiveTable = self.findChild(AdaptiveTable, 'table_vzd')
+        self.tbl_nozzle.calculate_min_column_widths_by_header()
+        self.tbl_vzd.calculate_min_column_widths_by_header()
         self.btn_clear_spinbox: QPushButton = self.findChild(QPushButton, 'pushButton_clear_nozzle')
         self.label: QLabel = self.findChild(QLabel, 'label')
 
         self.btn_clear_spinbox.clicked.connect(self.clear_spinbox)
         self.label.setVisible(False)
+
+        #self.merge_columns(0, 1, 2, text="Интервал")
 
     def set_label(self, text):
         self.label.setVisible(True)
@@ -44,6 +50,11 @@ class Doloto_Table(QWidget):
             spin_box.setMinimum(0)
             spin_box.setMaximum(100)
             self.tbl_nozzle.setCellWidget(row, 1, spin_box)
+        for row in range(row_count-1):
+            spin_box = QSpinBox()
+            spin_box.setMinimum(0)
+            spin_box.setMaximum(100)
+            self.tbl_nozzle.setCellWidget(row, 3, spin_box)
 
     def clear_spinbox(self):
         row_count = self.tbl_nozzle.rowCount()
@@ -52,6 +63,12 @@ class Doloto_Table(QWidget):
             if isinstance(spin_box, QSpinBox):
                 spin_box.setValue(0)
 
+    def merge_columns(self, row, start_col, end_col, text):
+        merged_item = QTableWidgetItem(text.strip())
+        merged_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.tbl_vzd.setItem(row, start_col, merged_item)
+
+        self.tbl_vzd.setSpan(row, start_col, 1, end_col - start_col + 1)
 
 class TestDolotoTable(QMainWindow):
     """ТЕСТОВЫЙ КЛАСС, ЧТОБЫ ЗАПУСКАЛАСЬ KNBK_Table"""
