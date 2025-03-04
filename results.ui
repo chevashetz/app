@@ -172,15 +172,7 @@
           <number>0</number>
          </property>
          <widget class="QWidget" name="page_interval_1">
-          <layout class="QVBoxLayout" name="verticalLayout_10">
-           <item alignment="Qt::AlignHCenter|Qt::AlignTop">
-            <widget class="QLabel" name="label_title">
-             <property name="text">
-              <string/>
-             </property>
-            </widget>
-           </item>
-          </layout>
+          <layout class="QVBoxLayout" name="verticalLayout_10"/>
          </widget>
         </widget>
        </item>

@@ -63,7 +63,7 @@ class Results(QWidget):
 
         else:
             new_page = Results_graphics(parent=self)
-            #new_page.set_label(text)
+            #new_page.set_label(depth_from, depth_to)
             self.stackedWidget.addWidget(new_page)
 
             #self.stackedWidget.setCurrentWidget(new_page)

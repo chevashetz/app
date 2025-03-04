@@ -3,7 +3,7 @@ import sys
 
 from PyQt6 import uic
 from PyQt6.QtWidgets import QWidget, QMainWindow, QApplication, QMessageBox, QSizePolicy, QFrame, QVBoxLayout, \
-    QStackedWidget
+    QStackedWidget, QLabel
 
 from config import BASE_DIR
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -20,6 +20,7 @@ class Results_graphics(QWidget):
     def setup_ui(self):
         self.stackedWidget: QStackedWidget = self.findChild(QStackedWidget, 'stackedWidget')
         self.stackedWidget.setCurrentIndex(0)
+        self.lable: QLabel = self.findChild(QLabel, 'lable')
 
         self.graphics_1: QFrame = self.findChild(QFrame, 'graphics_1')
         self.graphics_layout_1: QVBoxLayout = self.graphics_1.layout()
