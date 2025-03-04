@@ -74,6 +74,10 @@ class Results_graphics(QWidget):
         canvas.figure.tight_layout()
         canvas.axes = axes
 
+    def set_label_intervals(self):
+        pass
+
+
 class ResultsTest(QMainWindow):
     """ТЕСТОВЫЙ КЛАСС, ЧТОБЫ ЗАПУСКАЛАСЬ Result_graphics_Tables"""
 

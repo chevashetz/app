@@ -28,19 +28,20 @@ class Results(QWidget):
         self.stackedWidget_2: QStackedWidget = self.findChild(QStackedWidget, 'stackedWidget_2')
         self.stackedWidget_2.setCurrentIndex(0)
 
-        self.graphics_widget_1 = Results_graphics(self)
+        self.graphics_widget = Results_graphics(parent=self)
 
-        page_widget_1 = self.findChild(QWidget, "page_interval_1")
-        page_layout_1 = page_widget_1.layout()
-        page_layout_1.addWidget(self.graphics_widget_1)
+        self.connect(self.graphics_widget.set_label_intervals)
+
+
+        page_widget = self.findChild(QWidget, "page_interval_1")
+        page_layout_1 = page_widget.layout()
+        page_layout_1.addWidget(self.graphics_widget)
 
         self.button_group: QButtonGroup = self.findChild(QButtonGroup, 'buttonGroup')  # объединили кнопку в группу
         self.btn_go_to_next_page: QPushButton = self.findChild(QPushButton, 'pushButton_next_page')
         self.btn_go_to_previous_page: QPushButton = self.findChild(QPushButton, 'pushButton_previous_page')
         self.radio_btn_1: QRadioButton = self.findChild(QRadioButton, 'radioButton_page_1')
         self.radio_btn_2: QRadioButton = self.findChild(QRadioButton, 'radioButton_page_2')
-
-        self.lbl_title_1: QLabel = self.findChild(QLabel, 'label_title')
 
         self.button_group.buttonClicked.connect(
             lambda btn: self.stackedWidget.setCurrentIndex(self.button_group.buttons().index(btn)))
