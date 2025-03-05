@@ -15,9 +15,9 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item alignment="Qt::AlignHCenter">
-    <widget class="QLabel" name="label">
+    <widget class="QLabel" name="label_interval">
      <property name="text">
-      <string>TextLabel</string>
+      <string>te</string>
      </property>
     </widget>
    </item>

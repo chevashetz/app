@@ -20,7 +20,7 @@ class Results_graphics(QWidget):
     def setup_ui(self):
         self.stackedWidget: QStackedWidget = self.findChild(QStackedWidget, 'stackedWidget')
         self.stackedWidget.setCurrentIndex(0)
-        self.lable: QLabel = self.findChild(QLabel, 'lable')
+        self.label_interval: QLabel = self.findChild(QLabel, 'label_interval')
 
         self.graphics_1: QFrame = self.findChild(QFrame, 'graphics_1')
         self.graphics_layout_1: QVBoxLayout = self.graphics_1.layout()
@@ -74,8 +74,8 @@ class Results_graphics(QWidget):
         canvas.figure.tight_layout()
         canvas.axes = axes
 
-    def set_label_intervals(self):
-        pass
+    def set_label_intervals(self, depth_from, depth_to):
+        self.label_interval.setText(f"Расчет для {depth_from} - {depth_to}")
 
 
 class ResultsTest(QMainWindow):

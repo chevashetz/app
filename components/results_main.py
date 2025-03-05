@@ -17,25 +17,23 @@ class Results(QWidget):
         super(Results, self).__init__(parent)
         uic.loadUi(BASE_DIR / 'results.ui', self, package='components')
         self.setup_ui()
-        self.first_page_used = False
-        self.current_result_index = 0
-
-
+        self.add_page_for_task(0, 100)
+        self.add_page_for_task(100, 200)
     def setup_ui(self):
+
         self.stackedWidget: QStackedWidget = self.findChild(QStackedWidget, 'stackedWidget')
         self.stackedWidget.setCurrentIndex(0)
 
-        self.stackedWidget_2: QStackedWidget = self.findChild(QStackedWidget, 'stackedWidget_2')
-        self.stackedWidget_2.setCurrentIndex(0)
+        self.page_widget = self.findChild(QFrame, 'frame_resalts_graphics')
+        self.frame_layout = self.page_widget.layout()
 
-        self.graphics_widget = Results_graphics(parent=self)
+        self.stackedWidget_2 = QStackedWidget()
+        self.frame_layout.addWidget(self.stackedWidget_2)
 
-        self.connect(self.graphics_widget.set_label_intervals)
-
-
-        page_widget = self.findChild(QWidget, "page_interval_1")
-        page_layout_1 = page_widget.layout()
-        page_layout_1.addWidget(self.graphics_widget)
+        #self.btn_go_to_previous_page = QPushButton()
+        #self.btn_go_to_next_page = QPushButton()
+        #self.frame_layout.addWidget(self.btn_go_to_previous_page)
+        #self.frame_layout.addWidget(self.btn_go_to_next_page)
 
         self.button_group: QButtonGroup = self.findChild(QButtonGroup, 'buttonGroup')  # объединили кнопку в группу
         self.btn_go_to_next_page: QPushButton = self.findChild(QPushButton, 'pushButton_next_page')
@@ -50,41 +48,17 @@ class Results(QWidget):
         self.btn_go_to_next_page.clicked.connect(self.go_to_next_page)
         self.btn_go_to_previous_page.clicked.connect(self.go_to_previous_page)
 
-        self.stackedWidget_2.currentChanged.connect(self.on_current_index_changed)
+        #self.stackedWidget_2.currentChanged.connect(self.on_current_index_changed)
         self.graphics: QFrame = self.findChild(QFrame, 'graphics')
         self.graphics_layout: QVBoxLayout = self.graphics.layout()
         self.init_graphics_views()
-        self.btn_go_to_previous_page.setVisible(False)
-        self.btn_go_to_previous_page.setVisible(False)
 
     def add_page_for_task(self, depth_from: float, depth_to: float):
-        if not self.first_page_used:
-            self.lbl_title_1.setText(f"Расчет для {depth_from} - {depth_to}")
-            self.first_page_used = True
-
-        else:
-            new_page = Results_graphics(parent=self)
-            #new_page.set_label(depth_from, depth_to)
-            self.stackedWidget.addWidget(new_page)
-
-            #self.stackedWidget.setCurrentWidget(new_page)
-
-            # Создаем новую страницу динамически
-            #page_widget = QWidget()
-            #page_layout = QVBoxLayout(page_widget)
-
-            #lbl_title = QLabel(f"Расчет для {depth_from} - {depth_to}")
-            ##page_layout.addWidget(lbl_title)
-
-            #graphics_widget = Results_graphics(self)
-            #page_layout.addWidget(graphics_widget)
-            #num_pages = self.stackedWidget.count()
-            #insert_index = num_pages - 1
-
-            #self.stackedWidget_2.addWidget(page_widget)
-            #self.stackedWidget_2.insertWidget(insert_index + 1, page_widget)
-            #self.stackedWidget_2.setCurrentIndex(self.stackedWidget_2.count() - 1)
-
+        num_pages = self.stackedWidget_2.count()
+        insert_index = num_pages
+        new_page = Results_graphics(parent=self)
+        new_page.set_label_intervals(depth_from, depth_to)
+        self.stackedWidget_2.insertWidget(insert_index + 1, new_page)
 
     def get_page_count(self):
         return self.stackedWidget_2.count()

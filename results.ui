@@ -167,17 +167,12 @@
      <widget class="QFrame" name="frame_2">
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
-        <widget class="QStackedWidget" name="stackedWidget_2">
-         <property name="currentIndex">
-          <number>0</number>
-         </property>
-         <widget class="QWidget" name="page_interval_1">
-          <layout class="QVBoxLayout" name="verticalLayout_10"/>
-         </widget>
+        <widget class="QFrame" name="frame_resalts_graphics">
+         <layout class="QVBoxLayout" name="verticalLayout_7"/>
         </widget>
        </item>
        <item>
-        <widget class="QWidget" name="widget" native="true">
+        <widget class="QFrame" name="frame">
          <layout class="QHBoxLayout" name="horizontalLayout_6">
           <item>
            <widget class="QPushButton" name="pushButton_previous_page">

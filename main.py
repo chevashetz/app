@@ -55,9 +55,9 @@ class MainWindow(QMainWindow):
 
         self.project_id_to_project_item = {}
         self.update_run_state()
-        self.file_received_signal.connect(self.results_graphics.on_file_received)
-        self.task_completed_signal.connect(self.results_widget.add_page_for_task)
-        #self.text_intervals_signal.connect(self.results_widget.set_label_intervals)
+        #self.file_received_signal.connect(self.results_graphics.on_file_received)
+        #self.task_completed_signal.connect(results_tab.content.add_page_for_task)
+
         self.project_id_to_data = {}
 
     def setup_ui(self):
@@ -273,6 +273,7 @@ class MainWindow(QMainWindow):
             results_tab = ResultsTab(result_project_item, current_tab.name)
             results_tab.total_tasks = current_tab.total_tasks
             self.tab_widget.addTab(results_tab, name)
+            self.task_completed_signal.connect(results_tab.content.add_page_for_task)
 
         results_tab.add_new_data(data)
         results_tab.executed_tasks = current_tab.executed_tasks
