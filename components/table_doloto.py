@@ -29,8 +29,10 @@ class Doloto_Table(QWidget):
     def setup_ui(self):
         self.tbl_nozzle: AdaptiveTable = self.findChild(AdaptiveTable, 'table_nozzle')
         self.tbl_vzd: AdaptiveTable = self.findChild(AdaptiveTable, 'table_vzd')
+        self.tbl_mud: AdaptiveTable = self.findChild(AdaptiveTable, 'table_mud')
         self.tbl_nozzle.calculate_min_column_widths_by_header()
         self.tbl_vzd.calculate_min_column_widths_by_header()
+        self.tbl_mud.calculate_min_column_widths_by_header()
         self.btn_clear_spinbox: QPushButton = self.findChild(QPushButton, 'pushButton_clear_nozzle')
         self.label: QLabel = self.findChild(QLabel, 'label')
 

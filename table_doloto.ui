@@ -127,12 +127,12 @@
             <item alignment="Qt::AlignHCenter">
              <widget class="QLabel" name="label_12">
               <property name="text">
-               <string>Бурение, СПО, шлам</string>
+               <string>Шлам</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QTableWidget" name="tableWidget">
+             <widget class="AdaptiveTable" name="table_mud">
               <attribute name="horizontalHeaderVisible">
                <bool>false</bool>
               </attribute>
@@ -154,26 +154,40 @@
                 <string>3</string>
                </property>
               </row>
-              <row>
-               <property name="text">
-                <string>4</string>
-               </property>
-              </row>
-              <row>
-               <property name="text">
-                <string>5</string>
-               </property>
-              </row>
               <column>
                <property name="text">
-                <string>New Column</string>
+                <string>1</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>New Column</string>
+                <string>2</string>
                </property>
               </column>
+              <item row="0" column="0">
+               <property name="text">
+                <string>Плотность породы, г/см^3</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
+              <item row="1" column="0">
+               <property name="text">
+                <string>Форма частиц шлама</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
+              <item row="2" column="0">
+               <property name="text">
+                <string>Диаметр частиц, мм</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
+               </property>
+              </item>
              </widget>
             </item>
            </layout>

@@ -385,3 +385,4 @@ class FieldDialog(QDialog):
 
     def getText(self):
         return self.field_input.text()
+

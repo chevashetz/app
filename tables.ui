@@ -29,7 +29,7 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>4</number>
      </property>
      <widget class="QWidget" name="page_1">
       <layout class="QVBoxLayout" name="verticalLayout_7">
@@ -141,7 +141,7 @@
                 <number>6</number>
                </property>
                <attribute name="horizontalHeaderVisible">
-                <bool>true</bool>
+                <bool>false</bool>
                </attribute>
                <attribute name="horizontalHeaderCascadingSectionResizes">
                 <bool>false</bool>
@@ -988,12 +988,12 @@
          </column>
          <column>
           <property name="text">
-           <string>Пластическая вязкость </string>
+           <string>Реологическая модель</string>
           </property>
          </column>
          <column>
           <property name="text">
-           <string>ДНС</string>
+           <string>Параметры</string>
           </property>
          </column>
         </widget>

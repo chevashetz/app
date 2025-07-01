@@ -1,5 +1,7 @@
+import io
 import logging
 import sys
+import numpy as np
 
 from PyQt6 import uic
 from PyQt6.QtWidgets import QWidget, QMainWindow, QApplication, QMessageBox, QSizePolicy, QFrame, QVBoxLayout, \
@@ -27,8 +29,6 @@ class Results_graphics(QWidget):
         self.init_graphics_views()
 
     def on_file_received(self, data: str):
-        pass
-        '''
         try:
             buf = io.StringIO(data)
 
@@ -40,12 +40,11 @@ class Results_graphics(QWidget):
             # Получаем 1-й и 2-й столбцы (индексация с 0)
             col1 = arr[:, 0]
             col2 = arr[:, 1]
-            #self.plot_graph(col1, col2)
+            self.plot_graph(col1, col2)
 
         except Exception as e:
             logging.error(f"Failed to process in-memory data: {str(e)}")
             QMessageBox.critical(self, "Ошибка", f"Не удалось обработать данные в памяти: {str(e)}")
-        '''
 
     def init_graphics_views(self):
         self.canvas_U_1 = FigureCanvas(Figure(figsize=(4, 4)))
@@ -54,8 +53,8 @@ class Results_graphics(QWidget):
         self.canvas_U_1.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.canvas_U_2.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-        self.set_canvas(self.canvas_U_1, "в трубном пространстве", ", м")
-        self.set_canvas(self.canvas_U_2, "за ВЗД", ", м")
+        self.set_canvas(self.canvas_U_1, "в трубном пространстве", "диаметр, м")
+        self.set_canvas(self.canvas_U_2, "за ВЗД", "диаметр, м")
 
         self.graphics_layout_1.addWidget(self.canvas_U_1, stretch=1)
         self.graphics_layout_1.addWidget(self.canvas_U_2, stretch=1)
@@ -70,12 +69,18 @@ class Results_graphics(QWidget):
         axes.tick_params(axis='y', labelsize=8)
         axes.grid(True)
         axes.invert_yaxis()
-        axes.set_ylim(bottom=0)
         canvas.figure.tight_layout()
         canvas.axes = axes
 
     def set_label_intervals(self, depth_from, depth_to):
-        self.label_interval.setText(f"Расчет для {depth_from} - {depth_to}")
+        self.label_interval.setText(f"Расчет для интервала {depth_from} - {depth_to}")
+
+    def plot_graph(self, x_data, y_data):
+        axes = self.canvas_U_1.axes
+        axes.plot(x_data, y_data, 'r-', label='График')
+        axes.relim()
+        axes.autoscale_view()
+        self.canvas_U_1.draw()
 
 
 class ResultsTest(QMainWindow):

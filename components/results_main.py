@@ -1,7 +1,7 @@
 import sys
 
 from PyQt6 import uic
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSlot
 from PyQt6.QtWidgets import QWidget, QPushButton, QRadioButton, QStackedWidget, QButtonGroup, \
     QMainWindow, QApplication, QSizePolicy, QFrame, QVBoxLayout, QLabel
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -17,8 +17,7 @@ class Results(QWidget):
         super(Results, self).__init__(parent)
         uic.loadUi(BASE_DIR / 'results.ui', self, package='components')
         self.setup_ui()
-        self.add_page_for_task(0, 100)
-        self.add_page_for_task(100, 200)
+
     def setup_ui(self):
 
         self.stackedWidget: QStackedWidget = self.findChild(QStackedWidget, 'stackedWidget')
@@ -59,6 +58,7 @@ class Results(QWidget):
         new_page = Results_graphics(parent=self)
         new_page.set_label_intervals(depth_from, depth_to)
         self.stackedWidget_2.insertWidget(insert_index + 1, new_page)
+        self.stackedWidget_2.currentChanged.connect(self.on_current_index_changed)
 
     def get_page_count(self):
         return self.stackedWidget_2.count()
@@ -111,6 +111,12 @@ class Results(QWidget):
         canvas.figure.tight_layout()
         # Сохраняем axes в объекте canvas для дальнейшего использования
         canvas.axes = axes
+
+    @pyqtSlot(str)
+    def on_file_received(self, data: str):
+        current_page = self.stackedWidget_2.currentWidget()
+        if isinstance(current_page, Results_graphics):
+            current_page.on_file_received(data)
 
 
 class ResultsTest(QMainWindow):
