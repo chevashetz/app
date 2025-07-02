@@ -24,7 +24,7 @@ from matplotlib.figure import Figure
 from components.adaptive_table import AdaptiveTable
 from components.comands import PasteCommand
 from components.db import DatabaseManager
-from components.dialogs import DualInputDialog
+from components.dialogs import DualInputDialog, FluidParameterTableDialog
 from components.shading_drawer import ShadingDrawer
 from components.table_knbk import KNBK_Table
 from components.table_doloto import Doloto_Table
@@ -79,6 +79,7 @@ class Tables(QWidget):
         self.lines_on_frac_chart = {}
         self.lines_on_gradient_pressure_chart = {}
         self.lines_on_gradient_frac_chart = {}
+        self.fluid_params = {}
 
     def setup_ui(self):
         self.stackedWidget: QStackedWidget = self.findChild(QStackedWidget, 'stackedWidget')
@@ -268,6 +269,33 @@ class Tables(QWidget):
         self.graphicsView_casing_strings.setBackgroundBrush(Qt.GlobalColor.white)
         self.graphicsView_profile.setBackgroundBrush(Qt.GlobalColor.white)
 
+        btn_0_6 = QPushButton('...')
+        self.tbl_drilling_fluids.setCellWidget(0, 5, btn_0_6)
+
+        combo_0_5 = QComboBox()
+        combo_0_5.addItems(["Гершель-Балкли", "Степенная", "Бингама"])
+        combo_0_5.setStyleSheet("QComboBox { text-align: center; }")
+        for i in range(combo_0_5.count()):
+            combo_0_5.setItemData(i, Qt.AlignmentFlag.AlignCenter, Qt.ItemDataRole.TextAlignmentRole)
+        combo_0_5.setCurrentIndex(0)  # Если хочешь без выбора по умолчанию: combo_0_5.setCurrentIndex(-1)
+        self.tbl_drilling_fluids.setCellWidget(0, 4, combo_0_5)
+
+        # Колонка 5: Кнопка "..."
+        btn_0_6 = QPushButton('...')
+        btn_0_6.setEnabled(True)
+        self.tbl_drilling_fluids.setCellWidget(0, 5, btn_0_6)
+
+        # Остальные ячейки — по желанию (заполнять как обычно)
+        for col in range(self.tbl_drilling_fluids.columnCount()):
+            if col not in (4, 5):
+                item = QTableWidgetItem("")
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.tbl_drilling_fluids.setItem(0, col, item)
+
+        # --- Сигналы для первого ряда ---
+        combo_0_5.currentIndexChanged.connect(lambda idx, r=0: self.on_model_changed(r, idx))
+        btn_0_6.clicked.connect(lambda checked, r=0: self.open_fluid_param_dialog(r))
+
     def merge_columns(self, row, start_col, end_col, text):
         merged_item = QTableWidgetItem(text.strip())
         merged_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -389,9 +417,54 @@ class Tables(QWidget):
         row_count2_4 = self.tbl_drilling_fluids.rowCount()
         self.tbl_drilling_fluids.setRowCount(row_count2_4 + 1)
         for column in range(self.tbl_drilling_fluids.columnCount()):
-            item = QTableWidgetItem("")
-            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.tbl_drilling_fluids.setItem(row_count2_4, column, item)
+            if column == 4:
+                combo = QComboBox()
+                combo.addItems(["Гершель-Балкли", "Степенная", "Бингама"])
+                combo.setStyleSheet("QComboBox { text-align: center; }")
+                for i in range(combo.count()):
+                    combo.setItemData(i, Qt.AlignmentFlag.AlignCenter, Qt.ItemDataRole.TextAlignmentRole)
+                combo.setCurrentIndex(0)
+                self.tbl_drilling_fluids.setCellWidget(row_count2_4, column, combo)
+                combo.currentIndexChanged.connect(lambda idx, r=row_count2_4: self.on_model_changed(r, idx))
+            elif column == 5:
+                btn = QPushButton("...")
+                btn.setEnabled(True)
+                btn.clicked.connect(lambda checked, r=row_count2_4: self.open_fluid_param_dialog(r))
+                self.tbl_drilling_fluids.setCellWidget(row_count2_4, column, btn)
+            else:
+                item = QTableWidgetItem("")
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.tbl_drilling_fluids.setItem(row_count2_4, column, item)
+
+        # Параметры ИЗНАЧАЛЬНО пустые!
+        if not hasattr(self, 'fluid_params'):
+            self.fluid_params = {}
+        model = "Гершель-Балкли"
+        self.fluid_params[row_count2_4] = {"model": model, "params": {}}
+
+    def on_model_changed(self, row, idx):
+        combo = self.tbl_drilling_fluids.cellWidget(row, 4)
+        model = combo.currentText()
+        if not hasattr(self, 'fluid_params'):
+            self.fluid_params = {}
+        self.fluid_params[row] = {"model": model, "params": {}}  # параметры сбрасываем на пустые
+
+    def open_fluid_param_dialog(self, row):
+        combo = self.tbl_drilling_fluids.cellWidget(row, 4)
+        model = combo.currentText()
+        if not hasattr(self, 'fluid_params'):
+            self.fluid_params = {}
+        params = self.fluid_params.get(row, {}).get("params", {})
+        from components.dialogs import FluidParameterTableDialog  # Импортируй свой диалог
+        dlg = FluidParameterTableDialog(model, params, parent=self)
+        dlg.parameters_changed.connect(lambda new_params: self.update_params_for_row(row, model, new_params))
+        dlg.exec()
+
+    def update_params_for_row(self, row, model, new_params):
+        self.fluid_params[row] = {"model": model, "params": new_params}
+        # Можно добавить: отобразить параметры в 6-й колонке:
+        # params_str = "; ".join(f"{k}={v}" for k, v in new_params.items())
+        # self.tbl_drilling_fluids.setItem(row, 6, QTableWidgetItem(params_str))
 
     def add_row_pressure(self):
         row_count2_5 = self.tbl_pressure.rowCount()

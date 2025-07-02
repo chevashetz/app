@@ -1,8 +1,14 @@
 import csv
+import numpy as np
 
 from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6.QtWidgets import QDialog, QLineEdit, QLabel, QDialogButtonBox, QVBoxLayout, QTableWidget, QHeaderView, \
-    QTableWidgetItem
+    QTableWidgetItem, QPushButton, QMessageBox, QSizePolicy
+from matplotlib import pyplot as plt
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+
+from components.adaptive_table import AdaptiveTable
 
 from config import CSV_PATH
 
@@ -386,3 +392,141 @@ class FieldDialog(QDialog):
     def getText(self):
         return self.field_input.text()
 
+class FluidParameterTableDialog(QDialog):
+    parameters_changed = pyqtSignal(dict)  # Сигнал с обновлёнными параметрами
+
+    def __init__(self, fluid_model: str, parameters: dict = None, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(f"Параметры: {fluid_model}")
+        self.fluid_model = fluid_model
+
+        self.model_params = {
+            "Гершель-Балкли": [("Предел текучести", "yield_stress"),
+                               ("Коэффициент консистенции", "consistency"),
+                               ("Показатель течения", "flow_index")],
+            "Степенная": [("Коэффициент консистенции", "consistency"),
+                          ("Показатель течения", "flow_index")],
+            "Бингама": [("Предел текучести", "yield_stress"),
+                        ("Пластическая вязкость", "plastic_viscosity")]
+        }
+
+        self.parameters = parameters.copy() if parameters else {}
+        layout = QVBoxLayout(self)
+
+        params = self.model_params.get(fluid_model, [])
+        param_names = [p[0] for p in params]
+        param_keys = [p[1] for p in params]
+        self.param_keys = param_keys
+
+        # Одна строка со значениями, колонки — параметры
+
+        self.table = AdaptiveTable()
+        self.table.setRowCount(1)
+        self.table.setColumnCount(len(params))
+        self.table.setHorizontalHeaderLabels(param_names)
+        self.table.verticalHeader().setVisible(False)
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.AllEditTriggers)
+        self.table.calculate_min_column_widths_by_header()
+
+        # Ячейки пустые, или заполняем тем, что передано (например при повторном открытии)
+        for i, key in enumerate(param_keys):
+            val = self.parameters.get(key, "")
+            item = QTableWidgetItem(str(val) if val != "" else "")
+            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(0, i, item)
+        self.table.clearSelection()
+        self.table.setCurrentCell(-1, -1)
+
+        self.table.cellChanged.connect(self.on_cell_changed)
+        layout.addWidget(QLabel("Введите значения параметров:"))
+        layout.addWidget(self.table)
+
+        # График
+        self.canvas = FigureCanvas(Figure(figsize=(5, 3)))
+        self.canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.set_canvas(self.canvas, "Зависимость касательных напряжений", "Скорость сдвига, 1/с")
+        layout.addWidget(self.canvas)
+
+        # Сразу первая отрисовка (если вдруг есть данные)
+        self.plot_graph()
+
+        # Кнопка закрытия/сохранения
+        btn_close = QPushButton("Сохранить и закрыть")
+        btn_close.clicked.connect(self.try_accept)
+        layout.addWidget(btn_close)
+
+        self.setLayout(layout)
+
+    def on_cell_changed(self, row, column):
+        key = self.param_keys[column]
+        value_item = self.table.item(row, column)
+        value_str = value_item.text().replace(",", ".")
+        try:
+            value = float(value_str)
+            self.parameters[key] = value
+        except ValueError:
+            self.parameters[key] = ""
+        self.parameters_changed.emit(self.parameters)
+        self.plot_graph()
+
+    def set_canvas(self, canvas: FigureCanvas, title: str, x_label: str):
+        axes = canvas.figure.add_subplot(111)
+        axes.set_title(title, fontsize=10)
+        axes.set_xlabel(x_label, fontsize=8)
+        axes.set_ylabel("Касательное напряжение, Па", fontsize=8)
+        axes.tick_params(axis='x', labelsize=8)
+        axes.tick_params(axis='y', labelsize=8)
+        axes.grid(True)
+        canvas.figure.tight_layout()
+        canvas.axes = axes
+
+    def plot_graph(self):
+        # Используем self.canvas.axes!
+        ax = self.canvas.axes
+        ax.clear()
+        gamma_dot = np.linspace(0, 200, 200)
+        tau = np.zeros_like(gamma_dot)
+        try:
+            if self.fluid_model == "Гершель-Балкли":
+                k = float(self.parameters.get("consistency"))
+                n = float(self.parameters.get("flow_index"))
+                tau0 = float(self.parameters.get("yield_stress"))
+                tau = tau0 + k * gamma_dot ** n
+            elif self.fluid_model == "Степенная":
+                k = float(self.parameters.get("consistency"))
+                n = float(self.parameters.get("flow_index"))
+                tau = k * gamma_dot ** n
+            elif self.fluid_model == "Бингама":
+                tau0 = float(self.parameters.get("yield_stress"))
+                mu = float(self.parameters.get("plastic_viscosity"))
+                tau = tau0 + mu * gamma_dot
+            ax.plot(gamma_dot, tau)
+        except Exception:
+            pass
+        ax.set_xlabel("Скорость сдвига, 1/с")
+        ax.set_ylabel("Касательное напряжение, Па")
+        ax.grid(True)
+        ax.set_ylim(bottom=0)
+        self.canvas.draw()
+
+    def try_accept(self):
+        # Проверить, что все ячейки заполнены числами
+        params = {}
+        for i, key in enumerate(self.param_keys):
+            item = self.table.item(0, i)
+            if not item or item.text().strip() == "":
+                QMessageBox.warning(self, "Ошибка", "Заполните все параметры перед сохранением!")
+                return
+            try:
+                val = float(item.text().replace(",", "."))
+                params[key] = val
+            except Exception:
+                QMessageBox.warning(self, "Ошибка", f"Некорректное значение в параметре: {key}")
+                return
+        # Всё ок!
+        self.parameters_changed.emit(params)
+        self.accept()
+
+    def get_parameters(self):
+        return self.parameters
