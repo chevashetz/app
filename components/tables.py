@@ -269,9 +269,6 @@ class Tables(QWidget):
         self.graphicsView_casing_strings.setBackgroundBrush(Qt.GlobalColor.white)
         self.graphicsView_profile.setBackgroundBrush(Qt.GlobalColor.white)
 
-        btn_0_6 = QPushButton('...')
-        self.tbl_drilling_fluids.setCellWidget(0, 5, btn_0_6)
-
         combo_0_5 = QComboBox()
         combo_0_5.addItems(["Гершель-Балкли", "Степенная", "Бингама"])
         combo_0_5.setStyleSheet("QComboBox { text-align: center; }")
@@ -284,13 +281,6 @@ class Tables(QWidget):
         btn_0_6 = QPushButton('...')
         btn_0_6.setEnabled(True)
         self.tbl_drilling_fluids.setCellWidget(0, 5, btn_0_6)
-
-        # Остальные ячейки — по желанию (заполнять как обычно)
-        for col in range(self.tbl_drilling_fluids.columnCount()):
-            if col not in (4, 5):
-                item = QTableWidgetItem("")
-                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.tbl_drilling_fluids.setItem(0, col, item)
 
         # --- Сигналы для первого ряда ---
         combo_0_5.currentIndexChanged.connect(lambda idx, r=0: self.on_model_changed(r, idx))

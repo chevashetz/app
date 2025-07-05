@@ -11,13 +11,4 @@ def extract_number(text):
         return float(match.group(0))
     return float(text)
 
-def countFilledRows(table: QTableWidget):
-    filled_row_count = 0
-    for row in range(table.rowCount()):
-        for col in range(table.columnCount()):
-            item = table.item(row, col)
-            if not item or not item.text():
-                break
-        else:  # если for не прервался break
-            filled_row_count += 1
-    return filled_row_count
+

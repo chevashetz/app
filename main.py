@@ -20,10 +20,10 @@ from components.results_graphics import Results_graphics
 from components.tables import Tables
 from components.tabs import TablesTab, ResultsTab
 from config import RESULTS
-from utils import extract_number, countFilledRows
+from utils import extract_number
+from project_payloads import build_fluids_payloads, MODEL_MAP
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
-
 
 class TaskStatus(str, Enum):
     CREATED = "created"
@@ -130,43 +130,27 @@ class MainWindow(QMainWindow):
 
     def start_response(self):
         current_tab: TablesTab = self.tab_widget.currentWidget()
-        current_tab.processing = True
-
         fluids = current_tab.content.tbl_drilling_fluids
-        tasks = countFilledRows(fluids)
-
-        if tasks == 0:
-            QMessageBox.critical(self, "Ошибка", "Нет данных")
-            return
-
-        current_tab.total_tasks = tasks
-
-        self.update_run_state()
-
+        fluid_params = getattr(current_tab.content, "fluid_params", {})
         project_id = str(uuid.uuid4())
         self.project_id_to_project_item[project_id] = current_tab.project_item
 
-        # Подготовим список сообщений
-        for i in range(fluids.rowCount()):
-            try:
-                payload = {
-                    "name": "str",  # fluids.item(i, 0).text(),
-                    "depth_from": extract_number(fluids.item(i, 1).text()),
-                    "depth_to": extract_number(fluids.item(i, 2).text()),
-                    "transport_model": "Bingam",
-                    "density": extract_number(fluids.item(i, 3).text()),
-                    "viscosity": extract_number(fluids.item(i, 4).text()),
-                    "dns": extract_number(fluids.item(i, 5).text())
-                }
-                message = {
-                    "action": "create",
-                    "payload": payload,
-                    "project_id": project_id
-                }
-                json_msg = json.dumps(message)
-                self.ws.sendTextMessage(json_msg)
-            except ValueError:
-                continue
+        # ЛОГИКА ВЫНЕСЕНА:
+        payloads = build_fluids_payloads(
+            fluids_table=fluids,
+            fluid_params=fluid_params,
+            MODEL_MAP=MODEL_MAP,
+            extract_number=extract_number
+        )
+
+        for payload in payloads:
+            message = {
+                "action": "create",
+                "payload": payload,
+                "project_id": project_id
+            }
+            json_msg = json.dumps(message, ensure_ascii=False)
+            self.ws.sendTextMessage(json_msg)
 
     def handle_response(self, message: str):
         """Обработка ответа от сервера через WebSocket"""
